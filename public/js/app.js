@@ -814,8 +814,8 @@ const ADMIN_NAV = [
     { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'all' },
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
-    { id: 'absensi_staf', icon: 'fa-user-clock', label: 'Kelola Absensi Staf', role: 'admin' },
-    { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Saya', role: 'kasir' },
+    { id: 'absensi_staf', icon: 'fa-users-gear', label: 'Kelola Absensi Staf', role: 'admin' },
+    { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Staff', role: 'all' },
 ];
 
 function setupSidebar() {
@@ -1028,7 +1028,7 @@ async function showPage(pageId) {
 
     // Smartphone bottom navigation active state
     document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
-    const bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`);
+    const bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`) || document.getElementById(`bottom-nav-${pageId.replace(/_/g, '-')}`);
     if (bottomNavBtn) bottomNavBtn.classList.add('active');
 
     // Smartphone floating cart bar visibility
