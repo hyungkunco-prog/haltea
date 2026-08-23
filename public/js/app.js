@@ -68,6 +68,22 @@ const DEFAULT_TAKARAN = [
     { id: 12, id_menu: 3, id_barang: 39, gramasi: 25 }
 ];
 
+const DEFAULT_JAM_KERJA = { jam_masuk: '08:00:00', jam_pulang: '17:00:00' };
+
+const todayDateIso = new Date().toISOString().slice(0, 10);
+const DEFAULT_ABSENSI = [
+    { id: 1, tanggal: todayDateIso, nama_staff: 'karyawan Haltea', jam_masuk: '07:50:00', jam_pulang: '17:05:00', status: 'Hadir', keterangan: 'Shift pagi - tepat waktu', foto: 'haltea-logo.png' },
+    { id: 2, tanggal: todayDateIso, nama_staff: 'Kasir Haltea', jam_masuk: '08:12:00', jam_pulang: '17:00:00', status: 'Terlambat', keterangan: 'Keterlambatan 12 menit', foto: 'haltea-logo.png' },
+    { id: 3, tanggal: todayDateIso, nama_staff: 'Admin Haltea', jam_masuk: '07:45:00', jam_pulang: '17:30:00', status: 'Hadir', keterangan: 'Supervisor & Stock Opname', foto: 'haltea-logo.png' }
+];
+
+const DEFAULT_ARUS_KAS = [
+    { id: 1, tanggal: todayDateIso, tipe: 'masuk', kategori: 'Penjualan Minuman POS', nominal: 1450000, keterangan: 'Omset kasir harian shift 1 & 2' },
+    { id: 2, tanggal: todayDateIso, tipe: 'keluar', kategori: 'Belanja Es Batu & Air Galon', nominal: 65000, keterangan: 'Es kristal 2 karung & 2 galon' },
+    { id: 3, tanggal: todayDateIso, tipe: 'keluar', kategori: 'Restock Cup & Sedotan Plastik', nominal: 220000, keterangan: 'Pembelian 10 pack cup sablon' },
+    { id: 4, tanggal: todayDateIso, tipe: 'keluar', kategori: 'Biaya Operasional & Listrik', nominal: 150000, keterangan: 'Token listrik outlet' }
+];
+
 function getMockStorage(key, defaultVal) {
     try {
         const item = localStorage.getItem(`haltea_${key}`);
@@ -104,6 +120,9 @@ function initMockDataIfEmpty() {
     if (!localStorage.getItem('haltea_barang')) setMockStorage('barang', fullBarang);
     if (!localStorage.getItem('haltea_menu')) setMockStorage('menu', fullMenu);
     if (!localStorage.getItem('haltea_takaran')) setMockStorage('takaran', fullTakaran);
+    if (!localStorage.getItem('haltea_jam_kerja')) setMockStorage('jam_kerja', DEFAULT_JAM_KERJA);
+    if (!localStorage.getItem('haltea_absensi')) setMockStorage('absensi', DEFAULT_ABSENSI);
+    if (!localStorage.getItem('haltea_aruskas')) setMockStorage('aruskas', DEFAULT_ARUS_KAS);
     if (!localStorage.getItem('haltea_transaksi')) {
         if (fullTrx) {
             setMockStorage('transaksi', fullTrx);
@@ -581,6 +600,112 @@ async function handleClientSideMock(url, config = {}) {
                 has_data: true
             }), { status: 200 });
         }
+
+        if (path === '/jamkerja') {
+            if (method === 'GET') {
+                const jk = getMockStorage('jam_kerja', DEFAULT_JAM_KERJA);
+                return new Response(JSON.stringify(jk), { status: 200 });
+            }
+            if (method === 'POST') {
+                const newJk = { jam_masuk: body.jam_masuk || '08:00:00', jam_pulang: body.jam_pulang || '17:00:00' };
+                setMockStorage('jam_kerja', newJk);
+                return new Response(JSON.stringify({ success: true, data: newJk }), { status: 200 });
+            }
+        }
+
+        if (path.startsWith('/absensi')) {
+            let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+            if (method === 'GET') {
+                const filterTgl = parsedUrl.searchParams.get('tanggal');
+                let result = absList;
+                if (filterTgl) result = result.filter(a => a.tanggal === filterTgl);
+                return new Response(JSON.stringify(result), { status: 200 });
+            }
+            if (method === 'POST') {
+                const newAbs = {
+                    id: Date.now(),
+                    tanggal: body.tanggal || todayDateIso,
+                    nama_staff: body.nama_staff || 'Staff',
+                    jam_masuk: body.jam_masuk || '08:00:00',
+                    jam_pulang: body.jam_pulang || '17:00:00',
+                    status: body.status || 'Hadir',
+                    keterangan: body.keterangan || '-',
+                    foto: body.foto || 'haltea-logo.png'
+                };
+                absList.unshift(newAbs);
+                setMockStorage('absensi', absList);
+                return new Response(JSON.stringify({ success: true, data: newAbs }), { status: 201 });
+            }
+            if (method === 'DELETE') {
+                const idDel = parseInt(path.split('/').pop());
+                absList = absList.filter(x => x.id !== idDel);
+                setMockStorage('absensi', absList);
+                return new Response(JSON.stringify({ success: true }), { status: 200 });
+            }
+        }
+
+        if (path.startsWith('/aruskas')) {
+            let kasList = getMockStorage('aruskas', DEFAULT_ARUS_KAS);
+            if (method === 'GET') {
+                return new Response(JSON.stringify(kasList), { status: 200 });
+            }
+            if (method === 'POST') {
+                const newKas = {
+                    id: Date.now(),
+                    tanggal: body.tanggal || todayDateIso,
+                    tipe: body.tipe || 'masuk',
+                    kategori: body.kategori || 'Umum',
+                    nominal: parseFloat(body.nominal) || 0,
+                    keterangan: body.keterangan || '-'
+                };
+                kasList.unshift(newKas);
+                setMockStorage('aruskas', kasList);
+                return new Response(JSON.stringify({ success: true, data: newKas }), { status: 201 });
+            }
+            if (method === 'DELETE') {
+                const idDel = parseInt(path.split('/').pop());
+                kasList = kasList.filter(x => x.id !== idDel);
+                setMockStorage('aruskas', kasList);
+                return new Response(JSON.stringify({ success: true }), { status: 200 });
+            }
+        }
+
+        if (path === '/keuangan/summary') {
+            const kasList = getMockStorage('aruskas', DEFAULT_ARUS_KAS);
+            const trxList = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
+            
+            // Calculate total omset from transactions
+            let totalOmset = 0;
+            let totalCups = 0;
+            trxList.forEach(t => {
+                const m = menu.find(x => x.id === t.id_menu);
+                const harga = m ? parseFloat(m.harga) : 8000;
+                const qty = parseInt(t.jumlah) || 1;
+                totalOmset += (harga * qty);
+                totalCups += qty;
+            });
+
+            // HPP estimated as sum of ingredient cost per cup (~35% of omset)
+            const hppEstimasi = Math.round(totalOmset * 0.35);
+            
+            // Operational expenses from kas keluar
+            const kasKeluarTotal = kasList.filter(k => k.tipe === 'keluar').reduce((sum, k) => sum + (parseFloat(k.nominal) || 0), 0);
+            const operasionalEstimasi = kasKeluarTotal > 0 ? kasKeluarTotal : Math.round(totalOmset * 0.15);
+
+            const grossProfit = totalOmset - hppEstimasi;
+            const netProfit = grossProfit - operasionalEstimasi;
+            const margin = totalOmset > 0 ? Math.round((netProfit / totalOmset) * 100) : 0;
+
+            return new Response(JSON.stringify({
+                total_omset: totalOmset,
+                total_cups: totalCups,
+                hpp_estimasi: hppEstimasi,
+                operasional_estimasi: operasionalEstimasi,
+                gross_profit: grossProfit,
+                net_profit: netProfit,
+                margin_persen: margin
+            }), { status: 200 });
+        }
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
@@ -687,6 +812,9 @@ const ADMIN_NAV = [
     { id: 'transaksi', icon: 'fa-shopping-cart', label: 'Transaksi Penjualan', role: 'all' },
     { id: 'data_transaksi', icon: 'fa-database', label: 'Data Transaksi', role: 'admin' },
     { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'all' },
+    { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
+    { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
+    { id: 'absensi_staf', icon: 'fa-user-clock', label: 'Absensi Staf', role: 'admin' },
 ];
 
 function setupSidebar() {
@@ -714,6 +842,7 @@ function setupSidebar() {
         .map(item => `
         <a href="#" id="link-${item.id}" onclick="showPage('${item.id}'); return false;"
             class="sidebar-link flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white transition-all text-sm font-medium">
+            <i class="fas ${item.icon} w-4 text-center text-xs opacity-75"></i>
             <span>${item.label}</span>
         </a>
     `).join('');
@@ -913,6 +1042,9 @@ async function showPage(pageId) {
         transaksi: loadTransaksiCatalog,
         data_transaksi: loadDataTransaksi,
         prediksi: loadPrediksi,
+        laporan_keuangan: loadLaporanKeuangan,
+        arus_kas: loadArusKas,
+        absensi_staf: loadAbsensiStaf,
     };
     if (loaders[pageId]) await loaders[pageId]();
 }
@@ -4021,4 +4153,347 @@ async function runSpecificPrediction() {
         showToast(err.message || 'Gagal menghitung prediksi.', 'error');
     }
 }
+
+// ============================================================
+// 1. LAPORAN KEUANGAN
+// ============================================================
+async function loadLaporanKeuangan() {
+    try {
+        const res = await apiFetch('/api/keuangan/summary');
+        const data = await res.json();
+
+        const omsetEl = document.getElementById('stat-keuangan-omset');
+        const totalCupEl = document.getElementById('stat-keuangan-total-cup');
+        const hppEl = document.getElementById('stat-keuangan-hpp');
+        const opsEl = document.getElementById('stat-keuangan-operasional');
+        const netProfitEl = document.getElementById('stat-keuangan-netprofit');
+        const marginEl = document.getElementById('stat-keuangan-margin');
+
+        const detOmset = document.getElementById('keu-det-omset');
+        const detHpp = document.getElementById('keu-det-hpp');
+        const detGross = document.getElementById('keu-det-grossprofit');
+        const detOps = document.getElementById('keu-det-beban-ops');
+        const detNet = document.getElementById('keu-det-netprofit');
+
+        if (omsetEl) omsetEl.textContent = `Rp ${formatNum(data.total_omset, 0)}`;
+        if (totalCupEl) totalCupEl.textContent = `${formatNum(data.total_cups, 0)} cup terjual`;
+        if (hppEl) hppEl.textContent = `Rp ${formatNum(data.hpp_estimasi, 0)}`;
+        if (opsEl) opsEl.textContent = `Rp ${formatNum(data.operasional_estimasi, 0)}`;
+        if (netProfitEl) netProfitEl.textContent = `Rp ${formatNum(data.net_profit, 0)}`;
+        if (marginEl) marginEl.textContent = `Margin Keuntungan: ${data.margin_persen}%`;
+
+        if (detOmset) detOmset.textContent = `Rp ${formatNum(data.total_omset, 0)}`;
+        if (detHpp) detHpp.textContent = `- Rp ${formatNum(data.hpp_estimasi, 0)}`;
+        if (detGross) detGross.textContent = `Rp ${formatNum(data.gross_profit, 0)}`;
+        if (detOps) detOps.textContent = `- Rp ${formatNum(data.operasional_estimasi, 0)}`;
+        if (detNet) detNet.textContent = `Rp ${formatNum(data.net_profit, 0)}`;
+    } catch (e) {
+        showToast('Gagal memuat laporan keuangan.', 'error');
+    }
+}
+window.loadLaporanKeuangan = loadLaporanKeuangan;
+
+// ============================================================
+// 2. LAPORAN ARUS KAS
+// ============================================================
+let allArusKas = [];
+
+async function loadArusKas() {
+    try {
+        const res = await apiFetch('/api/aruskas');
+        allArusKas = await res.json();
+
+        // Calculate summary
+        let kasMasuk = 0;
+        let kasKeluar = 0;
+        allArusKas.forEach(k => {
+            const nom = parseFloat(k.nominal) || 0;
+            if (k.tipe === 'masuk') kasMasuk += nom;
+            else kasKeluar += nom;
+        });
+        const saldo = kasMasuk - kasKeluar;
+
+        const statMasuk = document.getElementById('stat-kas-masuk');
+        const statKeluar = document.getElementById('stat-kas-keluar');
+        const statSaldo = document.getElementById('stat-kas-saldo');
+        const countBadge = document.getElementById('arus-kas-count');
+
+        if (statMasuk) statMasuk.textContent = `Rp ${formatNum(kasMasuk, 0)}`;
+        if (statKeluar) statKeluar.textContent = `Rp ${formatNum(kasKeluar, 0)}`;
+        if (statSaldo) statSaldo.textContent = `Rp ${formatNum(saldo, 0)}`;
+        if (countBadge) countBadge.textContent = `${allArusKas.length} Transaksi`;
+
+        const tbody = document.getElementById('table-arus-kas-body');
+        if (!tbody) return;
+
+        if (allArusKas.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-gray-400">Belum ada mutasi arus kas tercatat.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = allArusKas.map(item => `
+            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition">
+                <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">${item.tanggal}</td>
+                <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">${item.kategori}</td>
+                <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${item.tipe === 'masuk' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'}">
+                        <i class="fas ${item.tipe === 'masuk' ? 'fa-arrow-down' : 'fa-arrow-up'} text-[10px]"></i>
+                        ${item.tipe === 'masuk' ? 'Kas Masuk' : 'Kas Keluar'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right font-bold ${item.tipe === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}">
+                    ${item.tipe === 'masuk' ? '+' : '-'} Rp ${formatNum(item.nominal, 0)}
+                </td>
+                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">${item.keterangan || '-'}</td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="deleteArusKas(${item.id})" title="Hapus Mutasi Kas" class="text-gray-400 hover:text-red-500 p-1.5 transition">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        showToast('Gagal memuat data arus kas.', 'error');
+    }
+}
+window.loadArusKas = loadArusKas;
+
+function openModalTambahArusKas() {
+    const tglInput = document.getElementById('aruskas-tanggal');
+    const form = document.getElementById('form-tambah-aruskas');
+    if (form) form.reset();
+    if (tglInput) tglInput.value = new Date().toISOString().slice(0, 10);
+    openModal('modal-tambah-aruskas');
+}
+window.openModalTambahArusKas = openModalTambahArusKas;
+
+async function submitArusKas(e) {
+    e.preventDefault();
+    const tipeRadio = document.querySelector('input[name="tipe_kas"]:checked');
+    const tipe = tipeRadio ? tipeRadio.value : 'masuk';
+    const tanggal = document.getElementById('aruskas-tanggal').value;
+    const kategori = document.getElementById('aruskas-kategori').value;
+    const nominal = document.getElementById('aruskas-nominal').value;
+    const keterangan = document.getElementById('aruskas-keterangan').value;
+
+    try {
+        const res = await apiFetch('/api/aruskas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipe, tanggal, kategori, nominal, keterangan })
+        });
+        if (!res.ok) throw new Error('Gagal menyimpan mutasi kas');
+        showToast('Mutasi kas berhasil dicatat.', 'success');
+        closeModal('modal-tambah-aruskas');
+        await loadArusKas();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitArusKas = submitArusKas;
+
+async function deleteArusKas(id) {
+    if (!confirm('Hapus pencatatan mutasi kas ini?')) return;
+    try {
+        const res = await apiFetch(`/api/aruskas/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Gagal menghapus mutasi kas');
+        showToast('Mutasi kas telah dihapus.', 'success');
+        await loadArusKas();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.deleteArusKas = deleteArusKas;
+
+// ============================================================
+// 3. ABSENSI STAF (EXACT SCREENSHOT SPECIFICATION)
+// ============================================================
+let allAbsensiRecords = [];
+
+async function loadAbsensiStaf() {
+    try {
+        // 1. Load Jam Kerja
+        const resJk = await apiFetch('/api/jamkerja');
+        if (resJk.ok) {
+            const jk = await resJk.json();
+            const masukInput = document.getElementById('jam-masuk-standar');
+            const pulangInput = document.getElementById('jam-pulang-standar');
+            if (masukInput && jk.jam_masuk) masukInput.value = jk.jam_masuk;
+            if (pulangInput && jk.jam_pulang) pulangInput.value = jk.jam_pulang;
+        }
+
+        // Set default filter date to today if empty
+        const filterTglInput = document.getElementById('filter-absensi-tanggal');
+        if (filterTglInput && !filterTglInput.value) {
+            filterTglInput.value = new Date().toISOString().slice(0, 10);
+        }
+
+        // 2. Load Attendance Records
+        const dateQuery = filterTglInput?.value ? `?tanggal=${filterTglInput.value}` : '';
+        const resAbs = await apiFetch(`/api/absensi${dateQuery}`);
+        if (resAbs.ok) {
+            allAbsensiRecords = await resAbs.json();
+            renderAbsensiTable(allAbsensiRecords);
+        }
+    } catch (e) {
+        showToast('Gagal memuat data absensi staf.', 'error');
+    }
+}
+window.loadAbsensiStaf = loadAbsensiStaf;
+
+async function saveJamKerja(e) {
+    e.preventDefault();
+    const jam_masuk = document.getElementById('jam-masuk-standar').value;
+    const jam_pulang = document.getElementById('jam-pulang-standar').value;
+
+    try {
+        const res = await apiFetch('/api/jamkerja', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jam_masuk, jam_pulang })
+        });
+        if (!res.ok) throw new Error('Gagal menyimpan jam kerja');
+        showToast('Jam kerja standar berhasil disimpan.', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.saveJamKerja = saveJamKerja;
+
+function renderAbsensiTable(records) {
+    const tbody = document.getElementById('table-absensi-body');
+    if (!tbody) return;
+
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
+                    Belum ada rekaman absensi hari ini.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = records.map(item => {
+        let statusBadgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+        if (item.status === 'Terlambat') statusBadgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+        else if (item.status === 'Izin') statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        else if (item.status === 'Sakit') statusBadgeClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+        else if (item.status === 'Alpha') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+
+        const fotoUrl = item.foto || 'haltea-logo.png';
+
+        return `
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
+            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">${item.tanggal}</td>
+            <td class="py-3 px-3 font-bold text-gray-900 dark:text-white whitespace-nowrap">${item.nama_staff}</td>
+            <td class="py-3 px-3 text-center whitespace-nowrap">
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${statusBadgeClass}">
+                    ${item.status}
+                </span>
+            </td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_masuk || '-'}</td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_pulang || '-'}</td>
+            <td class="py-3 px-3 text-center">
+                <div class="inline-block w-8 h-8 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:scale-110 transition-transform"
+                     onclick="previewFotoAbsensi('${fotoUrl}', '${item.nama_staff} - ${item.tanggal}')" title="Lihat Foto Bukti">
+                    <img src="${fotoUrl}" class="w-full h-full object-cover">
+                </div>
+            </td>
+            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs">${item.keterangan || '-'}</td>
+            <td class="py-3 px-2 text-center whitespace-nowrap">
+                <button onclick="deleteAbsensi(${item.id})" title="Hapus Rekaman" class="text-gray-400 hover:text-red-500 p-1.5 transition">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function filterAbsensiStaf() {
+    const q = (document.getElementById('filter-absensi-search')?.value || '').toLowerCase().trim();
+    if (!q) {
+        renderAbsensiTable(allAbsensiRecords);
+        return;
+    }
+    const filtered = allAbsensiRecords.filter(r => 
+        (r.nama_staff || '').toLowerCase().includes(q) || 
+        (r.keterangan || '').toLowerCase().includes(q) ||
+        (r.status || '').toLowerCase().includes(q)
+    );
+    renderAbsensiTable(filtered);
+}
+window.filterAbsensiStaf = filterAbsensiStaf;
+
+function openModalCatatAbsensi() {
+    const tglInput = document.getElementById('absensi-input-tanggal');
+    if (tglInput) tglInput.value = new Date().toISOString().slice(0, 10);
+    openModal('modal-catat-absensi');
+}
+window.openModalCatatAbsensi = openModalCatatAbsensi;
+
+async function submitAbsensi(e) {
+    e.preventDefault();
+    const nama_staff = document.getElementById('absensi-nama-staff').value;
+    const tanggal = document.getElementById('absensi-input-tanggal').value;
+    const jam_masuk = document.getElementById('absensi-input-jam-masuk').value;
+    const jam_pulang = document.getElementById('absensi-input-jam-pulang').value;
+    const status = document.getElementById('absensi-input-status').value;
+    const keterangan = document.getElementById('absensi-input-keterangan').value;
+    const fotoFile = document.getElementById('absensi-input-foto').files[0];
+
+    let fotoBase64 = 'haltea-logo.png';
+    if (fotoFile) {
+        fotoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => resolve('haltea-logo.png');
+            reader.readAsDataURL(fotoFile);
+        });
+    }
+
+    try {
+        const res = await apiFetch('/api/absensi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama_staff, tanggal, jam_masuk, jam_pulang, status, keterangan, foto: fotoBase64 })
+        });
+        if (!res.ok) throw new Error('Gagal mencatat absensi');
+        showToast('Kehadiran staff berhasil dicatat.', 'success');
+        closeModal('modal-catat-absensi');
+        await loadAbsensiStaf();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitAbsensi = submitAbsensi;
+
+async function deleteAbsensi(id) {
+    if (!confirm('Hapus rekaman absensi ini?')) return;
+    try {
+        const res = await apiFetch(`/api/absensi/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Gagal menghapus rekaman');
+        showToast('Rekaman absensi telah dihapus.', 'success');
+        await loadAbsensiStaf();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.deleteAbsensi = deleteAbsensi;
+
+function previewFotoAbsensi(url, caption) {
+    const imgEl = document.getElementById('preview-foto-img');
+    const capEl = document.getElementById('preview-foto-caption');
+    if (imgEl) imgEl.src = url;
+    if (capEl) capEl.textContent = caption || '';
+    openModal('modal-preview-foto-absensi');
+}
+window.previewFotoAbsensi = previewFotoAbsensi;
+
 

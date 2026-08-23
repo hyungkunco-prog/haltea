@@ -1845,6 +1845,255 @@
                 </div>
             </div>
 
+            <!-- ==== LAPORAN KEUANGAN (ADMIN ONLY) ==== -->
+            <div id="page-laporan-keuangan" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
+                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Keuangan (Laba & Rugi)</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Analisis pendapatan penjualan, beban pokok bahan baku, beban operasional, dan laba bersih.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <select id="filter-keuangan-periode" onchange="loadLaporanKeuangan()"
+                            class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-xl font-bold outline-none cursor-pointer">
+                            <option value="all">Semua Waktu (Historis)</option>
+                            <option value="this_month">Bulan Ini</option>
+                            <option value="last_4_weeks">4 Pekan Terakhir</option>
+                        </select>
+                        <button onclick="window.print()" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                            <i class="fas fa-print"></i> Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Keuangan Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#10b981">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Pendapatan</p>
+                                <h3 class="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="stat-keuangan-omset">Rp 0</h3>
+                                <p class="text-xs text-gray-400 mt-1" id="stat-keuangan-total-cup">0 cup terjual</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                                <i class="fas fa-arrow-trend-up text-emerald-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#ef4444">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">HPP Bahan Baku</p>
+                                <h3 class="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="stat-keuangan-hpp">Rp 0</h3>
+                                <p class="text-xs text-gray-400 mt-1">Estimasi modal resep SOP</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                <i class="fas fa-box-open text-red-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#f59e0b">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Biaya Operasional</p>
+                                <h3 class="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1" id="stat-keuangan-operasional">Rp 0</h3>
+                                <p class="text-xs text-gray-400 mt-1">Listrik, sewa, gaji, es batu</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                                <i class="fas fa-receipt text-amber-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#3b82f6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Laba Bersih (Net)</p>
+                                <h3 class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="stat-keuangan-netprofit">Rp 0</h3>
+                                <p class="text-xs text-emerald-500 font-bold mt-1" id="stat-keuangan-margin">Margin: 0%</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                                <i class="fas fa-coins text-blue-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rincian Laba Rugi Table -->
+                <div class="glass-panel rounded-2xl p-5 mb-6">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base mb-4 flex items-center gap-2">
+                        <i class="fas fa-file-lines text-blue-500"></i> Rincian Perhitungan Laba Rugi
+                    </h3>
+                    <div class="space-y-3 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                        <div class="flex justify-between items-center py-2 font-semibold">
+                            <span class="text-gray-700 dark:text-gray-300">1. Total Pendapatan Penjualan Minuman</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-bold text-base" id="keu-det-omset">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 text-gray-600 dark:text-gray-400 pl-4">
+                            <span>Beban Pokok Penjualan (HPP Bahan Baku & Cup Takaran)</span>
+                            <span class="text-red-500 font-semibold" id="keu-det-hpp">- Rp 0</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 font-semibold bg-gray-50/50 dark:bg-gray-800/30 px-3 rounded-lg">
+                            <span class="text-gray-900 dark:text-white">Laba Kotor (Gross Profit)</span>
+                            <span class="text-blue-600 dark:text-blue-400 font-bold" id="keu-det-grossprofit">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 text-gray-600 dark:text-gray-400 pl-4">
+                            <span>Beban Operasional & Pemeliharaan Outlet</span>
+                            <span class="text-red-500 font-semibold" id="keu-det-beban-ops">- Rp 0</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 font-bold bg-blue-50/60 dark:bg-blue-900/20 px-3 rounded-xl text-base">
+                            <span class="text-blue-700 dark:text-blue-300">Estimasi Laba Bersih Usaha (Net Profit)</span>
+                            <span class="text-blue-700 dark:text-blue-300 font-black text-lg" id="keu-det-netprofit">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== LAPORAN ARUS KAS (ADMIN ONLY) ==== -->
+            <div id="page-arus-kas" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
+                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Arus Kas (Cash Flow)</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Monitoring mutasi kas masuk penjualan dan kas keluar pengeluaran outlet.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <button onclick="openModalTambahArusKas()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-red-500/20 flex items-center gap-1.5 transition">
+                            <i class="fas fa-plus"></i> Tambah Mutasi Kas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cash Flow Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#10b981">
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Kas Masuk</p>
+                        <h3 class="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="stat-kas-masuk">Rp 0</h3>
+                        <p class="text-xs text-gray-400 mt-1">Penjualan & Pemasukan</p>
+                    </div>
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#ef4444">
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Kas Keluar</p>
+                        <h3 class="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="stat-kas-keluar">Rp 0</h3>
+                        <p class="text-xs text-gray-400 mt-1">Belanja Stok & Beban</p>
+                    </div>
+                    <div class="stat-card glass-stat rounded-2xl p-5" style="--accent:#3b82f6">
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Saldo Kas Bersih</p>
+                        <h3 class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="stat-kas-saldo">Rp 0</h3>
+                        <p class="text-xs text-emerald-500 font-semibold mt-1">Posisi Kas Real-time</p>
+                    </div>
+                </div>
+
+                <!-- Arus Kas Table -->
+                <div class="glass-table rounded-2xl overflow-hidden mobile-card-table">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm">Riwayat Mutasi Arus Kas</h3>
+                        <span class="text-xs text-gray-500" id="arus-kas-count">0 Transaksi</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full data-table">
+                            <thead>
+                                <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                    <th class="px-4 py-3 text-left">Tanggal</th>
+                                    <th class="px-4 py-3 text-left">Kategori</th>
+                                    <th class="px-4 py-3 text-center">Tipe</th>
+                                    <th class="px-4 py-3 text-right">Nominal</th>
+                                    <th class="px-4 py-3 text-left">Keterangan</th>
+                                    <th class="px-4 py-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-arus-kas-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== ABSENSI STAF (ADMIN ONLY - EXACT SCREENSHOT DESIGN) ==== -->
+            <div id="page-absensi-staf" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left Panel: Atur Jam Kerja -->
+                    <div class="lg:col-span-4 flex flex-col">
+                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center gap-2.5 mb-6 text-blue-600 dark:text-blue-400">
+                                    <div class="w-8 h-8 rounded-full border-2 border-blue-600 dark:border-blue-400 flex items-center justify-center">
+                                        <i class="fas fa-clock text-sm"></i>
+                                    </div>
+                                    <h2 class="text-base font-bold text-gray-900 dark:text-white">Atur Jam Kerja</h2>
+                                </div>
+
+                                <form id="form-jam-kerja" onsubmit="saveJamKerja(event)" class="space-y-5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">JAM MASUK STANDAR</label>
+                                        <input type="text" id="jam-masuk-standar" value="08:00:00" placeholder="08:00:00"
+                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">Check-in lewat dari jam ini dicatat terlambat.</p>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">JAM PULANG STANDAR</label>
+                                        <input type="text" id="jam-pulang-standar" value="17:00:00" placeholder="17:00:00"
+                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">Check-out kurang dari jam ini dicatat pulang cepat.</p>
+                                    </div>
+
+                                    <button type="submit"
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]">
+                                        Simpan Perubahan
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                                <button onclick="openModalCatatAbsensi()"
+                                    class="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 transition">
+                                    <i class="fas fa-user-plus text-blue-500"></i>
+                                    <span>+ Catat Kehadiran Staff Manual</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Riwayat Kehadiran Staff -->
+                    <div class="lg:col-span-8">
+                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
+                            <!-- Header Filter -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Riwayat Kehadiran Staff</h2>
+                                <div class="flex flex-wrap items-center gap-2.5">
+                                    <div class="relative">
+                                        <input type="date" id="filter-absensi-tanggal" onchange="loadAbsensiStaf()"
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" id="filter-absensi-search" oninput="filterAbsensiStaf()" placeholder="Cari nama staff..."
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-8 pr-3.5 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 w-36 sm:w-44">
+                                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead>
+                                        <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80 pb-3">
+                                            <th class="py-3 px-3">TANGGAL</th>
+                                            <th class="py-3 px-3">NAMA STAFF</th>
+                                            <th class="py-3 px-3 text-center">STATUS</th>
+                                            <th class="py-3 px-3 text-center">JAM MASUK</th>
+                                            <th class="py-3 px-3 text-center">JAM PULANG</th>
+                                            <th class="py-3 px-3 text-center">FOTO BUKTI</th>
+                                            <th class="py-3 px-3">KETERANGAN</th>
+                                            <th class="py-3 px-2 text-center">AKSI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-absensi-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal Prediction Status -->
             <div id="modal-prediction-status"
                 class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
@@ -1868,6 +2117,137 @@
     </div><!-- end main-app -->
 
     <!-- ===== MODALS ===== -->
+
+    <!-- Modal Tambah Mutasi Arus Kas -->
+    <div id="modal-tambah-aruskas" class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-3xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <h3 class="font-bold text-lg text-gray-900 dark:text-white">Tambah Mutasi Kas</h3>
+                <button onclick="closeModal('modal-tambah-aruskas')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-tambah-aruskas" onsubmit="submitArusKas(event)" class="space-y-4 pt-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tipe Mutasi</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/20 has-[:checked]:text-emerald-600">
+                            <input type="radio" name="tipe_kas" value="masuk" checked class="accent-emerald-600">
+                            <span class="text-xs font-bold">Kas Masuk</span>
+                        </label>
+                        <label class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 has-[:checked]:border-red-500 has-[:checked]:bg-red-50/20 has-[:checked]:text-red-600">
+                            <input type="radio" name="tipe_kas" value="keluar" class="accent-red-600">
+                            <span class="text-xs font-bold">Kas Keluar</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal</label>
+                    <input type="date" id="aruskas-tanggal" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Kategori Transaksi</label>
+                    <input type="text" id="aruskas-kategori" placeholder="Contoh: Belanja Es Batu, Listrik, Operasional" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nominal (Rp)</label>
+                    <input type="number" id="aruskas-nominal" placeholder="0" min="100" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Keterangan / Catatan</label>
+                    <textarea id="aruskas-keterangan" rows="2" placeholder="Catatan transaksi..."
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2 text-sm text-gray-900 dark:text-white outline-none"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-tambah-aruskas')" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100">Batal</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-red-500/20">Simpan Kas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Input / Catat Kehadiran Staff -->
+    <div id="modal-catat-absensi" class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-3xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <h3 class="font-bold text-lg text-gray-900 dark:text-white">Catat Kehadiran Staff</h3>
+                <button onclick="closeModal('modal-catat-absensi')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-catat-absensi" onsubmit="submitAbsensi(event)" class="space-y-4 pt-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nama Staff / Karyawan</label>
+                    <select id="absensi-nama-staff" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none">
+                        <option value="karyawan Haltea">karyawan Haltea (Kasir)</option>
+                        <option value="Kasir Haltea">Kasir Haltea (Kasir Shift Pagi)</option>
+                        <option value="Admin Haltea">Admin Haltea (Supervisor)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal</label>
+                    <input type="date" id="absensi-input-tanggal" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Jam Masuk</label>
+                        <input type="text" id="absensi-input-jam-masuk" value="07:55:00" placeholder="08:00:00" required
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3.5 py-2.5 text-sm text-gray-900 dark:text-white font-mono outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Jam Pulang</label>
+                        <input type="text" id="absensi-input-jam-pulang" value="17:05:00" placeholder="17:00:00"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3.5 py-2.5 text-sm text-gray-900 dark:text-white font-mono outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Status Kehadiran</label>
+                    <select id="absensi-input-status" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none">
+                        <option value="Hadir">Hadir Tepat Waktu</option>
+                        <option value="Terlambat">Terlambat</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Sakit">Sakit</option>
+                        <option value="Alpha">Alpha / Tidak Hadir</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Keterangan / Catatan</label>
+                    <input type="text" id="absensi-input-keterangan" placeholder="Contoh: Shift Normal, Standby Outlet"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Foto Bukti Kehadiran (Opsional)</label>
+                    <input type="file" id="absensi-input-foto" accept="image/*" class="text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-catat-absensi')" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100">Batal</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-blue-500/20">Simpan Absensi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Preview Foto Bukti Absensi -->
+    <div id="modal-preview-foto-absensi" class="fixed inset-0 bg-black/70 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-3xl w-full max-w-sm p-5 text-center">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-3">
+                <h4 id="preview-foto-title" class="font-bold text-sm text-gray-900 dark:text-white">Foto Bukti Kehadiran</h4>
+                <button onclick="closeModal('modal-preview-foto-absensi')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-3 flex items-center justify-center">
+                <img id="preview-foto-img" src="haltea-logo.png" class="w-full h-full object-cover">
+            </div>
+            <p id="preview-foto-caption" class="text-xs text-gray-500"></p>
+        </div>
+    </div>
 
     <!-- Modal Tambah/Edit Bahan Baku (Umum) -->
     <div id="modal-barang-umum"
