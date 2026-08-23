@@ -1,0 +1,2615 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HALTEA - Sistem Prediksi Stok Bahan Baku</title>
+    <meta name="description"
+        content="Sistem informasi prediksi kebutuhan stok bahan baku minuman Haltea menggunakan metode SES (Single Exponential Smoothing) dengan evaluasi WMAPE.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
+        }
+        const savedTheme = localStorage.theme || 'dark';
+        document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* ===== BASE RESET & TYPOGRAPHY ===== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===== UNIFIED TABLE & TYPOGRAPHY STYLE ===== */
+        body, table, th, td, input, button, select, textarea {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        }
+
+        .data-table th, table thead th {
+            font-size: 0.6875rem !important; /* 11px */
+            font-weight: 700 !important;
+            letter-spacing: 0.05em !important;
+            text-transform: uppercase !important;
+            color: #9ca3af !important; /* gray-400 */
+        }
+        html.dark .data-table th, html.dark table thead th {
+            color: #6b7280 !important; /* gray-500 */
+        }
+
+        /* ===== SIDEBAR LINK STATES ===== */
+        .sidebar-link {
+            border-left: 3px solid transparent;
+            transition: all 0.15s ease;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+            border-left: 3px solid #ef4444;
+            color: #ef4444;
+        }
+
+        /* ===== GLASSMORPHISM & SAAS DESIGN SYSTEM ===== */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+        }
+        html.dark .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.9);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+        }
+        html.dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-right: 1px solid rgba(229, 231, 235, 0.9) !important;
+        }
+        html.dark .glass-sidebar {
+            background: rgba(11, 15, 25, 0.92) !important;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(229, 231, 235, 0.9);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+        html.dark .glass-modal {
+            background: rgba(17, 24, 39, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* STRICT MAX 3 COLUMNS FOR KATALOG TRANSAKSI */
+        #trx-katalog-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 1.25rem !important;
+        }
+        @media (max-width: 900px) {
+            #trx-katalog-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+        }
+        @media (max-width: 500px) {
+            #trx-katalog-grid {
+                grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+            }
+        }
+
+        .glass-stat {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(229, 231, 235, 0.9);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .glass-stat:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border-color: rgba(209, 213, 219, 0.9);
+        }
+        html.dark .glass-stat {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        html.dark .glass-stat:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-table {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(229, 231, 235, 0.9);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+        }
+        html.dark .glass-table {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .today-history-panel {
+            background: rgba(13, 17, 23, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
+        }
+        html:not(.dark) .today-history-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.12);
+        }
+
+        .login-glass {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+        }
+        html.dark .login-glass {
+            background: rgba(17, 24, 39, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        html:not(.dark) ::-webkit-scrollbar-thumb { background: #d1d5db; }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1 }
+            50% { opacity: 0.4 }
+        }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px) }
+            to { opacity: 1; transform: translateY(0) }
+        }
+        .fade-in { animation: fadeInUp 0.3s ease-out; }
+
+        /* ===== TABLES ===== */
+        .data-table thead th {
+            background: rgba(239, 68, 68, 0.08);
+            white-space: nowrap;
+        }
+        .dark .data-table thead th { background: rgba(239, 68, 68, 0.1); }
+        .data-table tbody tr { transition: background 0.15s; }
+        .data-table tbody tr:hover { background: rgba(239, 68, 68, 0.04); }
+
+        /* ===== GRADIENT TEXT ===== */
+        .gradient-text {
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ===== NUMBER INPUT ===== */
+        .num-input { -moz-appearance: textfield; }
+        .num-input::-webkit-outer-spin-button,
+        .num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+        /* ===== TABS ===== */
+        .tab-btn.active { background: #ef4444; color: white; }
+
+        /* ===== DROP ZONE ===== */
+        .drop-zone { border: 2px dashed #374151; transition: all 0.2s; }
+        .drop-zone.drag-over { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        html:not(.dark) .drop-zone { border-color: #d1d5db; }
+
+        /* ===== MODAL BACKDROP ===== */
+        .modal-backdrop { backdrop-filter: blur(4px); }
+
+        /* ===== STAT CARDS ===== */
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent, #ef4444), transparent);
+        }
+
+        /* ===== LOGIN ICON HIDE ===== */
+        #login-username:focus ~ .fa-user,
+        #login-username:not(:placeholder-shown) ~ .fa-user,
+        #login-password:focus ~ .fa-lock,
+        #login-password:not(:placeholder-shown) ~ .fa-lock {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .fa-user, .fa-lock { transition: opacity 0.15s ease-in-out; }
+
+        /* ===== LAYOUT CORE ===== */
+        #main-app {
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 16rem;
+            height: 100%;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.25s ease;
+        }
+
+        #sidebar-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Mobile drawer: sidebar completely hidden until opened */
+        #main-app.layout-mobile #sidebar {
+            display: none !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            z-index: 50 !important;
+            width: min(85vw, 18rem) !important;
+            max-width: 18rem !important;
+            height: 100dvh !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+        #main-app.layout-mobile #sidebar.sidebar-open {
+            display: flex !important;
+        }
+        #main-app.layout-mobile #sidebar-overlay.show {
+            display: block !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        #main-app.layout-mobile #sidebar-overlay {
+            display: none;
+        }
+        #main-app.layout-mobile > main {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+        #main-app.layout-mobile .top-bar {
+            z-index: 60 !important;
+            position: sticky;
+        }
+        #main-app.layout-mobile #sidebar-toggle {
+            display: flex !important;
+            position: relative;
+            z-index: 61;
+        }
+
+        /* Desktop: sidebar always visible unless collapsed */
+        #main-app.layout-desktop {
+            display: flex !important;
+        }
+        #main-app.layout-desktop #sidebar {
+            display: flex !important;
+            position: relative !important;
+            transform: none !important;
+            width: 16rem !important;
+            min-width: 16rem !important;
+        }
+        #main-app.layout-desktop.sidebar-collapsed #sidebar {
+            display: none !important;
+            width: 0 !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+        }
+        #main-app.layout-desktop #sidebar-overlay {
+            display: none !important;
+        }
+        #main-app.layout-desktop #sidebar-collapse-desktop {
+            display: flex !important;
+        }
+
+        /* Show/hide elements by layout mode (no Tailwind breakpoint dependency) */
+        .layout-mobile-only { display: none !important; }
+        .layout-desktop-only { display: none !important; }
+        #main-app.layout-mobile .layout-mobile-only { display: flex !important; }
+        #main-app.layout-mobile span.layout-mobile-only { display: inline !important; }
+        #main-app.layout-desktop .layout-desktop-only { display: flex !important; }
+        #main-app.layout-desktop span.layout-desktop-only { display: inline !important; }
+        #main-app.layout-mobile #sidebar-collapse-desktop { display: none !important; }
+        #main-app.layout-desktop #sidebar-toggle { display: none !important; }
+
+        /* Katalog compact cards (all screens) */
+        .katalog-card .katalog-thumb {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 0.625rem;
+            overflow: hidden;
+        }
+        .katalog-card .katalog-thumb img {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+        .katalog-card .katalog-body {
+            padding: 0.75rem;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+        html.dark .top-bar {
+            background: rgba(13, 17, 23, 0.92);
+        }
+
+        #sidebar-toggle,
+        #sidebar-collapse-desktop {
+            touch-action: manipulation;
+        }
+
+        /* Desktop sidebar collapse button */
+        @media (min-width: 1024px) {
+            #sidebar-collapse-desktop {
+                cursor: pointer;
+            }
+        }
+
+        /* ===== PAGE TRANSITIONS ===== */
+        .page-content { animation: fadeInUp 0.25s ease-out; }
+
+        /* ===== SOP MENU TOGGLE (hidden by default — shown on mobile/tablet) ===== */
+        .sop-menu-toggle { display: none; }
+
+        /* ============================================================
+           RESPONSIVE: MOBILE & TABLET (below 1024px)
+           ============================================================ */
+        @media (max-width: 1023px) {
+            #main-app.layout-mobile {
+                display: block !important;
+                position: relative;
+            }
+
+            body.sidebar-is-open {
+                overflow: hidden;
+            }
+            body.sidebar-is-open main {
+                overflow: hidden !important;
+            }
+
+            /* --- Sidebar nav items: bigger touch targets --- */
+            .sidebar-link {
+                padding: 0.75rem 1rem;
+                font-size: 0.9375rem;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+
+            /* --- SOP layout: stack on mobile/tablet --- */
+            .sop-menu-toggle { display: flex !important; }
+            .sop-layout {
+                flex-direction: column !important;
+                min-height: auto !important;
+            }
+            .sop-layout > .sop-menu-panel {
+                width: 100% !important;
+                min-width: 100% !important;
+                display: none !important;
+            }
+            .sop-layout > .sop-menu-panel.sop-menu-visible {
+                display: flex !important;
+                max-height: min(50vh, 320px);
+                overflow-y: auto;
+            }
+            .sop-layout > .sop-editor-panel {
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+
+            /* --- Tables always scrollable --- */
+            .glass-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* --- Modals: better sizing --- */
+            .modal-backdrop > .glass-modal {
+                max-width: calc(100vw - 2rem) !important;
+                max-height: calc(100dvh - 2rem);
+                overflow-y: auto;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: MOBILE ONLY (below 768px)
+           ============================================================ */
+        @media (max-width: 767px) {
+            /* --- Body text size --- */
+            body { font-size: 14px; }
+
+            /* --- Page content --- */
+            .page-content {
+                padding: 1rem !important;
+            }
+
+            /* --- Headings --- */
+            .page-content h1 {
+                font-size: 1.25rem;
+                line-height: 1.35;
+            }
+            .page-content h2 { font-size: 1rem; }
+
+            /* --- Stat cards: 1 column, compact --- */
+            .page-content .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            .stat-card {
+                padding: 0.875rem !important;
+            }
+            .stat-card h3 {
+                font-size: 1.5rem !important;
+            }
+            .stat-card .w-10 {
+                width: 2.25rem !important;
+                height: 2.25rem !important;
+            }
+
+            /* --- Dashboard chart section: 1 column --- */
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            /* --- Table: card layout on mobile (see ≤1023px block) --- */
+            .data-table {
+                min-width: 0 !important;
+            }
+
+            /* --- Modals: near-full-width --- */
+            .modal-backdrop {
+                padding: 0.5rem !important;
+                align-items: flex-end !important;
+            }
+            .modal-backdrop > .glass-modal {
+                max-width: 100% !important;
+                max-height: calc(100dvh - 1rem);
+                border-radius: 1.25rem 1.25rem 0 0 !important;
+                margin-bottom: 0;
+            }
+
+            /* --- Transaction catalog: 1 column --- */
+            #trx-katalog-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+
+            /* --- SOP editor header: wrap --- */
+            .sop-editor-panel .glass-panel > .flex {
+                flex-wrap: wrap;
+                gap: 0.75rem;
+            }
+
+            /* --- Today history panel: full width --- */
+            .today-history-panel {
+                width: calc(100vw - 2rem) !important;
+                max-width: 100% !important;
+                right: 1rem !important;
+            }
+
+            /* --- Hamburger button position --- */
+            #sidebar-toggle {
+                margin-left: -0.375rem;
+            }
+
+            /* --- Tab buttons: wrap + compact --- */
+            .flex.gap-2.mb-5 {
+                flex-wrap: wrap;
+                gap: 0.375rem;
+            }
+            .stok-tab-btn, .tab-btn {
+                font-size: 0.8125rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            /* --- Toast: full width at bottom --- */
+            #toast-container {
+                right: 0.75rem;
+                left: 0.75rem;
+                bottom: 0.75rem;
+                bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+            }
+            #toast-container > div { width: 100%; }
+
+            /* --- Page header spacing --- */
+            .page-content > .flex:first-child {
+                gap: 0.75rem;
+            }
+            /* Force vertical stacking on page headers */
+            .page-content > .flex.flex-col.sm\:flex-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+
+            /* --- Buttons: no wrap text, smaller padding --- */
+            .page-content button {
+                white-space: nowrap;
+            }
+
+            /* --- Auto-predict banner: stack --- */
+            #auto-predict-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            /* --- Filter bars: wrap properly --- */
+            .page-content .flex.flex-wrap {
+                gap: 0.5rem;
+            }
+
+            /* --- Login screen padding --- */
+            .login-glass {
+                margin: 0 0.75rem;
+            }
+
+            /* --- Drop zone: smaller --- */
+            .drop-zone {
+                padding: 1.5rem 1rem !important;
+            }
+            .drop-zone i { font-size: 1.5rem !important; }
+
+            /* --- Import section compact --- */
+            .page-content .flex.items-center.gap-4.mb-4 {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.75rem;
+            }
+
+            /* --- SOP editor buttons: compact --- */
+            .sop-editor-panel .flex.items-center.gap-2 button {
+                padding: 0.5rem 0.625rem;
+                font-size: 0.8125rem;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: TABLET (768px - 1023px)
+           ============================================================ */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            /* --- Page content padding --- */
+            .page-content {
+                padding: 1.5rem !important;
+            }
+
+            /* --- Stat cards: 2 columns --- */
+            .page-content .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            /* --- Transaction catalog: 2 columns on tablet --- */
+            #trx-katalog-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* --- SOP menu panel: taller on tablet --- */
+            .sop-layout > .sop-menu-panel.sop-menu-visible {
+                max-height: min(55vh, 360px);
+            }
+
+            /* --- Modals: centered, capped width --- */
+            .modal-backdrop > .glass-modal {
+                max-width: 32rem !important;
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE: DESKTOP (1024px+)
+           ============================================================ */
+        @media (min-width: 1024px) {
+            #main-app.layout-desktop > main {
+                flex: 1 1 0% !important;
+                min-width: 0;
+            }
+
+            #trx-katalog-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+
+            /* --- SOP layout: side-by-side --- */
+            .sop-layout {
+                flex-direction: row !important;
+                align-items: flex-start !important;
+            }
+            .sop-layout > .sop-menu-panel {
+                display: flex !important;
+                width: 240px !important;
+                min-width: 240px !important;
+                max-height: calc(100vh - 180px) !important;
+                position: sticky !important;
+                top: 1.5rem !important;
+                overflow: hidden !important;
+            }
+            #menu-list-sidebar::-webkit-scrollbar {
+                width: 5px;
+            }
+            #menu-list-sidebar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            #menu-list-sidebar::-webkit-scrollbar-thumb {
+                background: rgba(156, 163, 175, 0.4);
+                border-radius: 9999px;
+            }
+            #menu-list-sidebar::-webkit-scrollbar-thumb:hover {
+                background: rgba(156, 163, 175, 0.7);
+            }
+
+            /* --- Page content: generous padding --- */
+            .page-content {
+                padding: 1.75rem !important;
+            }
+        }
+
+        @media (min-width: 1280px) {
+            #trx-katalog-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+        }
+
+        /* ============================================================
+           PRINT
+           ============================================================ */
+        @media print {
+            #sidebar, #sidebar-overlay, .top-bar, #sidebar-toggle {
+                display: none !important;
+            }
+            .page-content { padding: 0 !important; }
+        }
+
+        /* ============================================================
+           MOBILE & TABLET UX (≤1023px) — card layout, no horizontal scroll
+           ============================================================ */
+        @media (max-width: 1023px) {
+            html, body, #main-app, #main-app > main, .page-content {
+                overflow-x: hidden !important;
+                max-width: 100vw;
+            }
+
+            .page-content {
+                padding: 0.875rem !important;
+            }
+
+            /* All data tables → vertical cards */
+            .page-content .glass-table .overflow-x-auto,
+            .mobile-card-table .overflow-x-auto {
+                overflow-x: visible !important;
+            }
+            .page-content .glass-table .data-table,
+            .mobile-card-table .data-table {
+                min-width: 0 !important;
+                width: 100% !important;
+            }
+            .page-content .glass-table thead,
+            .mobile-card-table thead {
+                display: none !important;
+            }
+            .page-content .glass-table tbody tr,
+            .mobile-card-table tbody tr {
+                display: block;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 0.875rem;
+                margin-bottom: 0.5rem;
+                padding: 0.75rem;
+            }
+            html:not(.dark) .page-content .glass-table tbody tr,
+            html:not(.dark) .mobile-card-table tbody tr {
+                background: rgba(255, 255, 255, 0.9);
+                border-color: rgba(0, 0, 0, 0.07);
+            }
+            .page-content .glass-table tbody td,
+            .mobile-card-table tbody td {
+                display: flex !important;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.625rem;
+                padding: 0.4rem 0 !important;
+                border: none !important;
+                text-align: right !important;
+                width: 100% !important;
+                white-space: normal !important;
+            }
+            .page-content .glass-table tbody td::before,
+            .mobile-card-table tbody td::before {
+                content: attr(data-label);
+                font-size: 0.65rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #9ca3af;
+                text-align: left;
+                flex-shrink: 0;
+                max-width: 42%;
+            }
+            .page-content .glass-table tbody td[data-label=""]::before,
+            .page-content .glass-table tbody td:not([data-label])::before,
+            .mobile-card-table tbody td[data-label=""]::before,
+            .mobile-card-table tbody td:not([data-label])::before {
+                display: none;
+            }
+            .page-content .glass-table tbody td.td-title,
+            .mobile-card-table tbody td.td-title {
+                display: block !important;
+                text-align: left !important;
+                padding-bottom: 0.5rem !important;
+                margin-bottom: 0.35rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            }
+            html:not(.dark) .page-content .glass-table tbody td.td-title,
+            html:not(.dark) .mobile-card-table tbody td.td-title {
+                border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+            }
+            .page-content .glass-table tbody td.td-actions > div,
+            .mobile-card-table tbody td.td-actions > div {
+                margin-left: auto;
+            }
+
+            /* Katalog transaksi — compact list */
+            #trx-katalog-grid {
+                gap: 0.5rem !important;
+            }
+            .katalog-card {
+                border-radius: 0.75rem !important;
+            }
+            .katalog-card .katalog-thumb {
+                width: 3.25rem !important;
+                height: 3.25rem !important;
+            }
+            .katalog-card .katalog-body {
+                padding: 0.625rem 0.75rem !important;
+            }
+
+            /* SOP editor stacks */
+            .sop-editor-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .sop-editor-actions {
+                width: 100%;
+            }
+            .sop-editor-actions button {
+                flex: 1;
+                justify-content: center;
+            }
+
+            /* Stok & prediksi tabs stack */
+            #page-stok .flex.gap-2.mb-5,
+            #page-prediksi .flex.gap-2.mb-5 {
+                flex-direction: column !important;
+            }
+            .stok-tab-btn, #page-prediksi .tab-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .mobile-stack {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .mobile-stack > * { width: 100% !important; }
+
+            /* Page headers stack */
+            .page-content > .flex.flex-col.sm\:flex-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            #trx-katalog-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* CRITICAL: sidebar must not cover mobile content before JS runs */
+        @media (max-width: 1023px) {
+            #main-app {
+                display: block !important;
+            }
+            #main-app > main {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-left: 0 !important;
+            }
+            #sidebar:not(.sidebar-open) {
+                display: none !important;
+            }
+            #sidebar.sidebar-open {
+                display: flex !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                z-index: 50 !important;
+                width: min(85vw, 18rem) !important;
+                height: 100dvh !important;
+                box-shadow: 14px 0 40px rgba(0, 0, 0, 0.35);
+            }
+            #sidebar-overlay:not(.show) {
+                display: none !important;
+            }
+            #sidebar-overlay.show {
+                display: block !important;
+            }
+            #sidebar-toggle {
+                display: flex !important;
+            }
+            #sidebar-collapse-desktop {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-50 dark:bg-[#080c14] text-gray-900 dark:text-gray-100 h-screen overflow-hidden">
+
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-screen" class="fixed inset-0 bg-gray-100 dark:bg-[#0b0f18] z-[100] flex items-center justify-center">
+        <div class="login-glass relative p-8 rounded-2xl w-full max-w-sm mx-4">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <div
+                    class="relative w-20 h-20 mx-auto mb-4 overflow-hidden rounded-full border-4 border-red-500/20 shadow-lg bg-white flex items-center justify-center">
+                    <img src="haltea-logo.png" class="w-full h-full object-cover">
+                </div>
+                <h1 class="text-2xl font-bold"><span class="gradient-text">HALTEA</span></h1>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Sistem Prediksi Stok Bahan Baku</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Username</label>
+                    <div class="relative">
+                        <input type="text" id="login-username" placeholder="Masukkan username"
+                            class="w-full bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl p-3 pl-9 outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-sm backdrop-blur-sm"
+                            required>
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    </div>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative">
+                        <input type="password" id="login-password" placeholder="Masukkan password"
+                            class="w-full bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl p-3 pl-9 pr-10 outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-sm backdrop-blur-sm"
+                            required>
+                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <button type="button" id="toggle-password" onclick="togglePasswordVisibility()"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i id="toggle-pwd-icon" class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="login-error"
+                    class="hidden bg-red-50/80 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-xl flex items-center gap-2 backdrop-blur-sm">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="login-error-text">Username atau password salah.</span>
+                </div>
+                <button type="submit" id="login-btn"
+                    class="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-semibold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg shadow-red-500/20 mt-2 active:scale-[0.98]">
+                    <span id="login-btn-text">Masuk</span>
+                    <i id="login-btn-spinner" class="fas fa-spinner fa-spin hidden"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="main-app" class="flex w-full h-screen overflow-hidden hidden">
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar"
+            class="glass-sidebar flex flex-col">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-full overflow-hidden border border-red-500/20 shadow-sm bg-white flex items-center justify-center flex-shrink-0 cursor-pointer"
+                            onclick="openProfileModal()">
+                            <img id="header-avatar-img" src="haltea-logo.png" class="w-full h-full object-cover">
+                        </div>
+                        <span class="font-bold text-lg gradient-text">HALTEA</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button id="sidebar-close" type="button" title="Tutup menu"
+                            class="layout-mobile-only w-9 h-9 rounded-lg bg-white/80 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition shadow-sm active:scale-95">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- User info (clickable to open profile settings) -->
+                <div onclick="openProfileModal()"
+                    class="mt-4 flex items-center gap-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/40 p-2 -mx-2 rounded-xl transition duration-150 group">
+                    <div class="min-w-0 flex-1">
+                        <p id="sidebar-name"
+                            class="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition">
+                            Admin Haltea</p>
+                        <div id="sidebar-role-badge"
+                            class="inline-flex items-center gap-1 text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 pulse-dot"></span>
+                            Admin
+                        </div>
+                    </div>
+                    <i
+                        class="fas fa-chevron-right text-xs text-gray-300 dark:text-gray-600 group-hover:text-gray-500 transition-colors"></i>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav id="sidebar-nav" class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                <!-- Admin-only items will be shown/hidden via JS -->
+            </nav>
+
+            <!-- Logout -->
+            <div class="p-3 border-t border-gray-100 dark:border-gray-800">
+                <button onclick="logout()"
+                    class="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition text-sm font-medium">
+                    <span>Keluar</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar overlay for mobile/tablet -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[45] transition-opacity duration-300"></div>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 min-w-0 overflow-y-auto bg-gray-50 dark:bg-[#080c14] scroll-smooth">
+
+            <!-- Top Header Bar -->
+            <div class="top-bar flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-30">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <button id="sidebar-toggle" type="button" aria-label="Buka menu navigasi"
+                        class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gray-100/80 dark:bg-gray-800/80 text-gray-700 hover:text-gray-900 hover:bg-gray-200 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm">
+                        <i id="sidebar-toggle-icon" class="fas fa-bars text-base"></i>
+                    </button>
+                    <span class="font-bold text-lg gradient-text layout-mobile-only truncate">HALTEA</span>
+                    <button id="sidebar-collapse-desktop" type="button" title="Sembunyikan Sidebar" aria-label="Sembunyikan sidebar"
+                        class="w-9 h-9 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 items-center justify-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i id="sidebar-desktop-icon" class="fas fa-angles-left text-sm"></i>
+                    </button>
+                    <span class="layout-desktop-only font-bold text-base text-gray-700 dark:text-gray-300">HALTEA</span>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button onclick="openHelpModal('overview')" title="Petunjuk & Panduan Penggunaan Sistem" aria-label="Petunjuk Penggunaan"
+                        class="text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-1.5 shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-700 transition active:scale-95 cursor-pointer">
+                        Butuh Petunjuk?
+                    </button>
+                    <button onclick="toggleTheme()" data-theme-toggle title="Ganti tema"
+                        class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition active:scale-95">
+                        <i id="theme-icon" class="fas fa-sun text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==== DASHBOARD ==== -->
+            <div id="page-dashboard" class="page-content p-4 sm:p-6 fade-in hidden">
+                <div class="mb-5">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Pantau sistem prediksi stok bahan baku
+                        Haltea.</p>
+                </div>
+
+                <!-- Auto-predict banner -->
+                <div id="auto-predict-banner"
+                    class="hidden mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 sm:p-4 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                            <i class="fas fa-clock text-amber-600 dark:text-amber-400"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-amber-800 dark:text-amber-300 text-sm">Prediksi otomatis baru
+                                saja dijalankan</p>
+                            <p class="text-xs text-amber-600 dark:text-amber-500">Sudah lebih dari 7 hari sejak prediksi
+                                terakhir — sistem memperbarui data prediksi secara otomatis.</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('auto-predict-banner').classList.add('hidden')"
+                        class="text-amber-400 hover:text-amber-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card glass-stat rounded-xl p-5"
+                        style="--accent:#3b82f6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p
+                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Bahan Baku</p>
+                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1"
+                                    id="stat-total-barang">0</h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">item terdaftar</p>
+                            </div>
+                            <div
+                                class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                                <i class="fas fa-boxes text-blue-500 dark:text-blue-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-5"
+                        style="--accent:#10b981">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p
+                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Menu Aktif</p>
+                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-menu">0
+                                </h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">produk minuman</p>
+                            </div>
+                            <div
+                                class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                                <i class="fas fa-mug-hot text-green-500 dark:text-green-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-5"
+                        style="--accent:#8b5cf6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p
+                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Total Transaksi</p>
+                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-trx">0
+                                </h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">data penjualan</p>
+                            </div>
+                            <div
+                                class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                                <i class="fas fa-receipt text-purple-500 dark:text-purple-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-5"
+                        style="--accent:#ef4444">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p
+                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Rata-rata WMAPE</p>
+                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-wmape">-</h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">akurasi prediksi</p>
+                            </div>
+                            <div
+                                class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                <i class="fas fa-bullseye text-red-500 dark:text-red-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart & Last Prediction info -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div
+                        class="lg:col-span-2 glass-panel rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="font-semibold text-gray-900 dark:text-white text-sm">Grafik Penjualan Menu
+                                (Mingguan)</h2>
+                            <select id="chart-menu-select" onchange="updateDashboardChart()"
+                                class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-red-500">
+                            </select>
+                        </div>
+                        <div class="h-56"><canvas id="dashboardChart"></canvas></div>
+                    </div>
+                    <div
+                        class="glass-panel rounded-xl p-5">
+                        <h2 class="font-semibold text-gray-900 dark:text-white text-sm mb-4">Info Prediksi</h2>
+                        <div class="space-y-3 text-sm">
+                            <div
+                                class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                                <span class="text-gray-500 dark:text-gray-400">Prediksi Aktif</span>
+                                <span id="dash-prediksi-aktif" class="font-semibold text-gray-900 dark:text-white">0
+                                    menu</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                                <span class="text-gray-500 dark:text-gray-400">Terakhir Diproses</span>
+                                <span id="dash-last-pred"
+                                    class="font-semibold text-gray-900 dark:text-white text-xs">-</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-gray-500 dark:text-gray-400">Interval Auto</span>
+                                <span class="font-semibold text-gray-900 dark:text-white">7 hari</span>
+                            </div>
+                        </div>
+                        <button id="btn-predict-manual" onclick="runPredictionManual()"
+                            class="mt-4 w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-red-500/20 active:scale-[0.98] cursor-pointer">
+                            <span>Jalankan Prediksi Sekarang</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== KELOLA STOK (Bahan Baku) ==== -->
+            <div id="page-stok" class="page-content p-6 fade-in hidden">
+                <!-- Header -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Kelola Stok Gudang</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Monitor, perbarui, dan kelola seluruh bahan baku di gudang.</p>
+                    </div>
+                    <button onclick="openAddBarangModal()"
+                        class="w-full sm:w-auto flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2.5 text-sm font-semibold shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all duration-200">
+                        <span>Tambah Bahan Baku</span>
+                    </button>
+                </div>
+
+                <!-- Tab Switcher -->
+                <div class="flex items-center gap-6 mb-5 border-b border-gray-200 dark:border-gray-800">
+                    <button id="tab-stok-umum" onclick="switchStokTab('umum')"
+                        class="stok-tab-btn pb-3 px-1 text-sm font-bold transition-all duration-200 flex items-center gap-2 border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400">
+                        Daftar Bahan Baku
+                    </button>
+                    <button id="tab-stok-teknis" onclick="switchStokTab('teknis')"
+                        class="stok-tab-btn pb-3 px-1 text-sm font-medium transition-all duration-200 flex items-center gap-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                        Detail Konversi
+                    </button>
+                </div>
+
+                <!-- TAB 1: Daftar Bahan Baku (Umum) -->
+                <div id="stok-tab-umum" class="glass-table rounded-xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                    <div class="overflow-x-auto">
+                        <table class="w-full data-table">
+                            <thead>
+                                <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80">
+                                    <th class="px-5 py-3.5 text-left">NAMA BAHAN</th>
+                                    <th class="px-5 py-3.5 text-center">SATUAN BELI</th>
+                                    <th class="px-5 py-3.5 text-center">SATUAN RESEP</th>
+                                    <th class="px-5 py-3.5 text-center">FAKTOR KONVERSI</th>
+                                    <th class="px-5 py-3.5 text-center">STOK SAAT INI</th>
+                                    <th class="px-5 py-3.5 text-center">STATUS</th>
+                                    <th class="px-5 py-3.5 text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-stok-umum-body" class="divide-y divide-gray-100 dark:divide-gray-800/60">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Detail Konversi (Teknis) -->
+                <div id="stok-tab-teknis" class="glass-table rounded-xl overflow-hidden hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                    <div class="overflow-x-auto">
+                        <table class="w-full data-table">
+                            <thead>
+                                <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80">
+                                    <th class="px-5 py-3.5 text-left">NAMA BAHAN</th>
+                                    <th class="px-5 py-3.5 text-center">SATUAN BELI</th>
+                                    <th class="px-5 py-3.5 text-center">SATUAN RESEP</th>
+                                    <th class="px-5 py-3.5 text-center">FAKTOR KONVERSI</th>
+                                    <th class="px-5 py-3.5 text-center">STOK SAAT INI</th>
+                                    <th class="px-5 py-3.5 text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-stok-teknis-body" class="divide-y divide-gray-100 dark:divide-gray-800/60">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== Takaran Menu (Kelola & Input Takaran Menu) ==== -->
+            <div id="page-sop" class="page-content p-6 fade-in hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Kelola & Input Takaran Menu</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Atur takaran bahan baku untuk setiap menu produk.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button type="button" id="sop-menu-header-toggle" class="sop-menu-toggle layout-mobile-only flex-1 sm:flex-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 px-3 py-2.5 rounded-xl items-center justify-center gap-2 text-sm font-medium transition hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <span>Daftar Menu</span>
+                        </button>
+                        <button onclick="openAddMenuModal()" class="admin-only flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-green-500/20 transition-all">
+                            <span>Tambah Menu</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sop-layout flex gap-3 sm:gap-4 lg:min-h-[calc(100dvh-240px)]">
+                    <!-- Menu List Sidebar -->
+                    <div class="sop-menu-panel glass-panel rounded-xl flex flex-col lg:w-60 lg:min-w-[240px]">
+                        <div class="p-3 border-b border-gray-200/10 dark:border-gray-800 flex items-center justify-between flex-shrink-0">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Daftar Menu</p>
+                            <button type="button" id="sop-menu-panel-toggle" aria-label="Tampilkan/sembunyikan daftar menu" class="sop-menu-toggle layout-mobile-only w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition text-xs">
+                                <i id="sop-menu-chevron" class="fas fa-bars"></i>
+                            </button>
+                        </div>
+                        <div id="menu-list-sidebar" class="flex-1 p-2 overflow-y-auto space-y-0.5">
+                        </div>
+                    </div>
+
+                    <!-- SOP Editor -->
+                    <div class="sop-editor-panel flex-1 min-w-0">
+                        <!-- Empty State -->
+                        <div id="sop-editor-empty" class="glass-panel rounded-xl flex flex-col items-center justify-center h-full p-8 text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                                <i class="fas fa-utensils text-2xl text-gray-400 dark:text-gray-600"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-700 dark:text-gray-300">Pilih Menu</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Klik salah satu menu di panel kiri untuk mengatur takaran bahan bakunya.</p>
+                        </div>
+
+                        <!-- Editor Content -->
+                        <div id="sop-editor" class="hidden">
+                            <div class="glass-panel rounded-xl p-4 sm:p-5 mb-4">
+                                <div class="sop-editor-header flex flex-col sm:flex-row sm:items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex-shrink-0 relative group cursor-pointer"
+                                             onclick="editMenu(currentSopMenuId)" title="Klik untuk ganti/upload foto menu">
+                                            <img id="sop-menu-image" src="haltea-logo.png" class="w-full h-full object-cover">
+                                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
+                                                <i class="fas fa-camera text-sm"></i>
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <h2 id="sop-menu-title" class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">-</h2>
+                                                <button onclick="editMenu(currentSopMenuId)" title="Edit Nama & Detail Menu" class="admin-only text-gray-400 hover:text-amber-500 transition p-1">
+                                                    <i class="fas fa-pen text-xs"></i>
+                                                </button>
+                                            </div>
+                                            <div class="flex items-center gap-1.5 mt-1">
+                                                <label class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Harga:</label>
+                                                <input type="number" id="sop-menu-harga" placeholder="0"
+                                                    class="w-full max-w-[7.5rem] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-1 focus:ring-red-500 font-semibold">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="sop-editor-actions flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
+                                        <button onclick="openAddSopItemModal()" class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 flex-1 sm:flex-none">
+                                            <span>Tambah Bahan</span>
+                                        </button>
+                                        <button onclick="saveSOP()" class="admin-only bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-red-500/20 transition flex items-center justify-center gap-1.5 flex-1 sm:flex-none">
+                                            <span>Simpan Takaran</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-table rounded-xl overflow-hidden mobile-card-table">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full data-table">
+                                        <thead>
+                                            <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                                <th class="px-3 py-3 text-left font-semibold">Bahan Baku</th>
+                                                <th class="px-3 py-3 text-center font-semibold">Satuan Resep</th>
+                                                <th class="px-3 py-3 text-center font-semibold">Takaran</th>
+                                                <th class="px-3 py-3 text-center font-semibold w-16">Status</th>
+                                                <th class="px-3 py-3 text-center font-semibold w-24">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sop-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== TRANSAKSI PENJUALAN ==== -->
+            <div id="page-transaksi" class="page-content p-6 fade-in hidden">
+                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Transaksi Penjualan</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Catat penjualan minuman Haltea dan kelola transaksi harian.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                        <!-- Mode Tampilan Dropdown -->
+                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
+                            <label for="select-pos-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
+                                Mode Tampilan:
+                            </label>
+                            <select id="select-pos-mode" onchange="togglePosViewMode(this.value)"
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
+                                <option value="catalog" class="bg-white dark:bg-gray-900">Kasir Penjualan</option>
+                                <option value="history" class="bg-white dark:bg-gray-900">Riwayat Transaksi Hari Ini</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Filter -->
+                        <div class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5">
+                            <input type="date" id="trx-tanggal"
+                                class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1. MODE: Kasir Penjualan (Catalog + Shopping Cart) -->
+                <div id="pos-catalog-wrapper" class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
+                    <!-- Left Column: Daftar Menu Produk (8 Cols) -->
+                    <div class="md:col-span-7 xl:col-span-8 flex flex-col">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">DAFTAR MENU PRODUK</h2>
+                            <span id="trx-menu-count-badge" class="text-xs font-medium text-gray-400"></span>
+                        </div>
+
+                        <!-- Product Grid (Strictly Max 3 Columns) -->
+                        <div id="trx-katalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5" style="display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important;">
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Keranjang Belanja (4 Cols) -->
+                    <div class="md:col-span-5 xl:col-span-4">
+                        <div class="glass-panel rounded-2xl p-5 sticky top-6 border border-gray-200/80 dark:border-gray-800 shadow-xl flex flex-col min-h-[420px]">
+                            <!-- Cart Header -->
+                            <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-shopping-basket text-red-500 text-base"></i>
+                                    <h2 class="font-bold text-sm text-gray-900 dark:text-white tracking-wide uppercase">KERANJANG BELANJA</h2>
+                                </div>
+                                <span id="cart-item-badge" class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300">
+                                    0 ITEM
+                                </span>
+                            </div>
+
+                            <!-- Cart Items Container -->
+                            <div id="cart-items-list" class="flex-1 py-4 overflow-y-auto max-h-[360px] space-y-3 divide-y divide-gray-100 dark:divide-gray-800/60">
+                                <!-- Empty Cart State -->
+                                <div id="cart-empty-state" class="flex flex-col items-center justify-center py-12 text-center">
+                                    <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800/80 flex items-center justify-center mb-3">
+                                        <i class="fas fa-shopping-cart text-xl text-gray-400"></i>
+                                    </div>
+                                    <p class="text-sm font-semibold text-gray-600 dark:text-gray-400">Keranjang Masih Kosong</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Klik pada menu untuk menambahkan pesanan.</p>
+                                </div>
+                            </div>
+
+                            <!-- Cart Footer Summary -->
+                            <div class="pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Pembayaran:</span>
+                                    <span id="cart-total-price" class="text-lg font-extrabold text-blue-600 dark:text-blue-400">Rp 0</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <button onclick="clearCart()" title="Kosongkan Keranjang" class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-red-500 transition">
+                                        <i class="fas fa-trash-alt text-sm"></i>
+                                    </button>
+                                    <button onclick="submitKatalogTransaksi()"
+                                        class="flex-1 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-red-500/25 transition-all">
+                                        <span>Simpan Transaksi</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. MODE: Riwayat Transaksi Hari Ini (Placed at Top) -->
+                <div id="pos-today-history-wrapper" class="hidden mb-6">
+                    <div class="glass-table rounded-xl overflow-hidden mobile-card-table">
+                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-gray-900 dark:text-white text-sm">Riwayat Transaksi Hari Ini</p>
+                                <p id="today-history-date" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"></p>
+                            </div>
+                            <button onclick="loadTodayHistory()" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                                Refresh Data
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                        <th class="px-4 py-3 text-left font-semibold">Menu</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Jumlah</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Harga</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Total</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="today-history-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== DATA TRANSAKSI (Riwayat & Import & Rekap) ==== -->
+            <div id="page-data-transaksi" class="page-content p-6 fade-in hidden">
+                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Data Transaksi</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Riwayat penjualan, rekap perpekan, pengosongan data, dan impor data transaksi.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                        <!-- Mode Tampilan Dropdown -->
+                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
+                            <label for="select-trx-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
+                                Mode Tampilan:
+                            </label>
+                            <select id="select-trx-mode" onchange="toggleDataTransaksiRekapView(this.value)"
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
+                                <option value="list" class="bg-white dark:bg-gray-900">Detail Data Transaksi</option>
+                                <option value="rekap" class="bg-white dark:bg-gray-900">Rekap Penjualan Perpekan</option>
+                            </select>
+                        </div>
+
+                        <button id="btn-reset-data" onclick="resetTransaksiData()" title="Kosongkan seluruh data transaksi"
+                            class="bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold transition border border-red-200 dark:border-red-800/40 whitespace-nowrap">
+                            <span>Reset Data</span>
+                        </button>
+                        <button id="btn-restore-data" onclick="restoreTransaksiData()" title="Lihat riwayat reset dan restore dataset transaksi"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/20 transition-all whitespace-nowrap">
+                            <span>Riwayat Reset & Restore</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- View 1: Detail List Data Transaksi & Import -->
+                <div id="trx-view-list">
+                    <!-- Filter -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-5">
+                        <div class="flex-1 sm:flex-none flex items-center gap-2 bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2">
+                            <i class="fas fa-filter text-gray-400 text-sm"></i>
+                            <input type="date" id="filter-trx-date" onchange="loadRiwayatPage()"
+                                class="bg-transparent border-0 text-gray-900 dark:text-white text-sm outline-none focus:ring-0 p-0 w-full">
+                        </div>
+                        <button onclick="loadRiwayatPage(true)" class="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                            Semua
+                        </button>
+                    </div>
+
+                    <!-- Import Excel Section -->
+                    <div class="glass-panel rounded-xl p-5 mb-6">
+                        <h2 class="font-semibold text-gray-900 dark:text-white text-sm mb-4 flex items-center gap-2">
+                            <i class="fas fa-file-excel text-green-500"></i> Impor Data dari Excel/CSV
+                        </h2>
+                        <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center mb-4 cursor-pointer"
+                            ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('excel-file-input').click()">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-600 mb-3"></i>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Seret file Excel/CSV ke sini atau <span class="text-red-500 font-semibold">klik untuk pilih file</span></p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Format: .xlsx, .xls, .csv — Kolom: Tanggal, Menu, Jumlah</p>
+                            <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileSelect(this)">
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 mobile-stack">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="import-potong-stok" class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 dark:border-gray-700 rounded focus:ring-red-500">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Potong stok gudang setelah impor</span>
+                            </label>
+                            <a href="/api/transaksi/template" class="text-xs text-blue-500 hover:text-blue-600 underline">
+                                <i class="fas fa-download mr-1"></i>Unduh Template
+                            </a>
+                        </div>
+                        <div id="import-result" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4">
+                            <p id="import-result-text" class="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i>
+                            </p>
+                        </div>
+                        <div id="import-errors-container" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
+                            <p id="import-errors-title" class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2"></p>
+                            <div id="import-errors-list" class="max-h-48 overflow-y-auto"></div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Table -->
+                    <div class="glass-table rounded-xl overflow-hidden mb-8 mobile-card-table">
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                        <th class="px-5 py-4 text-left font-semibold">Tanggal</th>
+                                        <th class="px-5 py-4 text-left font-semibold">Menu</th>
+                                        <th class="px-5 py-4 text-center font-semibold">Jumlah</th>
+                                        <th class="px-5 py-4 text-center font-semibold">Harga</th>
+                                        <th class="px-5 py-4 text-center font-semibold">Total</th>
+                                        <th class="px-5 py-4 text-center font-semibold">Sumber</th>
+                                        <th class="px-5 py-4 text-center font-semibold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-transaksi-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View 2: Rekap Penjualan Perpekan -->
+                <div id="trx-view-rekap" class="hidden space-y-4">
+                    <div class="p-4 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white text-base flex items-center gap-2">
+                                <i class="fas fa-calendar-week text-purple-600 dark:text-purple-400"></i> Rekap Penjualan Agregasi Perpekan
+                            </h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Rekapitulasi total kuantitas penjualan cup per menu (sampel 4 pekan operasional / 24 hari transaksi terakhir).</p>
+                        </div>
+                        <span id="rekap-total-badge-trx" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1.5 self-start sm:self-auto">
+                            <i class="fas fa-history"></i>Sampel 4 Pekan (24 Hari)
+                        </span>
+                    </div>
+
+                    <div class="glass-table rounded-xl overflow-hidden mobile-card-table">
+                        <div class="overflow-x-auto max-h-[600px]">
+                            <table class="w-full data-table">
+                                <thead class="sticky top-0 bg-gray-100 dark:bg-gray-900 z-10">
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200/10">
+                                        <th class="px-4 py-3 text-left font-semibold">Daftar Menu</th>
+                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 1</th>
+                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 2</th>
+                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 3</th>
+                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 4</th>
+                                        <th class="px-4 py-3 text-center font-semibold bg-purple-500/5 dark:bg-purple-500/10">Total (4 Pekan)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-rekap-pekan-body-trx" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-8 text-gray-400">Memuat data rekap perpekan...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== PREDIKSI BAHAN BAKU ==== -->
+            <div id="page-prediksi" class="page-content p-6 fade-in hidden">
+                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Mode Sortir Tampilan Prediksi (Admin Only) -->
+                        <div class="admin-only flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
+                            <label for="select-pred-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                Mode Tampilan:
+                            </label>
+                            <select id="select-pred-mode" onchange="handlePredModeChange(this.value)"
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
+                                <option value="semua_menu" class="bg-white dark:bg-gray-900">Prediksi Semua Menu</option>
+                                <option value="single_menu" class="bg-white dark:bg-gray-900">Prediksi Single Menu (Only)</option>
+                            </select>
+                        </div>
+
+                        <!-- Setting Parameter Alpha (Admin Only) -->
+                        <div class="admin-only flex items-center gap-2 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200/80 dark:border-red-800/40 px-3 py-1.5 rounded-xl shadow-xs">
+                            <label for="input-alpha-setting" class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 whitespace-nowrap">
+                                <i class="fas fa-sliders-h text-red-500"></i> Parameter Alpha (&alpha;):
+                            </label>
+                            <input type="number" id="input-alpha-setting" min="0.01" max="1.00" step="0.01" value="0.50"
+                                onchange="handleAlphaInputChange(this.value)"
+                                class="w-16 text-xs bg-white dark:bg-gray-900 border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 font-bold rounded-lg px-2 py-1 outline-none text-center focus:ring-2 focus:ring-red-500 shadow-inner">
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">(0 - 1)</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-manual-predict" onclick="triggerManualPrediction()"
+                        class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-semibold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 whitespace-nowrap">
+                        <span>Hitung Rekomendasi Belanja</span>
+                    </button>
+                </div>
+
+                <!-- View 1: Hasil Prediksi Semua Menu SES & WMAPE Table -->
+                <div id="pred-tab-results" class="bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-xs overflow-hidden mobile-card-table">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/30">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            Prediksi Semua Menu (Kebutuhan Bahan Baku & Akurasi WMAPE Pekan Depan)
+                        </h3>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <label for="sort-pred-select" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
+                                <i class="fas fa-sort mr-1"></i>Urutkan:
+                            </label>
+                            <select id="sort-pred-select" onchange="applyPrediksiSort()"
+                                class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 outline-none font-semibold focus:ring-1 focus:ring-red-500 cursor-pointer shadow-xs">
+                                <option value="nama_asc">Abjad (A-Z)</option>
+                                <option value="nama_desc">Abjad (Z-A)</option>
+                                <option value="akurasi_desc">Akurasi Tertinggi</option>
+                                <option value="akurasi_asc">Akurasi Terendah</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full data-table">
+                            <thead>
+                                <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80">
+                                    <th class="px-5 py-3.5 text-left">BAHAN BAKU</th>
+                                    <th class="px-5 py-3.5 text-center">STOK GUDANG</th>
+                                    <th class="px-5 py-3.5 text-center col-pred-kebutuhan">PREDIKSI KEBUTUHAN</th>
+                                    <th class="px-5 py-3.5 text-center col-pred-akurasi">AKURASI PREDIKSI</th>
+                                    <th class="px-5 py-3.5 text-center">REKOMENDASI BELANJA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-pred-bahan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- View 2: In-Page Prediksi Single Menu (Only) Panel -->
+                <div id="pred-tab-specific" class="hidden bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-xs overflow-hidden p-5 space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-800">
+                        <div>
+                            <h2 class="text-base font-bold text-blue-600 dark:text-blue-400">Prediksi Single Menu (Only)</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Analisis kebutuhan bahan baku khusus per menu produk berdasarkan riwayat 4 pekan.</p>
+                        </div>
+                        <button onclick="togglePredView('results')" class="text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-800 px-3.5 py-2 rounded-xl transition self-start sm:self-auto border border-gray-200 dark:border-gray-700">
+                            Kembali ke Prediksi Semua Menu
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">1. Pilih Bahan Baku</label>
+                            <select id="specific-predict-barang" onchange="onSpecificPredictBarangChange()"
+                                class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-medium cursor-pointer">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">2. Pilih Menu Produk Takaran</label>
+                            <select id="specific-predict-menu" onchange="runSpecificPrediction()" disabled
+                                class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-medium cursor-pointer">
+                                <option value="">Pilih bahan baku terlebih dahulu...</option>
+                            </select>
+                        </div>
+                        <div class="admin-only">
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">3. Parameter Alpha (&alpha;)</label>
+                            <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5">
+                                <input type="number" id="specific-alpha-input" min="0.01" max="1.00" step="0.01" value="0.50"
+                                    onchange="handleAlphaInputChange(this.value)"
+                                    class="w-20 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-1.5 text-sm font-bold text-red-600 dark:text-red-400 text-center outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Nilai (0 - 1)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="specific-predict-loading" class="hidden py-8 text-center text-gray-400 text-sm">
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-500 block mb-2"></i>
+                        Menghitung prediksi SES untuk bahan baku dan menu terpilih...
+                    </div>
+
+                    <!-- Result Container -->
+                    <div id="specific-predict-result" class="hidden space-y-4 pt-2">
+                        <!-- Info Card -->
+                        <div class="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <span id="spec-result-badge-menu" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Original Tea</span>
+                                <h4 id="spec-result-title" class="text-base font-bold text-gray-900 dark:text-white mt-1">Bahan Baku: Gula</h4>
+                                <p id="spec-result-takaran" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Takaran: 25 gram per cup</p>
+                            </div>
+                            <div id="spec-result-wmape-badge" class="text-right"></div>
+                        </div>
+
+                        <!-- 4 Weeks History Table -->
+                        <div class="glass-table rounded-xl overflow-hidden">
+                            <div class="p-3 bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-200/10 flex items-center justify-between">
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                                    <i class="fas fa-history text-blue-500"></i> Riwayat Transaksi & Kebutuhan (4 Pekan)
+                                </span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                                        <tr>
+                                            <th class="px-3.5 py-2.5">Pekan</th>
+                                            <th class="px-3.5 py-2.5 text-center">Penjualan Menu (Cup)</th>
+                                            <th class="px-3.5 py-2.5 text-right">Penggunaan Bahan Baku</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="spec-result-history-tbody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Table Detail Rincian Perhitungan Prediksi (Stok, WMAPE, S5, Kebutuhan Bersih, Belanja Rounding) -->
+                        <div class="glass-table rounded-xl overflow-hidden mt-4">
+                            <div class="p-3 bg-blue-50/80 dark:bg-blue-950/40 border-b border-gray-200/20 flex items-center justify-between">
+                                <span class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
+                                    Rincian Perhitungan Prediksi & Rekomendasi Belanja
+                                </span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                                        <tr>
+                                            <th class="px-3.5 py-2.5">Indikator Komputasi</th>
+                                            <th class="px-3.5 py-2.5 text-center">Satuan Resep (Mikro)</th>
+                                            <th class="px-3.5 py-2.5 text-right">Satuan Belanja Gudang (Makro)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="spec-result-summary-tbody" class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Next Week SES Prediction Card (Placed After Table) -->
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-xs mt-4">
+                            <div id="spec-result-pred-val">
+                                <!-- Dynamically populated by app.js -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Prediction Status -->
+            <div id="modal-prediction-status"
+                class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+                <div class="glass-modal rounded-2xl w-full max-w-md p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Status Prediksi Otomatis</h2>
+                        <button onclick="closeModal('modal-prediction-status')"
+                            class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 transition">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="prediction-status-content" class="text-sm text-gray-600 dark:text-gray-300 space-y-2"></div>
+                    <div class="flex justify-end mt-5">
+                        <button onclick="closeModal('modal-prediction-status')"
+                            class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-sm font-medium transition">Tutup</button>
+                    </div>
+                </div>
+            </div>
+
+        </main><!-- end main -->
+    </div><!-- end main-app -->
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Modal Tambah/Edit Bahan Baku (Umum) -->
+    <div id="modal-barang-umum"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200/10">
+                <div>
+                    <h2 id="modal-barang-umum-title" class="text-xl font-bold text-gray-900 dark:text-white">Tambah Bahan Baku</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Isi detail identitas dasar dan stok awal bahan baku.</p>
+                </div>
+                <button onclick="closeModal('modal-barang-umum')"
+                    class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-barang-umum" onsubmit="submitBarangGeneral(event)">
+                <input type="hidden" id="barang-umum-id">
+                
+                <div class="p-6 space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Kode Barang</label>
+                            <input type="text" id="barang-umum-kode" placeholder="Contoh: BRG001"
+                                class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400"
+                                required>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Kode unik untuk identifikasi barang</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nama Bahan Baku</label>
+                            <input type="text" id="barang-umum-nama" placeholder="Contoh: Gula Pasir"
+                                class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400"
+                                required>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Nama lengkap bahan baku</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Satuan Beli (dari Supplier)</label>
+                            <input type="text" id="barang-umum-satuan-beli" list="list-satuan-beli-umum" placeholder="Contoh: Pack, Karung, Karton, Dus"
+                                class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400"
+                                required>
+                            <datalist id="list-satuan-beli-umum">
+                                <option value="Pack">
+                                <option value="Karung">
+                                <option value="Dus">
+                                <option value="Karton">
+                                <option value="Galon">
+                                <option value="Kg">
+                                <option value="Liter">
+                                <option value="Botol">
+                            </datalist>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Satuan saat barang dibeli (grosir/kemasan besar)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                <i class="fas fa-cubes text-xs text-gray-400 mr-1"></i> Jumlah Persediaan (Stok Gudang)
+                            </label>
+                            <div>
+                                <input type="number" step="any" id="barang-umum-stok" placeholder="0"
+                                    class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 dark:text-white"
+                                    required>
+                            </div>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                                Jumlah stok fisik saat ini dalam satuan beli.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex gap-3 p-6 pt-0">
+                    <button type="button" onclick="closeModal('modal-barang-umum')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl text-sm font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition">
+                        Simpan Bahan Baku
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pengaturan Konversi & Parameter Teknis -->
+    <div id="modal-barang-teknis"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200/10">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Pengaturan Konversi Satuan</h2>
+                    <p id="modal-barang-teknis-subtitle" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Nama Bahan: -</p>
+                </div>
+                <button onclick="closeModal('modal-barang-teknis')"
+                    class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-barang-teknis" onsubmit="submitBarangTeknis(event)">
+                <input type="hidden" id="barang-teknis-id">
+                
+                <div class="p-6 space-y-6">
+                    <div class="space-y-6">
+                        
+                        <!-- KOLOM KIRI: KONVERSI SATUAN -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <i class="fas fa-exchange-alt text-blue-600 dark:text-blue-400 text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Pengaturan Satuan</h3>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Sesuaikan kemasan beli dan satuan resep</p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    Satuan Beli (dari Supplier)
+                                </label>
+                                <input type="text" id="barang-teknis-satuan-beli" list="list-satuan-beli-teknis" placeholder="Contoh: Pack, Karung, Karton, Dus"
+                                    class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400"
+                                    required oninput="updateTeknisKonversiPreview()">
+                                <datalist id="list-satuan-beli-teknis">
+                                    <option value="Pack">
+                                    <option value="Karung">
+                                    <option value="Dus">
+                                    <option value="Karton">
+                                    <option value="Galon">
+                                    <option value="Kg">
+                                    <option value="Liter">
+                                    <option value="Botol">
+                                </datalist>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Satuan saat barang dibeli (grosir/kemasan besar)</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    Satuan Resep (Terkecil)
+                                </label>
+                                <select id="barang-teknis-satuan-resep"
+                                    class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white"
+                                    required onchange="updateTeknisKonversiPreview()">
+                                    <option value="gram">gram (gr) — untuk bubuk, gula, tepung</option>
+                                    <option value="ml">mililiter (ml) — untuk cairan, sirup, susu</option>
+                                    <option value="pcs">pieces (pcs) — untuk cup, sedotan, packaging</option>
+                                </select>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Satuan yang digunakan di resep produk / takaran menu</p>
+                            </div>
+
+                            <!-- Rumus Konversi (PROMINENT, SIDE BY SIDE) -->
+                            <div class="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 mt-2">
+                                <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2.5">
+                                    <i class="fas fa-calculator mr-1"></i> Rumus Konversi Satuan
+                                </label>
+                                <div class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
+                                    <span class="text-sm font-bold text-gray-500">1</span>
+                                    <span id="label-teknis-beli" class="text-sm font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">Pack</span>
+                                    <span class="text-sm font-bold text-gray-500">=</span>
+                                    <input type="number" step="any" min="0.0001" id="barang-teknis-faktor-konversi" placeholder="1000"
+                                        class="flex-1 min-w-[70px] bg-gray-50 dark:bg-gray-700 border border-blue-300 dark:border-blue-700 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold text-gray-900 dark:text-white"
+                                        required oninput="updateTeknisKonversiPreview()">
+                                    <span id="label-teknis-resep" class="text-sm font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">gram</span>
+                                </div>
+                                <p id="teknis-konversi-preview-text" class="text-xs text-blue-600/80 dark:text-blue-400/80 mt-2 font-medium">
+                                    1 Pack = 1.000 gram.
+                                </p>
+                            </div>
+                        </div>
+                        
+
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex gap-3 p-6 pt-0">
+                    <button type="button" onclick="closeModal('modal-barang-teknis')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl text-sm font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition">
+                        Simpan Pengaturan Teknis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Stok -->
+    <div id="modal-tambah-stok"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <i class="fas fa-truck-loading text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Tambah Stok Masuk</h2>
+                        <p id="tambah-stok-nama" class="text-sm text-gray-500 dark:text-gray-400">-</p>
+                    </div>
+                </div>
+                <input type="hidden" id="tambah-stok-id">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-plus-circle text-xs text-gray-400 mr-1"></i> Jumlah yang Dibeli
+                    </label>
+                    <input type="number" step="0.01" id="tambah-stok-jumlah" placeholder="Contoh: 5"
+                        class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-white font-semibold">
+                    <p id="tambah-stok-hint" class="text-xs text-gray-400 dark:text-gray-500 mt-2">Masukkan jumlah dalam satuan pembelian (Pack/Karung/Dus).</p>
+                </div>
+                <!-- Conversion Preview -->
+                <div id="tambah-stok-konversi-info" class="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl px-4 py-3 mb-5 hidden">
+                    <p class="text-xs text-blue-700 dark:text-blue-400">
+                        <i class="fas fa-exchange-alt mr-1"></i>
+                        <span id="tambah-stok-konversi-text">Stok akan bertambah: 0 gram</span>
+                    </p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModal('modal-tambah-stok')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl text-sm font-semibold transition">
+                        Batal
+                    </button>
+                    <button onclick="submitTambahStok()"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-green-500/20 transition">
+                        Tambah Stok
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Bahan Takaran -->
+    <div id="modal-sop-item"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-5 pb-3 border-b border-gray-200/10">
+                <div>
+                    <h2 id="modal-sop-item-title" class="text-lg font-bold text-gray-900 dark:text-white">Tambah Bahan Takaran</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Atur takaran bahan baku per 1 cup.</p>
+                </div>
+                <button onclick="closeModal('modal-sop-item')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <form id="form-sop-item" onsubmit="submitSopItem(event)" class="p-5 space-y-4">
+                <input type="hidden" id="sop-item-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Bahan Baku</label>
+                    <select id="sop-item-barang" onchange="onSopItemBarangChange()" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white">
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Takaran per Cup</label>
+                        <input type="number" id="sop-item-gramasi" step="1" min="0" placeholder="Contoh: 25" required
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Satuan Resep</label>
+                        <input type="text" id="sop-item-satuan" placeholder="gram/ml/pcs" readonly required
+                            class="w-full bg-gray-100 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none font-semibold text-gray-700 dark:text-gray-300 cursor-not-allowed select-none">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-sop-item')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">Batal</button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Menu -->
+    <div id="modal-menu"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div
+            class="glass-modal rounded-2xl p-6 w-full max-w-sm">
+            <div class="flex items-center justify-between mb-5">
+                <h2 id="modal-menu-title" class="text-lg font-bold text-gray-900 dark:text-white">Tambah Menu</h2>
+                <button onclick="closeModal('modal-menu')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <form id="form-menu" onsubmit="submitMenu(event)" class="space-y-3">
+                <input type="hidden" id="menu-id">
+
+                <!-- Menu Image Upload -->
+                <div class="flex flex-col items-center gap-2 mb-3">
+                    <div
+                        class="w-20 h-20 rounded-xl overflow-hidden bg-gray-150 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-sm">
+                        <img id="menu-modal-img" src="haltea-logo.png" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex gap-1.5">
+                        <label
+                            class="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs font-semibold shadow-sm transition">
+                            Ganti Foto
+                            <input type="file" id="menu-image-input" accept="image/*" class="hidden"
+                                onchange="uploadMenuImage(event)">
+                        </label>
+                        <button type="button" id="btn-delete-menu-image" onclick="deleteMenuImage()"
+                            class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 px-2 py-1 rounded-lg text-xs font-semibold transition hidden">
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nama
+                        Menu</label>
+                    <input type="text" id="menu-nama" placeholder="Contoh: Teh Manis"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        required>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Harga
+                        Menu (Rp)</label>
+                    <input type="number" id="menu-harga" placeholder="Contoh: 10000"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        required>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Keterangan
+                        (Opsional)</label>
+                    <input type="text" id="menu-ket" placeholder="Deskripsi singkat"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-menu')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">Batal</button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Transaksi -->
+    <div id="modal-edit-transaksi"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div
+            class="glass-modal rounded-2xl p-6 w-full max-w-sm">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Edit Transaksi</h2>
+                <button onclick="closeModal('modal-edit-transaksi')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <form onsubmit="submitEditTransaksi(event)" class="space-y-3">
+                <input type="hidden" id="edit-trx-id">
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Tanggal
+                        Penjualan</label>
+                    <input type="date" id="edit-trx-tanggal"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        required>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Menu
+                        Produk</label>
+                    <select id="edit-trx-menu"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        required>
+                    </select>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Jumlah</label>
+                    <input type="number" id="edit-trx-jumlah" min="1"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        required>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-edit-transaksi')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">Batal</button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Simpan
+                        Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="modal-confirm-delete"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div
+            class="glass-modal rounded-2xl p-6 w-full max-w-sm text-center">
+            <div
+                class="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Konfirmasi Hapus</h3>
+            <p id="delete-confirm-msg" class="text-gray-500 dark:text-gray-400 text-sm mb-5">Yakin ingin menghapus item
+                ini?</p>
+            <div class="flex gap-2">
+                <button onclick="closeModal('modal-confirm-delete')"
+                    class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">Batal</button>
+                <button id="btn-confirm-delete"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Profil Pengguna -->
+    <div id="modal-profil"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div
+            class="glass-modal rounded-2xl p-6 w-full max-w-sm">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Profil Pengguna</h2>
+                <button onclick="closeModal('modal-profil')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <div class="space-y-5">
+                <!-- Avatar/Logo Management -->
+                <div class="flex flex-col items-center gap-3">
+                    <div class="relative group">
+                        <img id="profile-modal-img" src="haltea-logo.png"
+                            class="w-24 h-24 rounded-full object-cover border-4 border-red-500/20 shadow-md">
+                    </div>
+                    <div class="flex gap-2">
+                        <label
+                            class="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                            Ganti Logo
+                            <input type="file" id="profile-logo-input" accept="image/*" class="hidden"
+                                onchange="uploadProfileLogo(event)">
+                        </label>
+                        <button id="btn-delete-logo" onclick="deleteProfileLogo()"
+                            class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+
+                <!-- User Info Details -->
+                <div class="space-y-3">
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Nama</label>
+                        <input type="text" id="profile-nama"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                            required>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Role
+                            / Peran</label>
+                        <div id="profile-role"
+                            class="w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-250 dark:border-gray-800 text-gray-500 dark:text-gray-400 rounded-xl p-2.5 text-sm font-semibold uppercase tracking-wider">
+                            Admin
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-profil')"
+                        class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">Batal</button>
+                    <button onclick="saveProfile()"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Konfirmasi Reset Data -->
+    <div id="modal-confirm-reset"
+        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-[400] flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl p-6 w-full max-w-sm text-center">
+            <div class="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-trash-alt text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Kosongkan Data Transaksi?</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-5">
+                Apakah Anda yakin ingin mengosongkan SELURUH data transaksi? Backup data transaksi saat ini akan disimpan secara otomatis di riwayat restore.
+            </p>
+            <div class="flex gap-2">
+                <button onclick="closeModal('modal-confirm-reset')"
+                    class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">
+                    Batal
+                </button>
+                <button onclick="processResetTransaksiData()"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-md shadow-red-500/20">
+                    Ya, Kosongkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Restore Data & Riwayat Impor -->
+    <div id="modal-restore-data"
+        class="fixed inset-0 bg-black/70 modal-backdrop hidden z-[300] flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-lg p-6">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200/10">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="fas fa-history text-blue-500"></i> Riwayat Reset & Restore File
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Daftar riwayat reset data transaksi dan dataset yang dapat dipulihkan.</p>
+                </div>
+                <button onclick="closeModal('modal-restore-data')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <div id="restore-batches-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                <!-- Batches will be rendered here dynamically -->
+            </div>
+            <div class="flex justify-end mt-5 pt-3 border-t border-gray-200/10">
+                <button onclick="closeModal('modal-restore-data')"
+                    class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-sm font-medium transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Petunjuk Penggunaan (Help & Guide) -->
+    <div id="modal-help-guide"
+        class="fixed inset-0 bg-black/70 modal-backdrop hidden z-[300] flex items-center justify-center p-4">
+        <div class="glass-modal rounded-2xl w-full max-w-4xl p-5 sm:p-6 max-h-[90vh] flex flex-col shadow-2xl border border-gray-200/20">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3.5 border-b border-gray-200/10 flex-shrink-0">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        Petunjuk & Prosedur Penggunaan Haltea
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Panduan langkah demi langkah untuk setiap modul sistem.</p>
+                </div>
+                <button onclick="closeModal('modal-help-guide')"
+                    class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Module Navigation Tabs -->
+            <div class="flex items-center gap-1.5 overflow-x-auto py-3 border-b border-gray-200/10 flex-shrink-0 text-xs scrollbar-none">
+                <button id="help-tab-btn-overview" onclick="switchHelpTab('overview')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-blue-600 text-white font-bold shadow-md">
+                    Alur Utama
+                </button>
+                <button id="help-tab-btn-stok" onclick="switchHelpTab('stok')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    1. Stok Gudang
+                </button>
+                <button id="help-tab-btn-sop" onclick="switchHelpTab('sop')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    2. Input SOP Resep
+                </button>
+                <button id="help-tab-btn-pos" onclick="switchHelpTab('pos')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    3. Transaksi (POS)
+                </button>
+                <button id="help-tab-btn-data" onclick="switchHelpTab('data')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    4. Impor & Data
+                </button>
+                <button id="help-tab-btn-prediksi" onclick="switchHelpTab('prediksi')" class="help-tab-btn px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    5. Prediksi
+                </button>
+            </div>
+
+            <!-- Tab Contents Container (Scrollable) -->
+            <div class="flex-1 overflow-y-auto py-4 pr-1 space-y-4 text-sm text-gray-700 dark:text-gray-300">
+                
+                <!-- TAB 1: OVERVIEW -->
+                <div id="help-tab-content-overview" class="help-tab-content space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="glass-panel p-3.5 rounded-xl border border-gray-200/20">
+                            <div class="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-1">
+                                <span class="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs">1</span>
+                                Mendaftarkan Bahan Baku
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Masukkan bahan baku ke menu <strong>Kelola Stok Gudang</strong> lengkap dengan satuan beli (dus/pack) & satuan resep (gram/ml).</p>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-xl border border-gray-200/20">
+                            <div class="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-1">
+                                <span class="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs">2</span>
+                                Mengatur Takaran SOP
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Tentukan formulasi gramasi bahan baku untuk setiap cup/porsi minuman di menu <strong>Kelola SOP per Menu</strong>.</p>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-xl border border-gray-200/20">
+                            <div class="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-1">
+                                <span class="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">3</span>
+                                Melakukan Penjualan
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Catat transaksi di <strong>Transaksi Penjualan (POS)</strong> atau impor Excel. Stok gudang otomatis terpotong secara <em>real-time</em>.</p>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-xl border border-gray-200/20">
+                            <div class="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-1">
+                                <span class="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs">4</span>
+                                Peramalan & Belanja
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Lihat hasil <strong>Prediksi Bahan Baku</strong> untuk memperoleh rekomendasi pembelanjaan barang pekan depan secara optimal.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: STOK GUDANG -->
+                <div id="help-tab-content-stok" class="help-tab-content hidden space-y-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base border-b border-gray-200/10 pb-2 flex items-center gap-2">
+                        Prosedur Kelola Stok Gudang (Bahan Baku)
+                    </h3>
+                    <ol class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-blue-600 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-md flex-shrink-0">1</span>
+                            <div>
+                                <strong>Buka Menu:</strong> Klik menu <strong>Kelola Stok Gudang</strong> di sidebar kiri.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-blue-600 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-md flex-shrink-0">2</span>
+                            <div>
+                                <strong>Tambah Bahan Baku Baru:</strong> Klik tombol <span class="text-emerald-600 font-bold">Tambah Bahan Baku</span>. Isi Kode Barang, Nama Bahan, Satuan Beli (misal: <em>Pack / Dus</em>), Satuan Resep (misal: <em>gram / ml / pcs</em>), Faktor Konversi (misal: <em>1 Pack = 1000 gram</em>), dan Stok Gudang awal.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-blue-600 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-md flex-shrink-0">3</span>
+                            <div>
+                                <strong>Tambah Stok (Restock):</strong> Ketika ada kiriman barang baru dari supplier, klik tombol <strong>Tambah Stok</strong> pada baris barang terkait, masukkan jumlah pembelian, lalu simpan.
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- TAB 3: INPUT SOP -->
+                <div id="help-tab-content-sop" class="help-tab-content hidden space-y-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base border-b border-gray-200/10 pb-2 flex items-center gap-2">
+                        Prosedur Kelola & Input SOP per Menu
+                    </h3>
+                    <ol class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md flex-shrink-0">1</span>
+                            <div>
+                                <strong>Pilih Menu Produk:</strong> Buka menu <strong>Kelola & Input SOP per Menu</strong>, lalu klik salah satu nama produk di daftar menu sebelah kiri (misal: <em>Mango Tea</em>).
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md flex-shrink-0">2</span>
+                            <div>
+                                <strong>Tambah Bahan Resep:</strong> Di panel sebelah kanan, klik tombol <strong>+ Tambah Bahan</strong>.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md flex-shrink-0">3</span>
+                            <div>
+                                <strong>Input Takaran (Gramasi):</strong> Pilih bahan baku dari dropdown, lalu isi nilai takaran per porsi (misal: <em>Gula = 20 gram</em>, <em>Cup = 1 pcs</em>).
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md flex-shrink-0">4</span>
+                            <div>
+                                <strong>Simpan Formulisi SOP:</strong> Klik <strong>Simpan SOP</strong>. Formulisi resep ini digunakan untuk kalkulasi pemotongan stok otomatis saat kasir memproses penjualan.
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- TAB 4: TRANSAKSI (POS) -->
+                <div id="help-tab-content-pos" class="help-tab-content hidden space-y-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base border-b border-gray-200/10 pb-2 flex items-center gap-2">
+                        Prosedur Transaksi Penjualan (Kasir / POS)
+                    </h3>
+                    <ol class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-md flex-shrink-0">1</span>
+                            <div>
+                                <strong>Pilih Menu dari Katalog:</strong> Masuk ke menu <strong>Transaksi Penjualan</strong>. Cari produk minuman yang dipesan pembeli.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-md flex-shrink-0">2</span>
+                            <div>
+                                <strong>Masukkan ke Keranjang:</strong> Klik produk dan tentukan jumlah porsi/cup, lalu klik <strong>+ Tambah ke Keranjang</strong>.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-md flex-shrink-0">3</span>
+                            <div>
+                                <strong>Proses Penjualan:</strong> Periksa ringkasan pesanan di panel keranjang, lalu klik tombol <strong>Proses Transaksi</strong>.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-md flex-shrink-0">4</span>
+                            <div>
+                                <strong>Pemotongan Stok Otomatis:</strong> Setelah transaksi berhasil, persediaan bahan baku di gudang otomatis berkurang sesuai takaran SOP resep.
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- TAB 5: DATA & IMPOR -->
+                <div id="help-tab-content-data" class="help-tab-content hidden space-y-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base border-b border-gray-200/10 pb-2 flex items-center gap-2">
+                        Prosedur Data Transaksi & Impor Excel
+                    </h3>
+                    <ol class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 rounded-md flex-shrink-0">1</span>
+                            <div>
+                                <strong>Lihat Rekap Transaksi:</strong> Buka menu <strong>Data Transaksi</strong> untuk melihat tabel seluruh riwayat penjualan harian.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 rounded-md flex-shrink-0">2</span>
+                            <div>
+                                <strong>Impor Massal (Excel/CSV):</strong> Pada area <em>Impor Data dari Excel/CSV</em>, pilih berkas file Excel transaksi Anda. Sistem akan membaca baris transaksi dan memperbarui prediksi otomatis.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 rounded-md flex-shrink-0">3</span>
+                            <div>
+                                <strong>Reset & Restore Data:</strong> Jika ingin mengosongkan dataset atau memulihkan dataset sebelumnya, gunakan tombol <strong>Reset Data Transaksi</strong> atau <strong>Restore File</strong>.
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- TAB 6: PREDIKSI SES -->
+                <div id="help-tab-content-prediksi" class="help-tab-content hidden space-y-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-base border-b border-gray-200/10 pb-2 flex items-center gap-2">
+                        Prosedur Peramalan Prediksi Bahan Baku
+                    </h3>
+                    <ol class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md flex-shrink-0">1</span>
+                            <div>
+                                <strong>Buka Menu Prediksi:</strong> Buka menu <strong>Prediksi Bahan Baku</strong> pada sidebar.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md flex-shrink-0">2</span>
+                            <div>
+                                <strong>Hitung Prediksi Manual:</strong> Klik tombol <strong>Hitung Ulang Prediksi (Manual)</strong> untuk menjalankan kalkulasi peramalan berdasarkan data historis penjualan terbaru.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md flex-shrink-0">3</span>
+                            <div>
+                                <strong>Evaluasi Akurasi WMAPE:</strong> Periksa badge persentase **Akurasi / WMAPE** pada setiap barang.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2.5 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl">
+                            <span class="font-bold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md flex-shrink-0">4</span>
+                            <div>
+                                <strong>Rekomendasi Belanja:</strong> Kolom <strong>Rekomendasi Belanja</strong> otomatis menyajikan jumlah unit kemasan (pack/dus) yang perlu dipesan untuk operasional pekan depan (dengan pembulatan ceiling ke atas).
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200/10 flex-shrink-0">
+                <span class="text-[11px] text-gray-400 dark:text-gray-500">
+                    <i class="fas fa-info-circle text-blue-500 mr-1"></i> Pop-up ini dapat diakses kapan saja dari semua halaman.
+                </span>
+                <button onclick="closeModal('modal-help-guide')"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-md transition">
+                    Tutup Panduan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 items-end"></div>
+
+
+
+    <!-- Predicting overlay -->
+    <div id="predicting-overlay"
+        class="fixed inset-0 bg-black/70 modal-backdrop hidden z-[150] flex items-center justify-center">
+        <div class="bg-white dark:bg-[#111827] rounded-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4 w-full">
+            <div class="relative w-16 h-16">
+                <div class="absolute inset-0 border-4 border-red-200 dark:border-red-900 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-t-red-600 rounded-full animate-spin"></div>
+            </div>
+            <div class="text-center">
+                <p class="font-semibold text-gray-900 dark:text-white">Memproses Prediksi SES</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Optimasi alpha & evaluasi WMAPE...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.BASE_URL = window.location.origin;
+    </script>
+    <script src="js/app.js"></script>
+    <script>
+        // Reset & Restore buttons are handled via onclick attributes
+        // calling resetTransaksiData() and restoreTransaksiData() from app.js
+    </script>
+</body>
+
+</html>
