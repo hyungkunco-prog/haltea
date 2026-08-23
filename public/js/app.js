@@ -83,29 +83,51 @@ function setMockStorage(key, val) {
 }
 
 function initMockDataIfEmpty() {
-    if (!localStorage.getItem('haltea_barang')) setMockStorage('barang', DEFAULT_BARANG);
-    if (!localStorage.getItem('haltea_menu')) setMockStorage('menu', DEFAULT_MENU);
-    if (!localStorage.getItem('haltea_takaran')) setMockStorage('takaran', DEFAULT_TAKARAN);
-    if (!localStorage.getItem('haltea_transaksi')) {
-        const sampleTrx = [];
-        const today = new Date();
-        for (let dayOffset = 24; dayOffset >= 1; dayOffset--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - dayOffset);
-            if (d.getDay() === 0) continue; // skip Sunday
-            const dStr = d.toISOString().split('T')[0];
-            DEFAULT_MENU.forEach((m, idx) => {
-                const qty = Math.floor(8 + (idx * 3) + Math.sin(dayOffset + idx) * 4);
-                sampleTrx.push({
-                    id: sampleTrx.length + 1,
-                    tanggal: dStr,
-                    id_menu: m.id,
-                    jumlah: Math.max(2, qty),
-                    total_bayar: Math.max(2, qty) * m.harga
-                });
-            });
+    const initData = window.HALTEA_INITIAL_DATA || {};
+    const fullMenu = (initData.menu && initData.menu.length) ? initData.menu : DEFAULT_MENU;
+    const fullBarang = (initData.barang && initData.barang.length) ? initData.barang : DEFAULT_BARANG;
+    const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
+    const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
+
+    const versionKey = 'haltea_db_real_v4';
+    if (!localStorage.getItem(versionKey)) {
+        setMockStorage('barang', fullBarang);
+        setMockStorage('menu', fullMenu);
+        setMockStorage('takaran', fullTakaran);
+        if (fullTrx) {
+            setMockStorage('transaksi', fullTrx);
         }
-        setMockStorage('transaksi', sampleTrx);
+        localStorage.setItem(versionKey, '1');
+        return;
+    }
+
+    if (!localStorage.getItem('haltea_barang')) setMockStorage('barang', fullBarang);
+    if (!localStorage.getItem('haltea_menu')) setMockStorage('menu', fullMenu);
+    if (!localStorage.getItem('haltea_takaran')) setMockStorage('takaran', fullTakaran);
+    if (!localStorage.getItem('haltea_transaksi')) {
+        if (fullTrx) {
+            setMockStorage('transaksi', fullTrx);
+        } else {
+            const sampleTrx = [];
+            const today = new Date();
+            for (let dayOffset = 24; dayOffset >= 1; dayOffset--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - dayOffset);
+                if (d.getDay() === 0) continue;
+                const dStr = d.toISOString().split('T')[0];
+                fullMenu.forEach((m, idx) => {
+                    const qty = Math.floor(8 + (idx * 3) + Math.sin(dayOffset + idx) * 4);
+                    sampleTrx.push({
+                        id: sampleTrx.length + 1,
+                        tanggal: dStr,
+                        id_menu: m.id,
+                        jumlah: Math.max(2, qty),
+                        total_bayar: Math.max(2, qty) * (m.harga || 10000)
+                    });
+                });
+            }
+            setMockStorage('transaksi', sampleTrx);
+        }
     }
 }
 
