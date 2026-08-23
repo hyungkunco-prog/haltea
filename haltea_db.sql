@@ -286,7 +286,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `username` (`username`),
   KEY `idx_role` (`role`),
   KEY `idx_is_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -295,7 +295,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (6,'admin','admin123','admin','Admin Haltea',NULL,NULL,NULL,1,'2026-07-22 16:01:30','2026-07-22 16:01:30'),(7,'karyawan','karyawan123','kasir','karyawan Haltea',NULL,NULL,NULL,1,'2026-07-23 20:14:43','2026-07-28 17:40:34');
+INSERT INTO `users` VALUES (6,'admin','admin123','admin','Admin Haltea',NULL,NULL,NULL,1,'2026-07-22 16:01:30','2026-07-22 16:01:30'),(7,'karyawan','karyawan123','kasir','karyawan Haltea',NULL,NULL,NULL,1,'2026-07-23 20:14:43','2026-07-28 17:40:34'),(8,'kasir','kasir123','kasir','Kasir Haltea',NULL,NULL,NULL,1,'2026-08-24 04:35:22','2026-08-24 04:35:22');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -308,4 +308,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24  3:38:19
+-- Dump completed on 2026-08-24  4:35:42
