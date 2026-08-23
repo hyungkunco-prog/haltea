@@ -154,6 +154,7 @@ async function handleClientSideMock(url, config = {}) {
     initMockDataIfEmpty();
     const method = (config.method || 'GET').toUpperCase();
     const body = config.body ? (typeof config.body === 'string' ? JSON.parse(config.body) : config.body) : {};
+    const todayDateIso = new Date().toISOString().slice(0, 10);
     
     // Parse URL path and query
     const parsedUrl = new URL(url, window.location.origin);
