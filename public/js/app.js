@@ -814,7 +814,8 @@ const ADMIN_NAV = [
     { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'all' },
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
-    { id: 'absensi_staf', icon: 'fa-user-clock', label: 'Absensi Staf', role: 'admin' },
+    { id: 'absensi_staf', icon: 'fa-user-clock', label: 'Kelola Absensi Staf', role: 'admin' },
+    { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Saya', role: 'kasir' },
 ];
 
 function setupSidebar() {
@@ -852,6 +853,12 @@ function setupSidebar() {
     // Show/hide admin-only elements globally
     document.querySelectorAll('.admin-only').forEach(el => {
         if (role === 'admin') el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    });
+
+    // Show/hide kasir-only elements globally
+    document.querySelectorAll('.kasir-only').forEach(el => {
+        if (role === 'kasir') el.classList.remove('hidden');
         else el.classList.add('hidden');
     });
 }
@@ -1045,6 +1052,7 @@ async function showPage(pageId) {
         laporan_keuangan: loadLaporanKeuangan,
         arus_kas: loadArusKas,
         absensi_staf: loadAbsensiStaf,
+        absensi_karyawan: loadAbsensiKaryawan,
     };
     if (loaders[pageId]) await loaders[pageId]();
 }
@@ -4495,5 +4503,283 @@ function previewFotoAbsensi(url, caption) {
     openModal('modal-preview-foto-absensi');
 }
 window.previewFotoAbsensi = previewFotoAbsensi;
+
+// ============================================================
+// 4. ABSENSI KARYAWAN / KASIR (PERSONAL CHECK-IN & LEAVE)
+// ============================================================
+let currentKaryawanSelfieBase64 = null;
+let currentKaryawanAbsensiTab = 'hadir';
+
+function switchKaryawanAbsensiTab(tab) {
+    currentKaryawanAbsensiTab = tab;
+    const btnHadir = document.getElementById('tab-btn-absen-hadir');
+    const btnIzin = document.getElementById('tab-btn-ajukan-izin');
+    const contentHadir = document.getElementById('karyawan-tab-content-hadir');
+    const contentIzin = document.getElementById('karyawan-tab-content-izin');
+
+    if (!btnHadir || !btnIzin || !contentHadir || !contentIzin) return;
+
+    if (tab === 'hadir') {
+        btnHadir.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs';
+        btnIzin.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white';
+        contentHadir.classList.remove('hidden');
+        contentIzin.classList.add('hidden');
+    } else {
+        btnIzin.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs';
+        btnHadir.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white';
+        contentIzin.classList.remove('hidden');
+        contentHadir.classList.add('hidden');
+    }
+}
+window.switchKaryawanAbsensiTab = switchKaryawanAbsensiTab;
+
+async function handleKaryawanSelfieChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const previewBox = document.getElementById('karyawan-selfie-preview-box');
+    const previewImg = document.getElementById('karyawan-selfie-img-preview');
+
+    try {
+        currentKaryawanSelfieBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => resolve('haltea-logo.png');
+            reader.readAsDataURL(file);
+        });
+
+        if (previewImg) {
+            previewImg.src = currentKaryawanSelfieBase64;
+            previewImg.classList.remove('hidden');
+        }
+        if (previewBox) previewBox.classList.add('hidden');
+        showToast('Foto selfie berhasil dimuat.', 'info');
+    } catch (err) {
+        showToast('Gagal memproses foto.', 'error');
+    }
+}
+window.handleKaryawanSelfieChange = handleKaryawanSelfieChange;
+
+async function loadAbsensiKaryawan() {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayBadge = document.getElementById('karyawan-absensi-today-badge');
+    if (todayBadge) todayBadge.textContent = today;
+
+    const userNameEl = document.getElementById('karyawan-absensi-user-name');
+    const userRoleEl = document.getElementById('karyawan-absensi-user-role');
+    const avatarInit = document.getElementById('karyawan-absensi-avatar-initial');
+
+    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const curRole = currentUser?.role === 'admin' ? 'Admin' : 'Kasir';
+    if (userNameEl) userNameEl.textContent = curName;
+    if (userRoleEl) userRoleEl.textContent = curRole;
+    if (avatarInit) {
+        const initials = curName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'KA';
+        avatarInit.textContent = initials;
+    }
+
+    try {
+        // Load standard work hour
+        const resJk = await apiFetch('/api/jamkerja');
+        let jamMasukStd = '08:00:00';
+        if (resJk.ok) {
+            const jk = await resJk.json();
+            if (jk.jam_masuk) jamMasukStd = jk.jam_masuk;
+        }
+        const alertJamMasuk = document.getElementById('karyawan-jam-masuk-alert');
+        if (alertJamMasuk) alertJamMasuk.textContent = `Jam Masuk Standar: ${jamMasukStd}`;
+
+        // Load all attendance records
+        const resAbs = await apiFetch('/api/absensi');
+        let myRecords = [];
+        if (resAbs.ok) {
+            const allAbs = await resAbs.json();
+            // Filter by my name or show relevant employee records
+            myRecords = allAbs.filter(a => a.nama_staff.toLowerCase().includes(curName.toLowerCase()) || curRole === 'Admin');
+            if (myRecords.length === 0) myRecords = allAbs;
+        }
+
+        renderKaryawanAbsensiTable(myRecords);
+
+        // Check if I already checked in today
+        const todayRec = myRecords.find(a => a.tanggal === today);
+        const actionBox = document.getElementById('karyawan-absen-actions');
+        if (actionBox) {
+            if (todayRec) {
+                if (todayRec.jam_pulang && todayRec.jam_pulang !== '-' && todayRec.jam_pulang !== '') {
+                    actionBox.innerHTML = `
+                        <div class="p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-center">
+                            <i class="fas fa-check-circle text-emerald-500 text-xl mb-1"></i>
+                            <p class="text-xs font-bold text-emerald-700 dark:text-emerald-300">Absensi Hari Ini Sudah Lengkap</p>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Masuk: ${todayRec.jam_masuk} • Pulang: ${todayRec.jam_pulang}</p>
+                        </div>
+                    `;
+                } else {
+                    actionBox.innerHTML = `
+                        <div class="space-y-2.5">
+                            <div class="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-center text-xs text-blue-700 dark:text-blue-300 font-semibold">
+                                Sudah Check-in Pukul ${todayRec.jam_masuk} (${todayRec.status})
+                            </div>
+                            <button type="button" onclick="submitKaryawanCheckOut(${todayRec.id})"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Absen Pulang (Check-out)</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                actionBox.innerHTML = `
+                    <button type="button" onclick="submitKaryawanCheckIn()" id="btn-karyawan-checkin"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Absen Masuk (Check-in)</span>
+                    </button>
+                `;
+            }
+        }
+    } catch (e) {
+        showToast('Gagal memuat absensi saya.', 'error');
+    }
+}
+window.loadAbsensiKaryawan = loadAbsensiKaryawan;
+
+function renderKaryawanAbsensiTable(records) {
+    const tbody = document.getElementById('table-karyawan-absensi-body');
+    if (!tbody) return;
+
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
+                    Belum ada riwayat kehadiran.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = records.map(item => {
+        let statusBadgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+        if (item.status === 'Terlambat') statusBadgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+        else if (item.status === 'Izin') statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        else if (item.status === 'Sakit') statusBadgeClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+        else if (item.status === 'Alpha') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+
+        return `
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
+            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">${item.tanggal}</td>
+            <td class="py-3 px-3 text-center whitespace-nowrap">
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${statusBadgeClass}">
+                    ${item.status}
+                </span>
+            </td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_masuk || '-'}</td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_pulang || '-'}</td>
+            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs">${item.keterangan || '-'}</td>
+        </tr>
+        `;
+    }).join('');
+}
+
+async function submitKaryawanCheckIn() {
+    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const nowTimeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    // Fetch work hours
+    let stdMasuk = '08:00:00';
+    try {
+        const resJk = await apiFetch('/api/jamkerja');
+        if (resJk.ok) {
+            const jk = await resJk.json();
+            if (jk.jam_masuk) stdMasuk = jk.jam_masuk;
+        }
+    } catch (e) {}
+
+    // Check if late
+    const isLate = nowTimeStr > stdMasuk;
+    const status = isLate ? 'Terlambat' : 'Hadir';
+    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const keterangan = isLate ? `Check-in terlambat (setelah ${stdMasuk})` : 'Hadir tepat waktu';
+    const foto = currentKaryawanSelfieBase64 || 'haltea-logo.png';
+
+    try {
+        const res = await apiFetch('/api/absensi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nama_staff: curName,
+                tanggal: today,
+                jam_masuk: nowTimeStr,
+                jam_pulang: '-',
+                status,
+                keterangan,
+                foto
+            })
+        });
+        if (!res.ok) throw new Error('Gagal melakukan absensi masuk');
+        showToast(`Absensi Masuk Berhasil! Status: ${status} (${nowTimeStr})`, 'success');
+        await loadAbsensiKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitKaryawanCheckIn = submitKaryawanCheckIn;
+
+async function submitKaryawanCheckOut(recordId) {
+    const now = new Date();
+    const nowTimeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    try {
+        // Update mock storage directly or via API
+        let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+        const idx = absList.findIndex(x => x.id === recordId);
+        if (idx !== -1) {
+            absList[idx].jam_pulang = nowTimeStr;
+            setMockStorage('absensi', absList);
+        }
+        showToast(`Absensi Pulang (Check-out) Berhasil! (${nowTimeStr})`, 'success');
+        await loadAbsensiKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitKaryawanCheckOut = submitKaryawanCheckOut;
+
+async function submitKaryawanIzin() {
+    const today = new Date().toISOString().slice(0, 10);
+    const alasan = document.getElementById('karyawan-izin-alasan').value.trim();
+    if (!alasan) {
+        showToast('Harap tuliskan alasan izin Anda.', 'warn');
+        return;
+    }
+
+    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+
+    try {
+        const res = await apiFetch('/api/absensi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nama_staff: curName,
+                tanggal: today,
+                jam_masuk: '-',
+                jam_pulang: '-',
+                status: 'Izin',
+                keterangan: `Izin: ${alasan}`,
+                foto: 'haltea-logo.png'
+            })
+        });
+        if (!res.ok) throw new Error('Gagal mengajukan izin');
+        showToast('Permohonan izin Anda berhasil dikirim ke Admin.', 'success');
+        document.getElementById('karyawan-izin-alasan').value = '';
+        switchKaryawanAbsensiTab('hadir');
+        await loadAbsensiKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitKaryawanIzin = submitKaryawanIzin;
 
 
