@@ -1,0 +1,35 @@
+# CodeIgniter 4 .gitignore
+/writable/cache/*
+!/writable/cache/index.html
+!/writable/cache/.gitkeep
+
+/writable/debugbar/*
+!/writable/debugbar/index.html
+!/writable/debugbar/.gitkeep
+
+/writable/logs/*
+!/writable/logs/index.html
+!/writable/logs/.gitkeep
+
+/writable/session/*
+!/writable/session/index.html
+!/writable/session/.gitkeep
+
+/writable/uploads/*
+!/writable/uploads/index.html
+!/writable/uploads/.gitkeep
+
+# Environment & Configs with sensitive credentials
+.env
+.env.backup
+.env.production
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Vendor dependencies
+/vendor/
