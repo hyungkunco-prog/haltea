@@ -130,16 +130,29 @@ async function handleClientSideMock(url, config = {}) {
         
         let role = null;
         let nama = '';
-        if ((u === 'admin' || u === 'admin@haltea.com') && p === 'admin123') {
-            role = 'admin';
-            nama = 'Administrator';
-        } else if ((u === 'kasir' || u === 'kasir@haltea.com') && p === 'kasir123') {
-            role = 'kasir';
-            nama = 'Kasir Haltea';
-        } else if ((u === 'karyawan' || u === 'karyawan@haltea.com') && p === 'karyawan123') {
-            role = 'kasir';
-            nama = 'karyawan Haltea';
+        if (u === 'admin' || u === 'admin@haltea.com') {
+            if (p === 'admin123' || p === 'admin' || p === '123456' || p === 'password') {
+                role = 'admin';
+                nama = 'Administrator';
+            }
+        } else if (u === 'kasir' || u === 'kasir@haltea.com') {
+            if (p === 'kasir123' || p === 'kasir' || p === '123456' || p === 'karyawan123') {
+                role = 'kasir';
+                nama = 'Kasir Haltea';
+            }
+        } else if (u === 'karyawan' || u === 'karyawan@haltea.com') {
+            if (p === 'karyawan123' || p === 'karyawan' || p === 'kasir123' || p === '123456') {
+                role = 'kasir';
+                nama = 'karyawan Haltea';
+            }
         }
+
+        // Generic fallback on static host if standard credentials provided
+        if (!role && (p === 'admin123' || p === 'kasir123' || p === 'karyawan123' || p === '123456')) {
+            role = u.includes('admin') ? 'admin' : 'kasir';
+            nama = u.charAt(0).toUpperCase() + u.slice(1);
+        }
+
 
         if (role) {
             const token = 'mock_jwt_token_' + Date.now();
