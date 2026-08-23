@@ -885,9 +885,25 @@ async function showPage(pageId) {
     page.classList.add('fade-in');
     setTimeout(() => page.classList.remove('fade-in'), 400);
 
+    // Sidebar navigation active state
     document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
     const link = document.getElementById(`link-${pageId}`);
     if (link) link.classList.add('active');
+
+    // Smartphone bottom navigation active state
+    document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+    const bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`);
+    if (bottomNavBtn) bottomNavBtn.classList.add('active');
+
+    // Smartphone floating cart bar visibility
+    const floatBar = document.getElementById('mobile-floating-cart-bar');
+    if (floatBar) {
+        if (pageId === 'transaksi' && Object.keys(cartState).length > 0) {
+            floatBar.classList.remove('hidden');
+        } else {
+            floatBar.classList.add('hidden');
+        }
+    }
 
     const loaders = {
         dashboard: loadDashboard,
@@ -2341,20 +2357,113 @@ window.togglePosViewMode = togglePosViewMode;
 
 let cartState = {}; // Key: menuId, Value: { id_menu, nama_menu, harga, gambar, jumlah }
 
+let currentKatalogCategory = 'all';
+let currentKatalogSearch = '';
+
+function filterKatalogCategory(cat, btn) {
+    currentKatalogCategory = cat;
+    document.querySelectorAll('#katalog-category-pills .cat-pill').forEach(b => {
+        b.classList.remove('active', 'bg-red-600', 'text-white');
+        b.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-400');
+    });
+    if (btn) {
+        btn.classList.add('active', 'bg-red-600', 'text-white');
+        btn.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-400');
+    }
+    renderKatalog();
+}
+window.filterKatalogCategory = filterKatalogCategory;
+
+function handleKatalogSearch(q) {
+    currentKatalogSearch = (q || '').trim().toLowerCase();
+    renderKatalog();
+}
+window.handleKatalogSearch = handleKatalogSearch;
+
+function openMobileCartDrawer() {
+    renderMobileCartModal();
+    openModal('modal-mobile-cart');
+}
+window.openMobileCartDrawer = openMobileCartDrawer;
+
+function renderMobileCartModal() {
+    const listEl = document.getElementById('mobile-modal-cart-items');
+    const totalEl = document.getElementById('mobile-modal-cart-total');
+    const countBadge = document.getElementById('modal-cart-count-badge');
+    if (!listEl) return;
+
+    const cartEntries = Object.values(cartState);
+    const totalItems = cartEntries.reduce((sum, item) => sum + item.jumlah, 0);
+    const totalPrice = cartEntries.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
+
+    if (countBadge) countBadge.textContent = `${totalItems} Item`;
+    if (totalEl) totalEl.textContent = `Rp ${formatNum(totalPrice, 0)}`;
+
+    if (cartEntries.length === 0) {
+        listEl.innerHTML = `
+            <div class="py-8 text-center text-gray-400">
+                <i class="fas fa-shopping-cart text-2xl mb-2"></i>
+                <p class="text-xs">Keranjang masih kosong</p>
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = cartEntries.map(item => `
+        <div class="flex items-center justify-between gap-3 pt-2.5 first:pt-0">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <img src="${item.gambar || 'haltea-logo.png'}" class="w-10 h-10 rounded-xl object-cover bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="min-w-0 flex-1">
+                    <h4 class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">${item.nama_menu}</h4>
+                    <p class="text-[11px] text-red-600 dark:text-red-400 font-semibold">Rp ${formatNum(item.harga, 0)}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button onclick="updateCartQty(${item.id_menu}, -1); renderMobileCartModal();" class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-700 dark:text-gray-200 font-bold text-sm flex items-center justify-center">
+                    −
+                </button>
+                <span class="w-6 text-center font-bold text-xs text-gray-900 dark:text-white">${item.jumlah}</span>
+                <button onclick="updateCartQty(${item.id_menu}, 1); renderMobileCartModal();" class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-700 dark:text-gray-200 font-bold text-sm flex items-center justify-center">
+                    +
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+window.renderMobileCartModal = renderMobileCartModal;
+
 function renderKatalog() {
     const grid = document.getElementById('trx-katalog-grid');
     if (!grid) return;
-    grid.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
 
-    const activeMenus = allMenu.filter(m => m.aktif);
+    let activeMenus = allMenu.filter(m => m.aktif);
+
+    // Apply category filter
+    if (currentKatalogCategory !== 'all') {
+        activeMenus = activeMenus.filter(m => {
+            const n = m.nama_menu.toLowerCase();
+            if (currentKatalogCategory === 'tea') return n.includes('tea') || n.includes('teh');
+            if (currentKatalogCategory === 'squash') return n.includes('squash');
+            if (currentKatalogCategory === 'milk') return n.includes('milk') || n.includes('latte') || n.includes('choco') || n.includes('taro') || n.includes('matcha');
+            if (currentKatalogCategory === 'coffee') return n.includes('coffee') || n.includes('cappuccino') || n.includes('americano') || n.includes('good day');
+            if (currentKatalogCategory === 'yakult') return n.includes('yakult');
+            return true;
+        });
+    }
+
+    // Apply search filter
+    if (currentKatalogSearch) {
+        activeMenus = activeMenus.filter(m => m.nama_menu.toLowerCase().includes(currentKatalogSearch));
+    }
+
     const countBadge = document.getElementById('trx-menu-count-badge');
-    if (countBadge) countBadge.textContent = `${activeMenus.length} Menu Tersedia`;
+    if (countBadge) countBadge.textContent = `${activeMenus.length} Menu`;
 
     if (activeMenus.length === 0) {
         grid.innerHTML = `
             <div class="col-span-full py-12 text-center text-gray-400">
                 <i class="fas fa-mug-hot text-3xl mb-2"></i>
-                <p class="text-sm">Belum ada menu produk aktif.</p>
+                <p class="text-sm">Tidak ada menu yang sesuai.</p>
             </div>
         `;
         renderCartPanel();
@@ -2368,23 +2477,23 @@ function renderKatalog() {
 
         return `
         <div onclick="addToCart(${m.id})" id="katalog-card-${m.id}"
-            class="group relative bg-white dark:bg-[#0d1117] border ${isSelected ? 'border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-800 hover:border-red-500 dark:hover:border-red-500/80'} rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col select-none">
+            class="group relative bg-white dark:bg-[#0d1117] border ${isSelected ? 'border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-800 hover:border-red-500 dark:hover:border-red-500/80'} rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col select-none">
             <!-- Product Image Top -->
             <div class="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
                 <img src="${m.gambar || 'haltea-logo.png'}" alt="${m.nama_menu}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 ${isSelected ? `
-                    <div class="absolute top-2 right-2 bg-red-600 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-md animate-fade-in flex items-center gap-1">
-                        <i class="fas fa-shopping-bag text-[10px]"></i> ${inCartQty}
+                    <div class="absolute top-2 right-2 bg-red-600 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-md animate-fade-in flex items-center gap-1">
+                        <i class="fas fa-shopping-bag text-[9px]"></i> ${inCartQty}
                     </div>
                 ` : ''}
             </div>
             <!-- Card Body -->
-            <div class="p-3 flex flex-col flex-1 justify-between">
+            <div class="p-2.5 sm:p-3 flex flex-col flex-1 justify-between">
                 <div>
-                    <h3 class="font-bold text-sm text-gray-900 dark:text-white leading-tight truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">${m.nama_menu}</h3>
-                    ${m.keterangan ? `<p class="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">${m.keterangan}</p>` : ''}
+                    <h3 class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white leading-snug line-clamp-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">${m.nama_menu}</h3>
+                    ${m.keterangan ? `<p class="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">${m.keterangan}</p>` : ''}
                 </div>
-                <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-gray-100 dark:border-gray-800">
                     <span class="text-xs sm:text-sm font-extrabold text-red-600 dark:text-red-400">Rp ${formatNum(m.harga, 0)}</span>
                     <button onclick="event.stopPropagation(); addToCart(${m.id})" class="w-7 h-7 rounded-lg ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 group-hover:bg-red-600 group-hover:text-white'} flex items-center justify-center transition-colors">
                         <i class="fas fa-plus text-xs"></i>
@@ -2442,6 +2551,25 @@ function renderCartPanel() {
 
     if (badge) badge.textContent = `${totalItems} ITEM`;
     if (totalPriceEl) totalPriceEl.textContent = `Rp ${formatNum(totalPrice, 0)}`;
+
+    // Update Floating Cart Bar and Bottom Nav Badge on Smartphones
+    const floatBar = document.getElementById('mobile-floating-cart-bar');
+    const floatCount = document.getElementById('mobile-cart-item-count');
+    const floatTotal = document.getElementById('mobile-cart-total-price');
+    const bottomNavBadge = document.getElementById('bottom-nav-cart-badge');
+
+    if (totalItems > 0) {
+        if (floatBar && currentPageId === 'transaksi') floatBar.classList.remove('hidden');
+        if (floatCount) floatCount.textContent = `${totalItems} Menu Dipilih`;
+        if (floatTotal) floatTotal.textContent = `Rp ${formatNum(totalPrice, 0)}`;
+        if (bottomNavBadge) {
+            bottomNavBadge.textContent = totalItems;
+            bottomNavBadge.classList.remove('hidden');
+        }
+    } else {
+        if (floatBar) floatBar.classList.add('hidden');
+        if (bottomNavBadge) bottomNavBadge.classList.add('hidden');
+    }
 
     if (cartEntries.length === 0) {
         itemsList.innerHTML = `
