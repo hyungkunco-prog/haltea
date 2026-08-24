@@ -2057,6 +2057,21 @@
                     <!-- Right Panel: Riwayat Kehadiran Staff -->
                     <div class="lg:col-span-8">
                         <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
+                            <!-- Rekap Izin Staf Bulan Ini (Hanya Muncul Jika Ada Izin) -->
+                            <div id="admin-izin-summary-card" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl shadow-xs">
+                                <div class="flex items-center justify-between mb-2.5">
+                                    <div class="flex items-center gap-2 font-bold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wider">
+                                        <i class="fas fa-clipboard-user text-blue-600 dark:text-blue-400"></i>
+                                        <span>Rekap Izin Staf Bulan Ini (<span id="admin-izin-month-label">Bulan Ini</span>)</span>
+                                    </div>
+                                    <span id="admin-total-izin-badge" class="text-[11px] font-bold px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg">
+                                        Total: 0 Izin
+                                    </span>
+                                </div>
+                                <div id="admin-izin-chips-container" class="flex flex-wrap gap-2 pt-1">
+                                </div>
+                            </div>
+
                             <!-- Header Filter -->
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                                 <h2 class="text-base font-bold text-gray-900 dark:text-white">Riwayat Kehadiran Staff</h2>
@@ -2209,7 +2224,25 @@
                     <!-- Right Panel: Riwayat Kehadiran Saya -->
                     <div class="lg:col-span-7">
                         <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
-                            <h2 class="text-base font-bold text-gray-900 dark:text-white mb-6">Riwayat Kehadiran Saya</h2>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white mb-4">Riwayat Kehadiran Saya</h2>
+
+                            <!-- Rekap Izin Karyawan Bulan Ini (Hanya Muncul Jika Ada Izin) -->
+                            <div id="karyawan-izin-summary-box" class="hidden mb-5 p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center justify-between shadow-xs">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                                        <i class="fas fa-calendar-check text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-900 dark:text-white">Riwayat Izin Bulan Ini (<span id="karyawan-izin-month-label">Bulan Ini</span>)</p>
+                                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Total permohonan izin Anda yang tercatat</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span id="karyawan-izin-count-badge" class="px-3 py-1.5 bg-blue-600 text-white font-black text-xs rounded-xl shadow-sm">
+                                        0x Izin
+                                    </span>
+                                </div>
+                            </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs text-left">
                                     <thead>
@@ -3269,8 +3302,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=2.3.0"></script>
-    <script src="js/app.js?v=2.3.0"></script>
+    <script src="js/haltea_data.js?v=2.4.0"></script>
+    <script src="js/app.js?v=2.4.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

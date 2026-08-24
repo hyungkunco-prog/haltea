@@ -4348,6 +4348,52 @@ async function loadAbsensiStaf() {
             allAbsensiRecords = await resAbs.json();
             renderAbsensiTable(allAbsensiRecords);
         }
+
+        // 3. Load All Records to summarize leaves in the current month across staff
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const curMonth = todayStr.slice(0, 7); // e.g. "2026-08"
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const curDateObj = new Date();
+        const monthLabel = monthNames[curDateObj.getMonth()] + " " + curDateObj.getFullYear();
+
+        const resAll = await apiFetch('/api/absensi');
+        if (resAll.ok) {
+            const allRecords = await resAll.json();
+            const izinThisMonth = allRecords.filter(r => r.status === 'Izin' && (r.tanggal || '').startsWith(curMonth));
+            
+            const adminIzinCard = document.getElementById('admin-izin-summary-card');
+            const adminIzinMonthLabel = document.getElementById('admin-izin-month-label');
+            const adminTotalIzinBadge = document.getElementById('admin-total-izin-badge');
+            const adminChipsContainer = document.getElementById('admin-izin-chips-container');
+
+            if (adminIzinCard && adminChipsContainer) {
+                if (adminIzinMonthLabel) adminIzinMonthLabel.textContent = monthLabel;
+                
+                if (izinThisMonth.length > 0) {
+                    const staffMap = {};
+                    izinThisMonth.forEach(r => {
+                        const name = r.nama_staff || 'Staff';
+                        staffMap[name] = (staffMap[name] || 0) + 1;
+                    });
+
+                    if (adminTotalIzinBadge) {
+                        adminTotalIzinBadge.textContent = `Total: ${izinThisMonth.length} Izin`;
+                    }
+
+                    adminChipsContainer.innerHTML = Object.entries(staffMap).map(([name, count]) => `
+                        <div class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700/60 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-xs">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span>${name}:</span>
+                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-black rounded-lg text-[11px]">${count}x Izin</span>
+                        </div>
+                    `).join('');
+
+                    adminIzinCard.classList.remove('hidden');
+                } else {
+                    adminIzinCard.classList.add('hidden');
+                }
+            }
+        }
     } catch (e) {
         showToast('Gagal memuat data absensi staf.', 'error');
     }
@@ -4601,6 +4647,29 @@ async function loadAbsensiKaryawan() {
         }
 
         renderKaryawanAbsensiTable(myRecords);
+
+        // Calculate monthly leave count for this employee
+        const curMonth = today.slice(0, 7); // e.g. "2026-08"
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const curDateObj = new Date();
+        const monthLabel = monthNames[curDateObj.getMonth()] + " " + curDateObj.getFullYear();
+
+        const izinThisMonth = myRecords.filter(r => r.status === 'Izin' && (r.tanggal || '').startsWith(curMonth));
+        const izinCount = izinThisMonth.length;
+
+        const izinBox = document.getElementById('karyawan-izin-summary-box');
+        const izinMonthLabel = document.getElementById('karyawan-izin-month-label');
+        const izinCountBadge = document.getElementById('karyawan-izin-count-badge');
+
+        if (izinBox && izinCountBadge) {
+            if (izinMonthLabel) izinMonthLabel.textContent = monthLabel;
+            if (izinCount > 0) {
+                izinCountBadge.textContent = `${izinCount}x Izin`;
+                izinBox.classList.remove('hidden');
+            } else {
+                izinBox.classList.add('hidden');
+            }
+        }
 
         // Check if I already checked in today
         const todayRec = myRecords.find(a => a.tanggal === today);
