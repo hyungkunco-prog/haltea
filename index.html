@@ -850,6 +850,9 @@
             /* Page headers stack */
             .page-content > .flex.flex-col.sm\:flex-row {
                 flex-direction: column !important;
+            }
+        }
+
         /* ============================================================
            RESPONSIVE SMARTPHONE & MOBILE ENHANCEMENTS
            ============================================================ */
@@ -861,23 +864,214 @@
         }
 
         @media (max-width: 767px) {
+            /* --- Dashboard stat cards: 2x2 compact grid --- */
+            .page-content .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.625rem !important;
+            }
+            .stat-card {
+                padding: 0.875rem !important;
+                border-radius: 0.875rem !important;
+            }
+            .stat-card h3 {
+                font-size: 1.375rem !important;
+                margin-top: 0.125rem !important;
+            }
+            .stat-card .w-10 {
+                width: 2rem !important;
+                height: 2rem !important;
+            }
+            .stat-card .w-10 i {
+                font-size: 0.75rem !important;
+            }
+            .stat-card p:first-of-type {
+                font-size: 0.6rem !important;
+            }
+            .stat-card p:last-of-type {
+                font-size: 0.6rem !important;
+                margin-top: 0 !important;
+            }
+
+            /* --- Dashboard chart + info: full width stack --- */
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 > div {
+                padding: 1rem !important;
+            }
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 .h-56 {
+                height: 10rem !important;
+            }
+
+            /* --- Chart header wrap --- */
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 .flex.items-center.justify-between {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .page-content .grid.grid-cols-1.lg\:grid-cols-3 .flex.items-center.justify-between h2 {
+                font-size: 0.8125rem !important;
+            }
+
+            /* --- Page title smaller --- */
+            .page-content h1 {
+                font-size: 1.125rem !important;
+                line-height: 1.3 !important;
+            }
+            .page-content > .mb-5 p,
+            .page-content > div > p.text-sm {
+                font-size: 0.75rem !important;
+            }
+
+            /* --- Katalog transaksi: 2 columns compact --- */
             #trx-katalog-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                gap: 0.75rem !important;
+                gap: 0.625rem !important;
+            }
+            .katalog-card {
+                border-radius: 0.875rem !important;
             }
             .katalog-card .katalog-thumb {
                 width: 100% !important;
                 height: auto !important;
                 aspect-ratio: 1 / 1 !important;
+                border-radius: 0.625rem !important;
             }
-            .stat-card {
-                padding: 1rem !important;
+            .katalog-card .katalog-body {
+                padding: 0.5rem 0.625rem !important;
+            }
+            .katalog-card .katalog-body .font-bold {
+                font-size: 0.75rem !important;
+                line-height: 1.3 !important;
+            }
+            .katalog-card .katalog-body .text-red-500 {
+                font-size: 0.6875rem !important;
+            }
+
+            /* --- Keranjang Belanja panel compact --- */
+            #trx-cart-panel {
+                padding: 0.875rem !important;
+                border-radius: 1rem !important;
+            }
+            #trx-cart-panel h2 {
+                font-size: 0.875rem !important;
+            }
+
+            /* --- Buttons: compact --- */
+            .page-content button {
+                font-size: 0.8125rem !important;
+            }
+            .page-content .flex-shrink-0.bg-red-600,
+            .page-content .bg-green-600,
+            .page-content .bg-blue-600 {
+                padding: 0.5rem 0.875rem !important;
+                font-size: 0.8125rem !important;
+                border-radius: 0.75rem !important;
+            }
+
+            /* --- Absensi layouts: stack columns --- */
+            .page-content .grid.grid-cols-1.lg\:grid-cols-12,
+            .page-content .grid.lg\:grid-cols-12 {
+                grid-template-columns: 1fr !important;
+            }
+            .page-content .lg\:col-span-4,
+            .page-content .lg\:col-span-5,
+            .page-content .lg\:col-span-7,
+            .page-content .lg\:col-span-8 {
+                grid-column: span 1 !important;
+            }
+
+            /* --- Absensi Karyawan tab buttons compact --- */
+            #page-absensi-karyawan .flex.gap-1 button {
+                font-size: 0.75rem !important;
+                padding: 0.5rem 0.75rem !important;
+            }
+
+            /* --- Modal compact on phone --- */
+            .modal-backdrop {
+                padding: 0.5rem !important;
+                align-items: flex-end !important;
+            }
+            .modal-backdrop > .glass-modal {
+                max-width: 100% !important;
+                max-height: calc(100dvh - 1rem) !important;
+                border-radius: 1.25rem 1.25rem 0 0 !important;
+                margin-bottom: 0 !important;
+            }
+
+            /* --- Top bar compact --- */
+            .top-bar {
+                padding: 0.5rem 0.75rem !important;
+            }
+            .top-bar .gradient-text {
+                font-size: 1rem !important;
+            }
+
+            /* --- Toast above bottom nav --- */
+            #toast-container {
+                bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                right: 0.75rem !important;
+                left: 0.75rem !important;
+            }
+
+            /* --- Laporan Keuangan & Arus Kas: compact --- */
+            #page-laporan-keuangan .glass-panel,
+            #page-arus-kas .glass-panel {
+                padding: 0.875rem !important;
+                border-radius: 0.875rem !important;
+            }
+
+            /* --- Prediksi result cards compact --- */
+            #page-prediksi .glass-panel {
+                padding: 0.875rem !important;
+            }
+            #page-prediksi .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* --- Form inputs: comfortable touch --- */
+            .page-content input[type="text"],
+            .page-content input[type="number"],
+            .page-content input[type="date"],
+            .page-content select,
+            .page-content textarea {
+                font-size: 16px !important; /* prevent iOS zoom */
+                padding: 0.625rem 0.75rem !important;
+                border-radius: 0.75rem !important;
+            }
+
+            /* --- SOP editor header wrap --- */
+            .sop-editor-panel .glass-panel > .flex {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            /* --- Filter bars wrap --- */
+            .page-content .flex.flex-wrap {
+                gap: 0.375rem !important;
+            }
+
+            /* --- Glass panels tighter --- */
+            .glass-panel {
+                border-radius: 0.875rem !important;
+                padding: 0.875rem !important;
+            }
+
+            /* --- Today history panel compact --- */
+            .today-history-panel {
+                width: calc(100vw - 1.5rem) !important;
+                max-width: 100% !important;
+                right: 0.75rem !important;
             }
         }
 
         @media (max-width: 360px) {
+            /* Very small phones: single column catalog */
             #trx-katalog-grid {
                 grid-template-columns: 1fr !important;
+            }
+            .stat-card h3 {
+                font-size: 1.125rem !important;
             }
         }
 
