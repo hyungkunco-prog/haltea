@@ -1458,6 +1458,12 @@
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)] pointer-events-none"></div>
 
         <div class="relative z-10 w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl p-7 sm:p-8 shadow-2xl shadow-black/50 border border-white/30 dark:border-gray-800">
+            <!-- Opening Audio Button on Login Screen -->
+            <button type="button" onclick="playWelcomeVoice(true)" title="Putar Sambutan Suara (Welcome to POS Haltea Indonesia)"
+                class="absolute top-4 right-4 w-9 h-9 rounded-2xl bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs border border-red-200/60 dark:border-red-900/30">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
+
             <!-- Logo & Brand Header -->
             <div class="text-center mb-6">
                 <div class="relative w-20 h-20 mx-auto mb-3 overflow-hidden rounded-full border-4 border-red-500/20 shadow-md bg-white flex items-center justify-center p-1">
@@ -3746,25 +3752,125 @@
             </div>
         </div>
     </div>
-    <!-- Modal Konfirmasi Reset Data -->
+    <!-- Modal Reset Transaksi (Pilihan Fleksibel: Hari Ini, 1 Pekan, Bulan Tertentu, Rentang Tanggal, Semua) -->
     <div id="modal-confirm-reset"
-        class="fixed inset-0 bg-black/60 modal-backdrop hidden z-[400] flex items-center justify-center p-4">
-        <div class="glass-modal rounded-2xl p-6 w-full max-w-sm text-center">
-            <div class="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-trash-alt text-2xl text-red-600 dark:text-red-400"></i>
+        class="fixed inset-0 bg-black/70 modal-backdrop hidden z-[400] flex items-center justify-center p-3 sm:p-4">
+        <div class="glass-modal rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200/20">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-base shrink-0">
+                        <i class="fas fa-trash-can"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Reset Data Transaksi</h3>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Pilih rentang / periode transaksi yang ingin dihapus.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-confirm-reset')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Kosongkan Data Transaksi?</h3>
-            <p class="text-gray-500 dark:text-gray-400 text-sm mb-5">
-                Apakah Anda yakin ingin mengosongkan SELURUH data transaksi? Backup data transaksi saat ini akan disimpan secara otomatis di riwayat restore.
-            </p>
-            <div class="flex gap-2">
-                <button onclick="closeModal('modal-confirm-reset')"
-                    class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-sm font-medium transition">
+
+            <!-- Radio Scope Selection -->
+            <div class="space-y-2 mb-4">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">PILIH CAKUPAN PENGHAPUSAN:</label>
+                
+                <!-- Option 1: Hari Ini -->
+                <label class="flex items-center gap-3 p-3 rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/50 hover:border-red-500/50 cursor-pointer transition">
+                    <input type="radio" name="reset-scope" value="today" checked onchange="handleResetScopeChange()" class="text-red-600 focus:ring-red-500 h-4 w-4">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-gray-900 dark:text-white flex items-center justify-between">
+                            <span>Hari Ini Saja</span>
+                            <span class="text-[10px] text-red-600 font-semibold px-2 py-0.5 bg-red-50 dark:bg-red-900/30 rounded-full" id="reset-badge-today">Hari ini</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5" id="reset-label-today">Hanya transaksi tanggal hari ini</p>
+                    </div>
+                </label>
+
+                <!-- Option 2: 1 Pekan Terakhir -->
+                <label class="flex items-center gap-3 p-3 rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/50 hover:border-red-500/50 cursor-pointer transition">
+                    <input type="radio" name="reset-scope" value="week" onchange="handleResetScopeChange()" class="text-red-600 focus:ring-red-500 h-4 w-4">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-gray-900 dark:text-white flex items-center justify-between">
+                            <span>1 Pekan Terakhir (7 Hari)</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Transaksi dalam 7 hari terakhir</p>
+                    </div>
+                </label>
+
+                <!-- Option 3: Bulan Tertentu -->
+                <label class="flex flex-col gap-2 p-3 rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/50 hover:border-red-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="reset-scope" value="month" onchange="handleResetScopeChange()" class="text-red-600 focus:ring-red-500 h-4 w-4">
+                        <div class="min-w-0 flex-1">
+                            <span class="text-xs font-bold text-gray-900 dark:text-white">Bulan Tertentu</span>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Hapus seluruh transaksi pada 1 bulan tertentu</p>
+                        </div>
+                    </div>
+                    <div id="reset-month-container" class="hidden pl-7 pt-1">
+                        <input type="month" id="reset-input-month" onchange="updateResetPreviewCount()"
+                            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs text-gray-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-red-500 w-full">
+                    </div>
+                </label>
+
+                <!-- Option 4: Rentang Tanggal Kustom -->
+                <label class="flex flex-col gap-2 p-3 rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/50 hover:border-red-500/50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="reset-scope" value="range" onchange="handleResetScopeChange()" class="text-red-600 focus:ring-red-500 h-4 w-4">
+                        <div class="min-w-0 flex-1">
+                            <span class="text-xs font-bold text-gray-900 dark:text-white">Rentang Tanggal Kustom</span>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Hapus transaksi dari tanggal awal s/d tanggal akhir</p>
+                        </div>
+                    </div>
+                    <div id="reset-range-container" class="hidden pl-7 pt-1 grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-gray-400 font-semibold block mb-0.5">Dari:</span>
+                            <input type="date" id="reset-input-from" onchange="updateResetPreviewCount()"
+                                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 text-xs text-gray-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-red-500 w-full">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 font-semibold block mb-0.5">Sampai:</span>
+                            <input type="date" id="reset-input-to" onchange="updateResetPreviewCount()"
+                                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 text-xs text-gray-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-red-500 w-full">
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Option 5: Semua Data -->
+                <label class="flex items-center gap-3 p-3 rounded-2xl border border-red-200/60 dark:border-red-900/40 bg-red-50/40 dark:bg-red-950/20 hover:border-red-500/50 cursor-pointer transition">
+                    <input type="radio" name="reset-scope" value="all" onchange="handleResetScopeChange()" class="text-red-600 focus:ring-red-500 h-4 w-4">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-red-600 dark:text-red-400 flex items-center justify-between">
+                            <span>Semua Data Transaksi (Total Clean)</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Kosongkan seluruh riwayat data transaksi dari awal hingga akhir</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Preview counter & Auto-backup notice -->
+            <div class="p-3 bg-gray-100/80 dark:bg-gray-800/80 rounded-2xl mb-4 text-xs space-y-1">
+                <div class="flex items-center justify-between text-gray-700 dark:text-gray-300 font-bold">
+                    <span>Estimasi data terhapus:</span>
+                    <span id="reset-preview-count" class="text-red-600 font-extrabold">0 Transaksi</span>
+                </div>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <i class="fas fa-shield-halved text-emerald-500"></i>
+                    <span>Backup otomatis tersimpan di Riwayat Restore dan bisa dipulihkan.</span>
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="closeModal('modal-confirm-reset')"
+                    class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-bold transition">
                     Batal
                 </button>
-                <button onclick="processResetTransaksiData()"
-                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-md shadow-red-500/20">
-                    Ya, Kosongkan
+                <button type="button" onclick="processResetTransaksiData()" id="btn-confirm-execute-reset"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md shadow-red-500/20 flex items-center justify-center gap-1.5">
+                    <i class="fas fa-trash-can"></i>
+                    <span>Konfirmasi Reset</span>
                 </button>
             </div>
         </div>
@@ -4161,8 +4267,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.9.6"></script>
-    <script src="js/app.js?v=3.9.6"></script>
+    <script src="js/haltea_data.js?v=3.9.7"></script>
+    <script src="js/app.js?v=3.9.7"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

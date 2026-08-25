@@ -413,22 +413,140 @@ async function handleClientSideMock(url, config = {}) {
     }
 
     // --- TRANSAKSI ---
+    if (path === '/transaksi/reset' && method === 'POST') {
+        const { scope = 'all', date, month, from_date, to_date } = body;
+        const trx = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let matching = [];
+        let remaining = [];
+        let scopeLabel = 'Semua Data';
+
+        if (scope === 'today') {
+            const targetDate = date || todayStr;
+            matching = trx.filter(t => t.tanggal === targetDate);
+            remaining = trx.filter(t => t.tanggal !== targetDate);
+            scopeLabel = `Hari Ini (${targetDate})`;
+        } else if (scope === 'week') {
+            const d = new Date();
+            d.setDate(d.getDate() - 6);
+            const fromD = d.toISOString().slice(0, 10);
+            matching = trx.filter(t => t.tanggal >= fromD && t.tanggal <= todayStr);
+            remaining = trx.filter(t => t.tanggal < fromD || t.tanggal > todayStr);
+            scopeLabel = `1 Pekan (${fromD} s/d ${todayStr})`;
+        } else if (scope === 'month') {
+            const targetMonth = month || todayStr.slice(0, 7);
+            matching = trx.filter(t => (t.tanggal || '').startsWith(targetMonth));
+            remaining = trx.filter(t => !(t.tanggal || '').startsWith(targetMonth));
+            scopeLabel = `Bulan (${targetMonth})`;
+        } else if (scope === 'range') {
+            const fDate = from_date || todayStr;
+            const tDate = to_date || todayStr;
+            matching = trx.filter(t => t.tanggal >= fDate && t.tanggal <= tDate);
+            remaining = trx.filter(t => t.tanggal < fDate || t.tanggal > tDate);
+            scopeLabel = `Rentang (${fDate} s/d ${tDate})`;
+        } else {
+            matching = [...trx];
+            remaining = [];
+            scopeLabel = 'Semua Data';
+        }
+
+        if (matching.length > 0) {
+            const batches = getMockStorage('import_batches', []);
+            batches.unshift({
+                id: Date.now(),
+                batch_name: `Reset ${scopeLabel}`,
+                nama_batch: `Reset ${scopeLabel}`,
+                backup_data: JSON.stringify(matching),
+                total_transaksi: matching.length,
+                tgl_import: new Date().toISOString(),
+                keterangan: `Backup otomatis sebelum reset ${scopeLabel}`
+            });
+            setMockStorage('import_batches', batches);
+        }
+
+        setMockStorage('transaksi', remaining);
+        return new Response(JSON.stringify({
+            success: true,
+            count: matching.length,
+            message: `Berhasil mereset ${matching.length} data transaksi (${scopeLabel}).`
+        }), { status: 200 });
+    }
+
+    if (path === '/transaksi/batches' && method === 'GET') {
+        const batches = getMockStorage('import_batches', []);
+        return new Response(JSON.stringify(batches), { status: 200 });
+    }
+
+    if ((path === '/transaksi/restore' || path.startsWith('/transaksi/restore')) && method === 'POST') {
+        const batches = getMockStorage('import_batches', []);
+        let targetBatch = null;
+        if (path.includes('/restore-batch/')) {
+            const batchId = parseInt(path.split('/').pop(), 10);
+            targetBatch = batches.find(b => b.id === batchId);
+        } else {
+            targetBatch = batches[0];
+        }
+
+        if (!targetBatch || !targetBatch.backup_data) {
+            return new Response(JSON.stringify({ error: 'Tidak ada data backup yang dapat dipulihkan.' }), { status: 404 });
+        }
+
+        const restoredItems = JSON.parse(targetBatch.backup_data || '[]');
+        const currentTrx = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
+        
+        const existingIds = new Set(currentTrx.map(t => t.id));
+        restoredItems.forEach(item => {
+            if (!existingIds.has(item.id)) {
+                currentTrx.push(item);
+                existingIds.add(item.id);
+            } else {
+                item.id = (currentTrx.length ? Math.max(...currentTrx.map(x => x.id || 0)) : 0) + 1;
+                currentTrx.push(item);
+            }
+        });
+
+        setMockStorage('transaksi', currentTrx);
+        return new Response(JSON.stringify({
+            success: true,
+            message: `Berhasil memulihkan ${restoredItems.length} data transaksi dari dataset "${targetBatch.batch_name || targetBatch.nama_batch}".`
+        }), { status: 200 });
+    }
+
     if (path === '/transaksi' && method === 'GET') {
-        const trx = getMockStorage('transaksi', []);
+        const trx = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
         const menu = getMockStorage('menu', DEFAULT_MENU);
-        const enriched = trx.map(t => {
-            const m = menu.find(x => x.id === t.id_menu) || {};
+        const enriched = trx.map((t, idx) => {
+            let m = menu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+            if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+                m = menu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+            }
+            if (!m && menu.length > 0) {
+                const mIdx = (parseInt(t.id_menu, 10) || idx) % menu.length;
+                m = menu[mIdx >= 0 ? mIdx : 0];
+            }
+            const finalName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+            const finalKategori = t.kategori || m?.kategori || 'Minuman';
+            const finalHarga = parseInt(t.harga, 10) || parseInt(m?.harga, 10) || 5000;
+            const finalJml = parseInt(t.jumlah, 10) || 1;
+            const finalTotal = parseInt(t.total_harga || t.total_bayar, 10) || (finalHarga * finalJml);
+
             return {
                 ...t,
-                nama_menu: m.nama_menu || 'Menu Varian',
-                harga: m.harga || 10000
+                id_menu: m?.id || t.id_menu,
+                nama_menu: finalName,
+                kategori: finalKategori,
+                harga: finalHarga,
+                jumlah: finalJml,
+                total_harga: finalTotal,
+                total_bayar: finalTotal
             };
-        }).sort((a, b) => b.id - a.id);
+        }).sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || '') || (b.id || 0) - (a.id || 0));
         return new Response(JSON.stringify(enriched), { status: 200 });
     }
 
     if (path === '/transaksi' && method === 'POST') {
-        const trx = getMockStorage('transaksi', []);
+        const trx = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
+        const menu = getMockStorage('menu', DEFAULT_MENU);
         const barang = getMockStorage('barang', DEFAULT_BARANG);
         const takaran = getMockStorage('takaran', DEFAULT_TAKARAN);
         const today = new Date().toISOString().split('T')[0];
@@ -437,13 +555,20 @@ async function handleClientSideMock(url, config = {}) {
         orders.forEach(ord => {
             const id_menu = parseInt(ord.id_menu);
             const jumlah = parseInt(ord.jumlah || 1);
+            const m = menu.find(x => x.id === id_menu || parseInt(x.id) === id_menu);
             if (id_menu && jumlah > 0) {
+                const harga = parseInt(ord.harga) || parseInt(m?.harga) || 5000;
                 trx.push({
                     id: trx.length + 1,
                     tanggal: ord.tanggal || today,
                     id_menu,
+                    nama_menu: ord.nama_menu || m?.nama_menu || 'Teh Manis Original',
+                    kategori: ord.kategori || m?.kategori || 'Minuman',
                     jumlah,
-                    total_bayar: ord.total_bayar || 0
+                    harga: harga,
+                    total_harga: ord.total_harga || (harga * jumlah),
+                    total_bayar: ord.total_bayar || (harga * jumlah),
+                    sumber: 'pos'
                 });
 
                 // Deduct stock
@@ -3391,13 +3516,22 @@ function groupTrxByMenu(trxs) {
     let grandTotalOmset = 0;
     let grandTotalCups = 0;
 
-    (trxs || []).forEach(t => {
-        const menuId = t.id_menu || t.nama_menu;
-        const menuName = t.nama_menu || 'Menu Lainnya';
-        const harga = parseInt(t.harga) || 0;
-        const jml = parseInt(t.jumlah) || 1;
-        const total = parseInt(t.total_harga) || (harga * jml);
-        const kategori = t.kategori || (allMenu.find(m => m.id === t.id_menu)?.kategori) || 'Minuman';
+    (trxs || []).forEach((t, idx) => {
+        let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+        if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+            m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+        }
+        if (!m && allMenu.length > 0) {
+            const mIdx = (parseInt(t.id_menu, 10) || idx) % allMenu.length;
+            m = allMenu[mIdx >= 0 ? mIdx : 0];
+        }
+
+        const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+        const menuId = m?.id || t.id_menu || menuName;
+        const harga = parseInt(t.harga, 10) || parseInt(m?.harga, 10) || 5000;
+        const jml = parseInt(t.jumlah, 10) || 1;
+        const total = parseInt(t.total_harga || t.total_bayar, 10) || (harga * jml);
+        const kategori = t.kategori || m?.kategori || 'Minuman';
 
         if (!map[menuId]) {
             map[menuId] = {
@@ -3444,8 +3578,8 @@ function renderRiwayatPerTransaksi(allTrx) {
     });
 
     // 1. Update Harian KPI Stat Cards
-    const totalOmset = filtered.reduce((s, t) => s + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah || 1)) || 0), 0);
-    const totalCups = filtered.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
+    const totalOmset = filtered.reduce((s, t) => s + (parseInt(t.total_harga || t.total_bayar, 10) || (parseInt(t.harga, 10) * parseInt(t.jumlah || 1, 10)) || 0), 0);
+    const totalCups = filtered.reduce((s, t) => s + (parseInt(t.jumlah, 10) || 0), 0);
     const { list: menuBreakdown } = groupTrxByMenu(filtered);
 
     const elStatOmset = document.getElementById('harian-stat-omset');
@@ -3468,38 +3602,59 @@ function renderRiwayatPerTransaksi(allTrx) {
     }
     if (badge) badge.textContent = `${filtered.length} Transaksi`;
 
-    // 2. Render Rekap Penjualan Per Menu Harian
-    const tbodyMenu = document.getElementById('table-riwayat-menu-harian-body');
+    // 2. Render Rekap Penjualan Per Menu Hari Terpilih
+    const tbodyMenu = document.getElementById('riwayat-menu-summary-tbody');
     if (tbodyMenu) {
         if (menuBreakdown.length === 0) {
-            tbodyMenu.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada menu terjual pada filter tanggal ini.</td></tr>`;
+            tbodyMenu.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada penjualan menu pada tanggal terpilih.</td></tr>`;
         } else {
-            tbodyMenu.innerHTML = menuBreakdown.map((m, idx) => {
-                const pct = totalOmset > 0 ? ((m.total_omset / totalOmset) * 100).toFixed(1) : 0;
+            tbodyMenu.innerHTML = menuBreakdown.map((item, idx) => {
+                const pct = totalOmset > 0 ? Math.round((item.total_omset / totalOmset) * 100) : 0;
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
-                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${m.total_cups.toLocaleString('id-ID')} Cup</td>
-                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+                    <td class="px-4 py-3 text-xs font-semibold text-gray-400 text-center" data-label="No">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-[10px] font-black">${idx + 1}</div>
+                            <span>${item.nama_menu}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori">${item.kategori}</td>
+                    <td class="px-4 py-3 text-xs font-extrabold text-center text-gray-900 dark:text-white" data-label="Cup Terjual">${item.total_cups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-4 py-3 text-xs font-bold text-right text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.total_omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-center" data-label="Kontribusi">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <div class="w-12 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-red-500 h-full rounded-full" style="width: ${Math.min(100, pct)}%"></div>
+                            </div>
+                            <span class="font-bold text-[11px] text-gray-700 dark:text-gray-300">${pct}%</span>
+                        </div>
+                    </td>
                 </tr>`;
             }).join('');
         }
     }
 
-    // 3. Render Detail Transaksi Realtime (Urutan Waktu, Dapat Diedit)
-    const tbodyTrx = document.getElementById('table-riwayat-per-trx-body');
+    // 3. Render Detail Transaksi (Log Urutan Waktu)
+    const tbodyTrx = document.getElementById('riwayat-table-tbody');
     if (tbodyTrx) {
         if (filtered.length === 0) {
-            tbodyTrx.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400 dark:text-gray-600 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+            tbodyTrx.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada riwayat transaksi yang cocok dengan filter.</td></tr>`;
             return;
         }
 
-        tbodyTrx.innerHTML = filtered.map(t => {
-            const harga = parseInt(t.harga) || 0;
-            const total = parseInt(t.total_harga) || (harga * parseInt(t.jumlah || 1));
+        tbodyTrx.innerHTML = filtered.map((t, idx) => {
+            let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+            if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+                m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+            }
+            if (!m && allMenu.length > 0) {
+                const mIdx = (parseInt(t.id_menu, 10) || idx) % allMenu.length;
+                m = allMenu[mIdx >= 0 ? mIdx : 0];
+            }
+            const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+            const harga = parseInt(t.harga, 10) || parseInt(m?.harga, 10) || 5000;
+            const total = parseInt(t.total_harga || t.total_bayar, 10) || (harga * parseInt(t.jumlah || 1, 10));
             const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">Import</span>` :
                 t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold">Historis</span>` :
                     `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">POS</span>`;
@@ -3510,7 +3665,7 @@ function renderRiwayatPerTransaksi(allTrx) {
             return `
             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
                 <td class="px-4 py-3 text-xs text-gray-900 dark:text-white font-medium" data-label="Tanggal">${t.tanggal}</td>
-                <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Menu">${t.nama_menu || '-'}</td>
+                <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Menu">${menuName}</td>
                 <td class="px-4 py-3 text-xs text-center font-extrabold text-gray-900 dark:text-white" data-label="Jumlah">${(t.jumlah || 0).toLocaleString('id-ID')}</td>
                 <td class="px-4 py-3 text-xs text-right text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
                 <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
@@ -4104,36 +4259,158 @@ async function uploadExcel(file) {
 function resetTransaksiData() {
     const modalConfirm = document.getElementById('modal-confirm-reset');
     if (modalConfirm && typeof openModal === 'function') {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const monthStr = todayStr.slice(0, 7);
+        const fromEl = document.getElementById('reset-input-from');
+        const toEl = document.getElementById('reset-input-to');
+        const monthEl = document.getElementById('reset-input-month');
+        const labelToday = document.getElementById('reset-label-today');
+        const badgeToday = document.getElementById('reset-badge-today');
+
+        if (labelToday) labelToday.textContent = `Hanya transaksi tanggal hari ini (${todayStr})`;
+        if (badgeToday) badgeToday.textContent = todayStr;
+        if (fromEl && !fromEl.value) {
+            const d = new Date();
+            d.setDate(d.getDate() - 6);
+            fromEl.value = d.toISOString().slice(0, 10);
+        }
+        if (toEl && !toEl.value) toEl.value = todayStr;
+        if (monthEl && !monthEl.value) monthEl.value = monthStr;
+
+        const radios = document.getElementsByName('reset-scope');
+        for (const r of radios) {
+            if (r.value === 'today') r.checked = true;
+        }
+        handleResetScopeChange();
         openModal('modal-confirm-reset');
     } else {
-        if (!confirm('Apakah Anda yakin ingin mengosongkan SELURUH data transaksi?\n\nData akan di-backup otomatis dan bisa di-restore kembali nanti.')) {
-            return;
-        }
+        if (!confirm('Apakah Anda yakin ingin mereset data transaksi?')) return;
         processResetTransaksiData();
     }
 }
 window.resetTransaksiData = resetTransaksiData;
 
+function handleResetScopeChange() {
+    const radios = document.getElementsByName('reset-scope');
+    let selectedScope = 'today';
+    for (const r of radios) {
+        if (r.checked) {
+            selectedScope = r.value;
+            break;
+        }
+    }
+
+    const monthContainer = document.getElementById('reset-month-container');
+    const rangeContainer = document.getElementById('reset-range-container');
+
+    if (monthContainer) {
+        if (selectedScope === 'month') monthContainer.classList.remove('hidden');
+        else monthContainer.classList.add('hidden');
+    }
+    if (rangeContainer) {
+        if (selectedScope === 'range') rangeContainer.classList.remove('hidden');
+        else rangeContainer.classList.add('hidden');
+    }
+
+    updateResetPreviewCount();
+}
+window.handleResetScopeChange = handleResetScopeChange;
+
+async function updateResetPreviewCount() {
+    const previewEl = document.getElementById('reset-preview-count');
+    if (!previewEl) return;
+
+    let allTrx = [];
+    try {
+        const res = await apiFetch('/api/transaksi?limit=3000');
+        if (res && res.ok) allTrx = await res.json();
+    } catch (e) {}
+    if (!allTrx || allTrx.length === 0) {
+        allTrx = typeof getMockStorage === 'function' ? getMockStorage('transaksi', DEFAULT_TRANSAKSI) : (window.DEFAULT_TRANSAKSI || []);
+    }
+
+    const radios = document.getElementsByName('reset-scope');
+    let selectedScope = 'today';
+    for (const r of radios) {
+        if (r.checked) {
+            selectedScope = r.value;
+            break;
+        }
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let matchingCount = 0;
+
+    if (selectedScope === 'today') {
+        matchingCount = allTrx.filter(t => t.tanggal === todayStr).length;
+    } else if (selectedScope === 'week') {
+        const d = new Date();
+        d.setDate(d.getDate() - 6);
+        const fromD = d.toISOString().slice(0, 10);
+        matchingCount = allTrx.filter(t => t.tanggal >= fromD && t.tanggal <= todayStr).length;
+    } else if (selectedScope === 'month') {
+        const monthInput = document.getElementById('reset-input-month');
+        const targetMonth = monthInput?.value || todayStr.slice(0, 7);
+        matchingCount = allTrx.filter(t => (t.tanggal || '').startsWith(targetMonth)).length;
+    } else if (selectedScope === 'range') {
+        const fromInput = document.getElementById('reset-input-from');
+        const toInput = document.getElementById('reset-input-to');
+        const fDate = fromInput?.value || todayStr;
+        const tDate = toInput?.value || todayStr;
+        matchingCount = allTrx.filter(t => t.tanggal >= fDate && t.tanggal <= tDate).length;
+    } else {
+        matchingCount = allTrx.length;
+    }
+
+    previewEl.textContent = `${matchingCount} Transaksi`;
+}
+window.updateResetPreviewCount = updateResetPreviewCount;
+
 async function processResetTransaksiData() {
+    const radios = document.getElementsByName('reset-scope');
+    let selectedScope = 'today';
+    for (const r of radios) {
+        if (r.checked) {
+            selectedScope = r.value;
+            break;
+        }
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const monthInput = document.getElementById('reset-input-month');
+    const fromInput = document.getElementById('reset-input-from');
+    const toInput = document.getElementById('reset-input-to');
+
+    const payload = {
+        scope: selectedScope,
+        date: todayStr,
+        month: monthInput?.value || todayStr.slice(0, 7),
+        from_date: fromInput?.value || todayStr,
+        to_date: toInput?.value || todayStr
+    };
+
     if (typeof closeModal === 'function') closeModal('modal-confirm-reset');
     const overlay = document.getElementById('predicting-overlay');
     if (overlay) overlay.classList.remove('hidden');
+
     try {
-        const res = await apiFetch('/api/transaksi/reset', { method: 'POST' });
+        const res = await apiFetch('/api/transaksi/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
         const data = await res.json();
-        if (res.ok) {
-            showToast(data.message || 'Data transaksi berhasil dikosongkan.', 'success');
-            await loadRiwayatPage(true);
+        if (res.ok && data.success) {
+            showToast(data.message || 'Data transaksi berhasil di-reset.', 'success');
+            await loadRiwayatTransaksi();
             if (typeof loadDashboard === 'function') await loadDashboard();
             if (typeof loadPrediksi === 'function') await loadPrediksi();
             if (typeof loadStok === 'function') await loadStok();
         } else {
-            alert('Gagal: ' + (data.error || JSON.stringify(data)));
-            showToast(data.error || 'Gagal mengosongkan data.', 'error');
+            showToast(data.error || 'Gagal mereset data.', 'error');
         }
     } catch (e) {
-        alert('Error reset: ' + e.message);
-        showToast('Gagal mengosongkan data transaksi: ' + e.message, 'error');
+        showToast('Gagal mereset data transaksi: ' + e.message, 'error');
     } finally {
         if (overlay) overlay.classList.add('hidden');
     }
@@ -4228,7 +4505,7 @@ async function executeRestoreBatch(batchId, batchName) {
         const data = await res.json();
         if (res.ok) {
             showToast(data.message || 'Dataset berhasil dipulihkan!', 'success');
-            await loadRiwayatPage(true);
+            if (typeof loadRiwayatTransaksi === 'function') await loadRiwayatTransaksi();
             if (typeof loadDashboard === 'function') await loadDashboard();
             if (typeof loadPrediksi === 'function') await loadPrediksi();
             if (typeof loadStok === 'function') await loadStok();

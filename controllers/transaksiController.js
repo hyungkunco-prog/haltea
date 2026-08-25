@@ -269,18 +269,64 @@ export async function importTransactions(req, res) {
 }
 
 export async function reset(req, res) {
+    const { scope = 'all', date, month, from_date, to_date } = req.body || {};
+    const todayStr = new Date().toISOString().slice(0, 10);
     try {
-        const [current] = await query('SELECT * FROM transaksi');
-        if (current.length > 0) {
-            const backupJson = JSON.stringify(current);
+        let selectSql = 'SELECT * FROM transaksi';
+        let deleteSql = 'DELETE FROM transaksi';
+        let params = [];
+        let scopeLabel = 'Semua Data';
+
+        if (scope === 'today') {
+            const targetDate = date || todayStr;
+            selectSql += ' WHERE tanggal = ?';
+            deleteSql += ' WHERE tanggal = ?';
+            params = [targetDate];
+            scopeLabel = `Hari Ini (${targetDate})`;
+        } else if (scope === 'week') {
+            const d = new Date();
+            d.setDate(d.getDate() - 6);
+            const fromD = d.toISOString().slice(0, 10);
+            selectSql += ' WHERE tanggal >= ? AND tanggal <= ?';
+            deleteSql += ' WHERE tanggal >= ? AND tanggal <= ?';
+            params = [fromD, todayStr];
+            scopeLabel = `1 Pekan (${fromD} s/d ${todayStr})`;
+        } else if (scope === 'month') {
+            const targetMonth = month || todayStr.slice(0, 7);
+            selectSql += ' WHERE tanggal LIKE ?';
+            deleteSql += ' WHERE tanggal LIKE ?';
+            params = [`${targetMonth}%`];
+            scopeLabel = `Bulan (${targetMonth})`;
+        } else if (scope === 'range') {
+            const fDate = from_date || todayStr;
+            const tDate = to_date || todayStr;
+            selectSql += ' WHERE tanggal >= ? AND tanggal <= ?';
+            deleteSql += ' WHERE tanggal >= ? AND tanggal <= ?';
+            params = [fDate, tDate];
+            scopeLabel = `Rentang (${fDate} s/d ${tDate})`;
+        }
+
+        const [matching] = await query(selectSql, params);
+
+        if (matching.length > 0) {
+            const backupJson = JSON.stringify(matching);
             await query(`
                 INSERT INTO import_batches (batch_name, backup_data, created_at) 
                 VALUES (?, ?, NOW())
-            `, [`Backup Before Reset ${new Date().toISOString()}`, backupJson]);
+            `, [`Reset ${scopeLabel} - ${new Date().toISOString().replace('T', ' ').substring(0, 19)}`, backupJson]);
         }
 
-        await query('TRUNCATE TABLE transaksi');
-        return res.json({ success: true, message: 'Data transaksi berhasil di-reset.' });
+        if (scope === 'all') {
+            await query('TRUNCATE TABLE transaksi');
+        } else if (matching.length > 0) {
+            await query(deleteSql, params);
+        }
+
+        return res.json({ 
+            success: true, 
+            count: matching.length, 
+            message: `Berhasil mereset ${matching.length} data transaksi (${scopeLabel}).` 
+        });
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }
@@ -309,8 +355,21 @@ export async function restore(req, res) {
 
 export async function getBatches(req, res) {
     try {
-        const [batches] = await query('SELECT id, batch_name, created_at FROM import_batches ORDER BY id DESC');
-        return res.json(batches);
+        const [batches] = await query('SELECT id, batch_name, created_at, backup_data FROM import_batches ORDER BY id DESC');
+        const formatted = batches.map(b => {
+            let total = 0;
+            try {
+                if (b.backup_data) total = JSON.parse(b.backup_data).length;
+            } catch (e) {}
+            return {
+                id: b.id,
+                nama_batch: b.batch_name,
+                tgl_import: b.created_at,
+                total_transaksi: total,
+                keterangan: b.backup_data ? 'Backup data riwayat reset' : 'Dataset transaksi'
+            };
+        });
+        return res.json(formatted);
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }
