@@ -105,7 +105,7 @@ function initMockDataIfEmpty() {
     const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
     const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
 
-    const versionKey = 'haltea_db_real_v5';
+    const versionKey = 'haltea_db_real_v6';
     if (!localStorage.getItem(versionKey)) {
         setMockStorage('barang', fullBarang);
         setMockStorage('menu', fullMenu);
