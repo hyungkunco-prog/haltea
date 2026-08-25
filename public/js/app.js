@@ -802,7 +802,7 @@ async function checkAuth() {
 // ============================================================
 let hasSpokenOpeningVoice = false;
 
-function playWelcomeVoice(force = false) {
+function executeWelcomeVoice(force = false) {
     if (!('speechSynthesis' in window)) return;
     if (!force && hasSpokenOpeningVoice) return;
     hasSpokenOpeningVoice = true;
@@ -829,13 +829,17 @@ function playWelcomeVoice(force = false) {
         console.warn('Speech playback notice:', e);
     }
 }
-window.playWelcomeVoice = () => playWelcomeVoice(true);
+
+function playWelcomeVoice(force = true) {
+    executeWelcomeVoice(force);
+}
+window.playWelcomeVoice = playWelcomeVoice;
 
 if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = () => {};
     const handleFirstGestureAudio = () => {
         if (!hasSpokenOpeningVoice && currentUser) {
-            playWelcomeVoice();
+            executeWelcomeVoice(false);
         }
         window.removeEventListener('click', handleFirstGestureAudio);
         window.removeEventListener('keydown', handleFirstGestureAudio);
