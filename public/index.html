@@ -1657,17 +1657,26 @@
                 </div>
 
                 <!-- Chart & Last Prediction info -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div
-                        class="lg:col-span-2 glass-panel rounded-xl p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="font-semibold text-gray-900 dark:text-white text-sm">Grafik Penjualan Menu
-                                (Mingguan)</h2>
-                            <select id="chart-menu-select" onchange="updateDashboardChart()"
-                                class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-red-500">
-                            </select>
+                    <div class="lg:col-span-2 glass-panel rounded-2xl p-4 sm:p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-xs">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <h2 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">Grafik Penjualan Menu</h2>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-9">Tren penjualan mingguan aktual (Cup)</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="chart-menu-select" onchange="updateDashboardChart()"
+                                    class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer max-w-[200px] truncate">
+                                </select>
+                            </div>
                         </div>
-                        <div class="h-56"><canvas id="dashboardChart"></canvas></div>
+                        <div class="relative w-full h-60 sm:h-72">
+                            <canvas id="dashboardChart"></canvas>
+                        </div>
                     </div>
                     <div
                         class="glass-panel rounded-xl p-5">
@@ -2552,8 +2561,8 @@
                 <!-- Header -->
                 <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Absensi Staff</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Pantau dan kelola kehadiran kru gerai Anda</p>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Absensi Karyawan</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Catat absensi kehadiran harian dan ajukan izin kerja Anda</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-right">
@@ -3658,8 +3667,8 @@
             </div>
         </div>
 
-        <!-- 4 Featured Buttons (Dashboard, Transaksi, Takaran, Stok) -->
-        <div class="flex items-center justify-around w-full">
+        <!-- 4 Featured Buttons Container (Populated dynamically by role) -->
+        <div id="bottom-nav-buttons" class="flex items-center justify-around w-full">
             <button onclick="showPage('dashboard')" id="bottom-nav-dashboard" class="mobile-nav-btn active flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
                 <i class="fas fa-shapes text-base mb-0.5"></i>
                 <span class="text-[10px] font-semibold tracking-tight">Dashboard</span>
@@ -3671,11 +3680,11 @@
                 </div>
                 <span class="text-[10px] font-semibold tracking-tight">Transaksi</span>
             </button>
-            <button onclick="showPage('sop')" id="bottom-nav-sop" class="mobile-nav-btn admin-only flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
+            <button onclick="showPage('sop')" id="bottom-nav-sop" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
                 <i class="fas fa-utensils text-base mb-0.5"></i>
                 <span class="text-[10px] font-semibold tracking-tight">Takaran</span>
             </button>
-            <button onclick="showPage('stok')" id="bottom-nav-stok" class="mobile-nav-btn admin-only flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
+            <button onclick="showPage('stok')" id="bottom-nav-stok" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
                 <i class="fas fa-box-archive text-base mb-0.5"></i>
                 <span class="text-[10px] font-semibold tracking-tight">Stok</span>
             </button>
@@ -3745,8 +3754,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.4.0"></script>
-    <script src="js/app.js?v=3.4.0"></script>
+    <script src="js/haltea_data.js?v=3.5.0"></script>
+    <script src="js/app.js?v=3.5.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js
