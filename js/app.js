@@ -952,6 +952,78 @@ function toggleSidebar() {
     updateSidebarIcons();
 }
 
+function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar) return;
+    sidebar.classList.add('sidebar-open');
+    if (overlay) overlay.classList.add('show');
+    document.body.classList.add('sidebar-is-open');
+    updateSidebarIcons();
+}
+
+function initMobileTouchGestures() {
+    const bottomNav = document.getElementById('mobile-bottom-nav');
+    const sidebar = document.getElementById('sidebar');
+    if (!bottomNav || !sidebar) return;
+
+    let startY = 0;
+    let startX = 0;
+    let isTracking = false;
+
+    // 1. Swipe UP on Bottom Navigation bar to slide open the full menu drawer
+    bottomNav.addEventListener('touchstart', (e) => {
+        if (window.innerWidth >= 1024) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isTracking = true;
+    }, { passive: true });
+
+    bottomNav.addEventListener('touchmove', (e) => {
+        if (!isTracking || window.innerWidth >= 1024) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const diffY = startY - currentY; // positive when swiping UP
+        const diffX = Math.abs(currentX - startX);
+
+        if (diffY > 20 && diffY > diffX) {
+            isTracking = false;
+            openSidebar();
+        }
+    }, { passive: true });
+
+    bottomNav.addEventListener('touchend', () => {
+        isTracking = false;
+    }, { passive: true });
+
+    // 2. Swipe DOWN on Sidebar header / handle to slide close the drawer
+    sidebar.addEventListener('touchstart', (e) => {
+        if (window.innerWidth >= 1024) return;
+        const navEl = document.getElementById('sidebar-nav');
+        if (navEl && navEl.scrollTop > 5) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isTracking = true;
+    }, { passive: true });
+
+    sidebar.addEventListener('touchmove', (e) => {
+        if (!isTracking || window.innerWidth >= 1024) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const diffY = currentY - startY; // positive when swiping DOWN
+        const diffX = Math.abs(currentX - startX);
+
+        if (diffY > 30 && diffY > diffX) {
+            isTracking = false;
+            closeSidebarMobile();
+        }
+    }, { passive: true });
+
+    sidebar.addEventListener('touchend', () => {
+        isTracking = false;
+    }, { passive: true });
+}
+
 function initSidebarControls() {
     const toggleBtn = document.getElementById('sidebar-toggle');
     const desktopBtn = document.getElementById('sidebar-collapse-desktop');
@@ -990,9 +1062,13 @@ function initSidebarControls() {
             setTimeout(closeSidebarMobile, 150);
         }
     });
+
+    // Initialize Touch Gesture Listeners (Swipe Up & Swipe Down)
+    initMobileTouchGestures();
 }
 
 // Expose for any inline handlers still in HTML
+window.openSidebar = openSidebar;
 window.toggleSidebar = toggleSidebar;
 window.closeSidebarMobile = closeSidebarMobile;
 

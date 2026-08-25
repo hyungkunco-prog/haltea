@@ -3651,13 +3651,12 @@
 
     <!-- SMARTPHONE BOTTOM NAVIGATION BAR (4 Featured Tabs + Pull Up Handle) -->
     <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0b0f18]/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-gray-800/80 px-2 pt-1 pb-1 shadow-2xl transition-transform duration-300 flex flex-col">
-        <!-- Pull Up Handle Indicator for All Menus (Drawer Trigger) -->
-        <button type="button" onclick="toggleSidebar()" class="w-full flex items-center justify-center pt-0.5 pb-1 focus:outline-none group cursor-pointer">
-            <div class="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:text-red-600 transition-colors border border-gray-200/60 dark:border-gray-700/60 shadow-2xs">
-                <i class="fas fa-chevron-up text-[10px] text-red-500 animate-bounce"></i>
-                <span class="text-[10px] font-extrabold tracking-tight">Semua Menu (Tarik ke Atas)</span>
+        <!-- Pull Up Handle Indicator for All Menus (Swipe or Tap Trigger) -->
+        <div id="bottom-nav-pull-handle" onclick="toggleSidebar()" class="w-full flex items-center justify-center pt-0.5 pb-1 cursor-pointer group select-none">
+            <div class="flex items-center justify-center w-14 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 group-hover:text-red-600 group-hover:bg-red-50 dark:group-hover:bg-red-950/40 transition-all border border-gray-200/60 dark:border-gray-700/60 shadow-2xs">
+                <i class="fas fa-chevron-up text-xs text-red-500 font-extrabold group-hover:-translate-y-0.5 transition-transform"></i>
             </div>
-        </button>
+        </div>
 
         <!-- 4 Featured Buttons (Dashboard, Transaksi, Takaran, Stok) -->
         <div class="flex items-center justify-around w-full">
@@ -3746,8 +3745,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.3.0"></script>
-    <script src="js/app.js?v=3.3.0"></script>
+    <script src="js/haltea_data.js?v=3.4.0"></script>
+    <script src="js/app.js?v=3.4.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js
