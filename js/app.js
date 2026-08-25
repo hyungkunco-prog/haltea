@@ -84,6 +84,9 @@ const DEFAULT_ARUS_KAS = [
     { id: 4, tanggal: todayDateIso, tipe: 'keluar', kategori: 'Biaya Operasional & Listrik', nominal: 150000, keterangan: 'Token listrik outlet' }
 ];
 
+const DEFAULT_TRANSAKSI = [];
+window.DEFAULT_TRANSAKSI = DEFAULT_TRANSAKSI;
+
 function getMockStorage(key, defaultVal) {
     try {
         const item = localStorage.getItem(`haltea_${key}`);
