@@ -2780,6 +2780,7 @@ async function submitKatalogTransaksi() {
 
         showToast(`${items.length} jenis transaksi berhasil disimpan. Stok bahan baku otomatis diperbarui.`, 'success');
         clearCart();
+        closeModal('modal-mobile-cart');
         await loadTransaksiCatalog();
 
         // Refresh today's history if visible

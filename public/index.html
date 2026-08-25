@@ -1789,48 +1789,47 @@
             </div>
 
             <!-- ==== TRANSAKSI PENJUALAN ==== -->
-            <div id="page-transaksi" class="page-content p-6 fade-in hidden">
-                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div id="page-transaksi" class="page-content p-4 sm:p-6 fade-in hidden">
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div class="min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Transaksi Penjualan</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Catat penjualan minuman Haltea dan kelola transaksi harian.</p>
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Transaksi Penjualan</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Catat penjualan minuman Haltea dan kelola transaksi harian.</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                        <!-- Mode Tampilan Dropdown -->
-                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
-                            <label for="select-pos-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
-                                Mode Tampilan:
-                            </label>
+                    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
+                        <!-- Mode Tampilan Dropdown (Left) -->
+                        <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-2.5 py-2 rounded-xl min-w-0">
+                            <i class="fas fa-layer-group text-gray-400 text-xs flex-shrink-0"></i>
                             <select id="select-pos-mode" onchange="togglePosViewMode(this.value)"
-                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
-                                <option value="catalog" class="bg-white dark:bg-gray-900">Kasir Penjualan</option>
-                                <option value="history" class="bg-white dark:bg-gray-900">Riwayat Transaksi Hari Ini</option>
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-semibold cursor-pointer w-full truncate">
+                                <option value="catalog" class="bg-white dark:bg-gray-900">Kasir POS</option>
+                                <option value="history" class="bg-white dark:bg-gray-900">Riwayat Hari Ini</option>
                             </select>
                         </div>
 
-                        <!-- Date Filter -->
-                        <div class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5">
+                        <!-- Date Filter (Right) -->
+                        <div class="flex items-center gap-1.5 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-2 min-w-0">
+                            <i class="far fa-calendar-alt text-gray-400 text-xs flex-shrink-0"></i>
                             <input type="date" id="trx-tanggal"
-                                class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                                class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer w-full">
                         </div>
                     </div>
                 </div>
 
                 <!-- 1. MODE: Kasir Penjualan (Catalog + Shopping Cart) -->
                 <div id="pos-catalog-wrapper" class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
-                    <!-- Left Column: Daftar Menu Produk (8 Cols) -->
+                    <!-- Left Column: Daftar Menu Produk (8 Cols on Desktop, Full Width on Mobile) -->
                     <div class="md:col-span-7 xl:col-span-8 flex flex-col">
-                        <div class="flex items-center justify-between mb-3">
-                            <h2 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">DAFTAR MENU PRODUK</h2>
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <h2 class="text-[11px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">DAFTAR MENU PRODUK</h2>
                             <span id="trx-menu-count-badge" class="text-xs font-medium text-gray-400"></span>
                         </div>
 
                         <!-- Search & Category Filters (Mobile & Desktop) -->
-                        <div class="mb-4 space-y-2.5">
+                        <div class="mb-3 sm:mb-4 space-y-2">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                                <input type="text" id="katalog-search-input" oninput="handleKatalogSearch(this.value)" placeholder="Cari nama produk minuman..."
-                                    class="w-full bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-gray-800 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500 shadow-xs">
+                                <input type="text" id="katalog-search-input" oninput="handleKatalogSearch(this.value)" placeholder="Cari menu minuman..."
+                                    class="w-full bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-gray-800 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500 shadow-xs">
                             </div>
                             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold select-none" id="katalog-category-pills">
                                 <button onclick="filterKatalogCategory('all', this)" class="cat-pill active px-3 py-1.5 rounded-xl bg-red-600 text-white shadow-xs whitespace-nowrap transition">Semua (30)</button>
@@ -1843,12 +1842,12 @@
                         </div>
 
                         <!-- Product Grid (Strictly Max 3 Columns on desktop, 2 columns on smartphone) -->
-                        <div id="trx-katalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-5">
+                        <div id="trx-katalog-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4 pb-20 sm:pb-0">
                         </div>
                     </div>
 
-                    <!-- Right Column: Keranjang Belanja (4 Cols) -->
-                    <div class="md:col-span-5 xl:col-span-4">
+                    <!-- Right Column: Keranjang Belanja (Desktop Only, Hidden on Smartphone) -->
+                    <div class="hidden md:block md:col-span-5 xl:col-span-4">
                         <div class="glass-panel rounded-2xl p-5 sticky top-6 border border-gray-200/80 dark:border-gray-800 shadow-xl flex flex-col min-h-[420px]">
                             <!-- Cart Header -->
                             <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
@@ -1923,36 +1922,36 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- ==== DATA TRANSAKSI (Riwayat & Import & Rekap) ==== -->
-            <div id="page-data-transaksi" class="page-content p-6 fade-in hidden">
-                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <!-- ==== DATA TRANSAKSI (Riwayat & Import & Rekap) ==== -->
+            <div id="page-data-transaksi" class="page-content p-4 sm:p-6 fade-in hidden">
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div class="min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Data Transaksi</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Riwayat penjualan, rekap perpekan, pengosongan data, dan impor data transaksi.</p>
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Data Transaksi</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Riwayat penjualan, rekap perpekan, pengosongan data, dan impor data transaksi.</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
                         <!-- Mode Tampilan Dropdown -->
-                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
-                            <label for="select-trx-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
-                                Mode Tampilan:
-                            </label>
+                        <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-2.5 py-2 rounded-xl">
+                            <i class="fas fa-table-list text-gray-400 text-xs flex-shrink-0"></i>
                             <select id="select-trx-mode" onchange="toggleDataTransaksiRekapView(this.value)"
-                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-semibold cursor-pointer w-full">
                                 <option value="list" class="bg-white dark:bg-gray-900">Detail Data Transaksi</option>
                                 <option value="rekap" class="bg-white dark:bg-gray-900">Rekap Penjualan Perpekan</option>
                             </select>
                         </div>
 
-                        <button id="btn-reset-data" onclick="resetTransaksiData()" title="Kosongkan seluruh data transaksi"
-                            class="bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold transition border border-red-200 dark:border-red-800/40 whitespace-nowrap">
-                            <span>Reset Data</span>
-                        </button>
-                        <button id="btn-restore-data" onclick="restoreTransaksiData()" title="Lihat riwayat reset dan restore dataset transaksi"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/20 transition-all whitespace-nowrap">
-                            <span>Riwayat Reset & Restore</span>
-                        </button>
+                        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
+                            <button id="btn-reset-data" onclick="resetTransaksiData()" title="Kosongkan seluruh data transaksi"
+                                class="bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold transition border border-red-200 dark:border-red-800/40 whitespace-nowrap">
+                                <i class="fas fa-trash-can text-xs"></i>
+                                <span>Reset Data</span>
+                            </button>
+                            <button id="btn-restore-data" onclick="restoreTransaksiData()" title="Lihat riwayat reset dan restore dataset transaksi"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold shadow-md shadow-blue-500/20 transition-all whitespace-nowrap">
+                                <i class="fas fa-clock-rotate-left text-xs"></i>
+                                <span>Restore</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1970,91 +1969,63 @@
                         </button>
                     </div>
 
-                    <!-- Import Excel Section -->
-                    <div class="glass-panel rounded-xl p-5 mb-6">
-                        <h2 class="font-semibold text-gray-900 dark:text-white text-sm mb-4 flex items-center gap-2">
-                            <i class="fas fa-file-excel text-green-500"></i> Impor Data dari Excel/CSV
-                        </h2>
-                        <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center mb-4 cursor-pointer"
-                            ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('excel-file-input').click()">
-                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-600 mb-3"></i>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Seret file Excel/CSV ke sini atau <span class="text-red-500 font-semibold">klik untuk pilih file</span></p>
-                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Format: .xlsx, .xls, .csv — Kolom: Tanggal, Menu, Jumlah</p>
-                            <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileSelect(this)">
-                        </div>
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 mobile-stack">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="import-potong-stok" class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 dark:border-gray-700 rounded focus:ring-red-500">
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Potong stok gudang setelah impor</span>
-                            </label>
-                            <a href="/api/transaksi/template" class="text-xs text-blue-500 hover:text-blue-600 underline">
-                                <i class="fas fa-download mr-1"></i>Unduh Template
-                            </a>
-                        </div>
-                        <div id="import-result" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4">
-                            <p id="import-result-text" class="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-                                <i class="fas fa-check-circle"></i>
-                            </p>
-                        </div>
-                        <div id="import-errors-container" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
-                            <p id="import-errors-title" class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2"></p>
-                            <div id="import-errors-list" class="max-h-48 overflow-y-auto"></div>
+                    <!-- Upload Excel Panel -->
+                    <div class="glass-panel rounded-2xl p-5 mb-6 admin-only">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm mb-1">Impor Data Transaksi Excel</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Unggah file (.xlsx) untuk menambahkan data transaksi baru ke database.</p>
+                        <div class="flex flex-col sm:flex-row items-center gap-3">
+                            <input type="file" id="file-import-excel" accept=".xlsx, .xls"
+                                class="w-full sm:w-auto flex-1 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 dark:file:bg-red-900/30 dark:file:text-red-300 hover:file:bg-red-100 cursor-pointer">
+                            <button onclick="handleImportExcel()"
+                                class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition">
+                                <i class="fas fa-file-excel"></i> Proses Impor
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Transaction Table -->
-                    <div class="glass-table rounded-xl overflow-hidden mb-8 mobile-card-table">
+                    <!-- Data Transaksi Table -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table">
+                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-900 dark:text-white text-sm">Daftar Transaksi</h3>
+                            <span class="text-xs text-gray-500" id="trx-total-count">0 Data</span>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
                                     <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                                        <th class="px-5 py-4 text-left font-semibold">Tanggal</th>
-                                        <th class="px-5 py-4 text-left font-semibold">Menu</th>
-                                        <th class="px-5 py-4 text-center font-semibold">Jumlah</th>
-                                        <th class="px-5 py-4 text-center font-semibold">Harga</th>
-                                        <th class="px-5 py-4 text-center font-semibold">Total</th>
-                                        <th class="px-5 py-4 text-center font-semibold">Sumber</th>
-                                        <th class="px-5 py-4 text-center font-semibold">Aksi</th>
+                                        <th class="px-4 py-3 text-left">Tanggal</th>
+                                        <th class="px-4 py-3 text-left">Menu</th>
+                                        <th class="px-4 py-3 text-center">Jumlah</th>
+                                        <th class="px-4 py-3 text-right">Harga</th>
+                                        <th class="px-4 py-3 text-right">Total</th>
+                                        <th class="px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-transaksi-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <tbody id="table-trx-body" class="divide-y divide-gray-100 dark:divide-gray-800">
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- View 2: Rekap Penjualan Perpekan -->
-                <div id="trx-view-rekap" class="hidden space-y-4">
-                    <div class="p-4 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                        <div>
-                            <h3 class="font-bold text-gray-900 dark:text-white text-base flex items-center gap-2">
-                                <i class="fas fa-calendar-week text-purple-600 dark:text-purple-400"></i> Rekap Penjualan Agregasi Perpekan
-                            </h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Rekapitulasi total kuantitas penjualan cup per menu (sampel 4 pekan operasional / 24 hari transaksi terakhir).</p>
+                <!-- View 2: Rekap Penjualan Perpekan Table (Admin Only) -->
+                <div id="trx-view-rekap" class="hidden">
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table">
+                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-900 dark:text-white text-sm">Rekap Total Penjualan Minuman Perpekan</h3>
+                            <span class="text-xs text-gray-500" id="rekap-total-rows">0 Pekan</span>
                         </div>
-                        <span id="rekap-total-badge-trx" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1.5 self-start sm:self-auto">
-                            <i class="fas fa-history"></i>Sampel 4 Pekan (24 Hari)
-                        </span>
-                    </div>
-
-                    <div class="glass-table rounded-xl overflow-hidden mobile-card-table">
-                        <div class="overflow-x-auto max-h-[600px]">
+                        <div class="overflow-x-auto">
                             <table class="w-full data-table">
-                                <thead class="sticky top-0 bg-gray-100 dark:bg-gray-900 z-10">
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200/10">
-                                        <th class="px-4 py-3 text-left font-semibold">Daftar Menu</th>
-                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 1</th>
-                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 2</th>
-                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 3</th>
-                                        <th class="px-4 py-3 text-center font-semibold bg-blue-500/5 dark:bg-blue-500/10">Pekan 4</th>
-                                        <th class="px-4 py-3 text-center font-semibold bg-purple-500/5 dark:bg-purple-500/10">Total (4 Pekan)</th>
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                        <th class="px-4 py-3 text-left">Pekan Ke-</th>
+                                        <th class="px-4 py-3 text-left">Rentang Tanggal</th>
+                                        <th class="px-4 py-3 text-center">Cup Terjual</th>
+                                        <th class="px-4 py-3 text-right">Estimasi Omset</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-rekap-pekan-body-trx" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    <tr>
-                                        <td colspan="6" class="text-center py-8 text-gray-400">Memuat data rekap perpekan...</td>
-                                    </tr>
+                                <tbody id="table-rekap-body" class="divide-y divide-gray-100 dark:divide-gray-800">
                                 </tbody>
                             </table>
                         </div>
@@ -2063,32 +2034,28 @@
             </div>
 
             <!-- ==== PREDIKSI BAHAN BAKU ==== -->
-            <div id="page-prediksi" class="page-content p-6 fade-in hidden">
-                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            <div id="page-prediksi" class="page-content p-4 sm:p-6 fade-in hidden">
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         <!-- Mode Sortir Tampilan Prediksi (Admin Only) -->
-                        <div class="admin-only flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-2.5 sm:px-3 sm:py-1.5 rounded-2xl sm:rounded-xl">
-                            <label for="select-pred-mode" class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-1.5 whitespace-nowrap">
-                                Mode Tampilan
-                            </label>
+                        <div class="admin-only flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-2.5 py-2 rounded-xl">
+                            <i class="fas fa-layer-group text-gray-400 text-xs flex-shrink-0"></i>
                             <select id="select-pred-mode" onchange="handlePredModeChange(this.value)"
-                                class="text-xs bg-white sm:bg-transparent dark:bg-gray-900 border border-gray-200 sm:border-0 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold cursor-pointer p-2 sm:p-0 rounded-xl sm:rounded-none">
+                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-semibold cursor-pointer w-full truncate">
                                 <option value="semua_menu" class="bg-white dark:bg-gray-900">Prediksi Semua Menu</option>
-                                <option value="single_menu" class="bg-white dark:bg-gray-900">Prediksi Single Menu (Only)</option>
+                                <option value="single_menu" class="bg-white dark:bg-gray-900">Prediksi Single Menu</option>
                             </select>
                         </div>
 
                         <!-- Setting Parameter Alpha (Admin Only) -->
-                        <div class="admin-only flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200/80 dark:border-red-800/40 p-2.5 sm:px-3 sm:py-1.5 rounded-2xl sm:rounded-xl shadow-xs">
-                            <label for="input-alpha-setting" class="text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 whitespace-nowrap">
-                                <i class="fas fa-sliders-h text-red-500"></i> Parameter Alpha (&alpha;)
+                        <div class="admin-only flex items-center gap-1.5 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200/80 dark:border-red-800/40 px-2.5 py-2 rounded-xl shadow-xs">
+                            <label for="input-alpha-setting" class="text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1 whitespace-nowrap">
+                                <i class="fas fa-sliders-h text-red-500"></i> &alpha;:
                             </label>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-alpha-setting" min="0.01" max="1.00" step="0.01" value="0.50"
-                                    onchange="handleAlphaInputChange(this.value)"
-                                    class="w-20 sm:w-16 text-xs bg-white dark:bg-gray-900 border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 font-bold rounded-lg px-2 py-1.5 sm:py-1 outline-none text-center focus:ring-2 focus:ring-red-500 shadow-inner">
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">(0 - 1)</span>
-                            </div>
+                            <input type="number" id="input-alpha-setting" min="0.01" max="1.00" step="0.01" value="0.50"
+                                onchange="handleAlphaInputChange(this.value)"
+                                class="w-12 sm:w-16 text-xs bg-white dark:bg-gray-900 border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 font-bold rounded-lg px-1 py-0.5 outline-none text-center focus:ring-2 focus:ring-red-500 shadow-inner">
+                            <span class="text-[9px] text-gray-400 font-medium whitespace-nowrap">(0-1)</span>
                         </div>
                     </div>
 
@@ -2100,17 +2067,17 @@
 
                 <!-- View 1: Hasil Prediksi Semua Menu SES & WMAPE Table -->
                 <div id="pred-tab-results" class="bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-xs overflow-hidden mobile-card-table">
-                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/30">
-                        <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                            Prediksi Semua Menu (Kebutuhan Bahan Baku & Akurasi WMAPE Pekan Depan)
+                    <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-row items-center justify-between gap-2 bg-gray-50/50 dark:bg-gray-800/30">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                            <span>Prediksi Kebutuhan</span>
                         </h3>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <label for="sort-pred-select" class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
-                                <i class="fas fa-sort mr-1"></i>Urutkan:
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <label for="sort-pred-select" class="text-[11px] text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap hidden sm:inline">
+                                Urutkan:
                             </label>
                             <select id="sort-pred-select" onchange="applyPrediksiSort()"
-                                class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 outline-none font-semibold focus:ring-1 focus:ring-red-500 cursor-pointer shadow-xs">
+                                class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl px-2.5 py-1.5 outline-none font-semibold focus:ring-1 focus:ring-red-500 cursor-pointer shadow-xs">
                                 <option value="nama_asc">Abjad (A-Z)</option>
                                 <option value="nama_desc">Abjad (Z-A)</option>
                                 <option value="akurasi_desc">Akurasi Tertinggi</option>
@@ -2124,8 +2091,8 @@
                                 <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80">
                                     <th class="px-5 py-3.5 text-left">BAHAN BAKU</th>
                                     <th class="px-5 py-3.5 text-center">STOK GUDANG</th>
-                                    <th class="px-5 py-3.5 text-center col-pred-kebutuhan">PREDIKSI KEBUTUHAN</th>
-                                    <th class="px-5 py-3.5 text-center col-pred-akurasi">AKURASI PREDIKSI</th>
+                                    <th class="px-5 py-3.5 text-center">PREDIKSI KEBUTUHAN</th>
+                                    <th class="px-5 py-3.5 text-center">AKURASI PREDIKSI</th>
                                     <th class="px-5 py-3.5 text-center">REKOMENDASI BELANJA</th>
                                 </tr>
                             </thead>
@@ -2136,8 +2103,8 @@
                 </div>
 
                 <!-- View 2: In-Page Prediksi Single Menu (Only) Panel -->
-                <div id="pred-tab-specific" class="hidden bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-xs overflow-hidden p-5 space-y-5">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-800">
+                <div id="pred-tab-specific" class="hidden bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-xs overflow-hidden p-4 sm:p-5 space-y-4 sm:space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-gray-100 dark:border-gray-800">
                         <div>
                             <h2 class="text-base font-bold text-blue-600 dark:text-blue-400">Prediksi Single Menu (Only)</h2>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Analisis kebutuhan bahan baku khusus per menu produk berdasarkan riwayat 4 pekan.</p>
@@ -2147,7 +2114,7 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">1. Pilih Bahan Baku</label>
                             <select id="specific-predict-barang" onchange="onSpecificPredictBarangChange()"
@@ -2160,15 +2127,6 @@
                                 class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-medium cursor-pointer">
                                 <option value="">Pilih bahan baku terlebih dahulu...</option>
                             </select>
-                        </div>
-                        <div class="admin-only">
-                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">3. Parameter Alpha (&alpha;)</label>
-                            <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5">
-                                <input type="number" id="specific-alpha-input" min="0.01" max="1.00" step="0.01" value="0.50"
-                                    onchange="handleAlphaInputChange(this.value)"
-                                    class="w-20 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-1.5 text-sm font-bold text-red-600 dark:text-red-400 text-center outline-none focus:ring-2 focus:ring-blue-500">
-                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Nilai (0 - 1)</span>
-                            </div>
                         </div>
                     </div>
 
@@ -2184,60 +2142,42 @@
                             <div>
                                 <span id="spec-result-badge-menu" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Original Tea</span>
                                 <h4 id="spec-result-title" class="text-base font-bold text-gray-900 dark:text-white mt-1">Bahan Baku: Gula</h4>
-                                <p id="spec-result-takaran" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Takaran: 25 gram per cup</p>
                             </div>
-                            <div id="spec-result-wmape-badge" class="text-right"></div>
-                        </div>
-
-                        <!-- 4 Weeks History Table -->
-                        <div class="glass-table rounded-xl overflow-hidden">
-                            <div class="p-3 bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-200/10 flex items-center justify-between">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                                    <i class="fas fa-history text-blue-500"></i> Riwayat Transaksi & Kebutuhan (4 Pekan)
-                                </span>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 uppercase font-semibold">
-                                        <tr>
-                                            <th class="px-3.5 py-2.5">Pekan</th>
-                                            <th class="px-3.5 py-2.5 text-center">Penjualan Menu (Cup)</th>
-                                            <th class="px-3.5 py-2.5 text-right">Penggunaan Bahan Baku</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="spec-result-history-tbody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    </tbody>
-                                </table>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">Total Akurasi:</span>
+                                <span id="spec-result-akurasi" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:emerald-300">95.00%</span>
                             </div>
                         </div>
 
-                        <!-- Table Detail Rincian Perhitungan Prediksi (Stok, WMAPE, S5, Kebutuhan Bersih, Belanja Rounding) -->
-                        <div class="glass-table rounded-xl overflow-hidden mt-4">
-                            <div class="p-3 bg-blue-50/80 dark:bg-blue-950/40 border-b border-gray-200/20 flex items-center justify-between">
-                                <span class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
-                                    Rincian Perhitungan Prediksi & Rekomendasi Belanja
-                                </span>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 uppercase font-semibold">
-                                        <tr>
-                                            <th class="px-3.5 py-2.5">Indikator Komputasi</th>
-                                            <th class="px-3.5 py-2.5 text-center">Satuan Resep (Mikro)</th>
-                                            <th class="px-3.5 py-2.5 text-right">Satuan Belanja Gudang (Makro)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="spec-result-summary-tbody" class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-900 dark:text-gray-100 font-medium">
-                                    </tbody>
-                                </table>
-                            </div>
+                        <!-- 4-Weeks Detail Table -->
+                        <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 uppercase">
+                                    <tr>
+                                        <th class="py-2.5 px-3">Pekan</th>
+                                        <th class="py-2.5 px-3">Rentang Tanggal</th>
+                                        <th class="py-2.5 px-3 text-center">Terjual (Cup)</th>
+                                        <th class="py-2.5 px-3 text-center">Aktual (Gram)</th>
+                                        <th class="py-2.5 px-3 text-center">Prediksi SES</th>
+                                        <th class="py-2.5 px-3 text-center">Error (At - Ft)</th>
+                                        <th class="py-2.5 px-3 text-center">WMAPE</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-spec-pred-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
                         </div>
 
-                        <!-- Next Week SES Prediction Card (Placed After Table) -->
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-xs mt-4">
-                            <div id="spec-result-pred-val">
-                                <!-- Dynamically populated by app.js -->
+                        <!-- Summary Recommendation Card -->
+                        <div class="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-100 dark:border-red-900/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <p class="text-xs text-red-600 dark:text-red-400 font-semibold uppercase tracking-wider">Rekomendasi Pembelian Pekan Depan</p>
+                                <h3 id="spec-result-rekomendasi" class="text-lg font-black text-gray-900 dark:text-white mt-0.5">0 Pack (0 gram)</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Dihitung otomatis dengan faktor konversi satuan resep ke satuan beli.</p>
                             </div>
+                            <button onclick="applySpecificRecommendation()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-md shadow-red-500/20 transition self-start sm:self-auto">
+                                Masukkan ke Daftar Belanja
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2245,19 +2185,19 @@
 
             <!-- ==== LAPORAN KEUANGAN (ADMIN ONLY) ==== -->
             <div id="page-laporan-keuangan" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
-                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Keuangan (Laba & Rugi)</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Analisis pendapatan penjualan, beban pokok bahan baku, beban operasional, dan laba bersih.</p>
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Keuangan (Laba & Rugi)</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Analisis pendapatan penjualan, beban pokok bahan baku, beban operasional, dan laba bersih.</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
                         <select id="filter-keuangan-periode" onchange="loadLaporanKeuangan()"
-                            class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-xl font-bold outline-none cursor-pointer">
+                            class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white px-2.5 py-2 rounded-xl font-semibold outline-none cursor-pointer w-full">
                             <option value="all">Semua Waktu (Historis)</option>
                             <option value="this_month">Bulan Ini</option>
                             <option value="last_4_weeks">4 Pekan Terakhir</option>
                         </select>
-                        <button onclick="window.print()" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                        <button onclick="window.print()" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition w-full">
                             <i class="fas fa-print"></i> Cetak Laporan
                         </button>
                     </div>
@@ -2293,7 +2233,7 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Biaya Operasional</p>
-                                <h3 class="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1" id="stat-keuangan-operasional">Rp 0</h3>
+                                <h3 class="text-2xl sm:text-3xl font-bold text-amber-600 dark:border-amber-400 mt-1" id="stat-keuangan-operasional">Rp 0</h3>
                                 <p class="text-xs text-gray-400 mt-1">Listrik, sewa, gaji, es batu</p>
                             </div>
                             <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
@@ -2347,13 +2287,13 @@
 
             <!-- ==== LAPORAN ARUS KAS (ADMIN ONLY) ==== -->
             <div id="page-arus-kas" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
-                <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Arus Kas (Cash Flow)</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Monitoring mutasi kas masuk penjualan dan kas keluar pengeluaran outlet.</p>
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Laporan Arus Kas (Cash Flow)</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Monitoring mutasi kas masuk penjualan dan kas keluar pengeluaran outlet.</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <button onclick="openModalTambahArusKas()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-red-500/20 flex items-center gap-1.5 transition">
+                    <div class="w-full sm:w-auto shrink-0">
+                        <button onclick="openModalTambahArusKas()" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-red-500/20 flex items-center justify-center gap-1.5 transition">
                             <i class="fas fa-plus"></i> Tambah Mutasi Kas
                         </button>
                     </div>
@@ -3587,19 +3527,20 @@
     </div>
 
     <!-- SMARTPHONE FLOATING CART BAR (POS) -->
-    <div id="mobile-floating-cart-bar" class="layout-mobile-only hidden fixed bottom-16 left-3 right-3 z-40 bg-gradient-to-r from-red-600 to-rose-600 text-white p-3 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md active:scale-[0.99] transition-all">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-sm">
-                <i class="fas fa-shopping-bag"></i>
+    <div id="mobile-floating-cart-bar" onclick="openMobileCartDrawer()"
+        class="layout-mobile-only hidden fixed bottom-[4.25rem] left-3.5 right-3.5 z-40 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white p-3 rounded-2xl shadow-2xl flex items-center justify-between backdrop-blur-xl border border-white/20 active:scale-[0.98] transition-all cursor-pointer">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-sm shadow-inner flex-shrink-0">
+                <i class="fas fa-shopping-bag text-base"></i>
             </div>
-            <div>
-                <p id="mobile-cart-item-count" class="text-xs font-medium text-white/90">0 Menu Dipilih</p>
-                <p id="mobile-cart-total-price" class="text-base font-bold tracking-tight">Rp 0</p>
+            <div class="min-w-0 flex-1">
+                <p id="mobile-cart-item-count" class="text-xs font-semibold text-white/90 truncate">0 Menu Dipilih</p>
+                <p id="mobile-cart-total-price" class="text-base font-black tracking-tight text-white truncate">Rp 0</p>
             </div>
         </div>
-        <button onclick="openMobileCartDrawer()" class="bg-white text-red-600 font-bold px-4 py-2 rounded-xl text-xs shadow-md flex items-center gap-1.5 active:scale-95">
+        <button type="button" class="bg-white text-red-600 font-bold px-3.5 py-2 rounded-xl text-xs shadow-md flex items-center gap-1.5 flex-shrink-0 pointer-events-none">
             <span>Buka Pesanan</span>
-            <i class="fas fa-arrow-right text-[10px]"></i>
+            <i class="fas fa-chevron-up text-[10px]"></i>
         </button>
     </div>
 
@@ -3693,8 +3634,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.0.0"></script>
-    <script src="js/app.js?v=3.0.0"></script>
+    <script src="js/haltea_data.js?v=3.1.0"></script>
+    <script src="js/app.js?v=3.1.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js
