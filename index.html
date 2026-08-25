@@ -1598,6 +1598,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    <button onclick="playWelcomeVoice()" title="Putar Suara Sambutan (Welcome to POS Haltea Indonesia)" aria-label="Suara Sambutan"
+                        class="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-2xs">
+                        <i class="fas fa-volume-high text-xs"></i>
+                    </button>
                     <button onclick="openHelpModal('overview')" title="Petunjuk & Panduan Penggunaan Sistem" aria-label="Petunjuk Penggunaan"
                         class="text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-1.5 shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-700 transition active:scale-95 cursor-pointer">
                         Butuh Petunjuk?
@@ -2052,28 +2056,28 @@
                     </div>
                 </div>
 
-                <!-- Main Navigation Tabs: 1. Per Transaksi, 2. Riwayat 1 Pekan, 3. Rekapan 1 Bulan -->
+                <!-- Main Navigation Tabs: 1. Harian & Per Transaksi, 2. Riwayat 1 Pekan, 3. Rekapan 1 Bulan -->
                 <div class="grid grid-cols-3 gap-1.5 sm:gap-2 bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl mb-5 w-full max-w-xl">
                     <button type="button" id="tab-btn-riwayat-per-trx" onclick="switchRiwayatTab('per_transaksi')"
                         class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-red-600 dark:text-white shadow-xs text-center truncate">
-                        <i class="fas fa-list-check mr-1 text-xs"></i> Per Transaksi
+                        <i class="fas fa-list-check mr-1 text-xs"></i> Harian & Transaksi
                     </button>
                     <button type="button" id="tab-btn-riwayat-pekan" onclick="switchRiwayatTab('pekan')"
                         class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate">
-                        <i class="fas fa-calendar-week mr-1 text-xs"></i> 1 Pekan (7 Hari)
+                        <i class="fas fa-calendar-week mr-1 text-xs"></i> 1 Pekan / Rentang
                     </button>
                     <button type="button" id="tab-btn-riwayat-bulan" onclick="switchRiwayatTab('bulan')"
                         class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate">
-                        <i class="fas fa-calendar-days mr-1 text-xs"></i> Rekapan 1 Bulan
+                        <i class="fas fa-calendar-days mr-1 text-xs"></i> Rekapan Bulanan
                     </button>
                 </div>
 
-                <!-- ================= TAB 1: PER TRANSAKSI (DETAIL & EDIT) ================= -->
+                <!-- ================= TAB 1: HARIAN & PER TRANSAKSI (PER MENU & REALTIME EDIT) ================= -->
                 <div id="riwayat-tab-per-transaksi" class="space-y-4">
                     <!-- Filters & Search Bar -->
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
                         <div class="flex flex-wrap items-center gap-2 flex-1">
-                            <div class="relative flex-1 min-w-[160px]">
+                            <div class="relative flex-1 min-w-[150px]">
                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                                 <input type="text" id="riwayat-search-input" oninput="handleRiwayatSearch(this.value)" placeholder="Cari nama menu / transaksi..."
                                     class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500">
@@ -2083,17 +2087,98 @@
                                 <input type="date" id="riwayat-filter-date" onchange="loadRiwayatTransaksi()"
                                     class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
                             </div>
+                            <button onclick="setRiwayatDateToday()" class="px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 text-xs font-semibold transition">
+                                Hari Ini
+                            </button>
                             <button onclick="resetRiwayatFilter()" class="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold transition">
-                                Reset
+                                Semua Data
                             </button>
                         </div>
 
                         <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800">
-                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium" id="riwayat-total-count-badge">0 Data</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium" id="riwayat-total-count-badge">0 Transaksi</span>
                             <button onclick="openAddTransaksiModal()" class="admin-only bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition">
                                 <i class="fas fa-plus"></i>
                                 <span>Tambah Manual</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- 3 Stat Cards Ringkasan Hari Terpilih -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="glass-stat rounded-2xl p-4 border border-red-200/60 dark:border-red-900/30" style="--accent:#ef4444">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Omset Tanggal Terpilih</p>
+                            <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="harian-stat-omset">Rp 0</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="harian-stat-date-label">Hari ini</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Cup Terjual</p>
+                            <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="harian-stat-cups">0 Cup</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="harian-stat-trx">0 transaksi</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-4 border border-emerald-200/60 dark:border-emerald-900/30" style="--accent:#10b981">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Varian Menu Terjual</p>
+                            <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="harian-stat-menu-count">0 Menu</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="harian-stat-top-menu">Top: -</p>
+                        </div>
+                    </div>
+
+                    <!-- 1. Rekap Penjualan Per Menu Harian -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-mug-hot text-red-500"></i>
+                                    <span>Rekapitulasi Penjualan Per Menu (Hari Terpilih)</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Total cup dan omset yang dihasilkan masing-masing varian menu</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Cup Terjual</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-riwayat-menu-harian-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Rincian Detail Transaksi Realtime (Urutan Waktu & Tetap Bisa Diedit) -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-receipt text-blue-500"></i>
+                                    <span>Rincian Transaksi Realtime (Urutan Waktu)</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Daftar transaksi per tiket kasir; klik Edit jika terdapat kesalahan input</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-left font-semibold">Tanggal / Waktu</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Menu</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Jumlah</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Harga</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Sumber</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-riwayat-per-trx-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -2114,40 +2199,43 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Detail Transactions Table -->
-                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
-                        <div class="overflow-x-auto">
-                            <table class="w-full data-table">
-                                <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
-                                        <th class="px-4 py-3 text-left font-semibold">Tanggal</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Menu</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Jumlah</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Harga</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Total</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Sumber</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-riwayat-per-trx-body" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- ================= TAB 2: RIWAYAT 1 PEKAN (7 HARI TERAKHIR) ================= -->
+                <!-- ================= TAB 2: RIWAYAT 1 PEKAN & RENTANG TANGGAL (PER MENU & HARIAN) ================= -->
                 <div id="riwayat-tab-pekan" class="hidden space-y-4">
-                    <!-- 3 Stat Cards for 7 Days -->
+                    <!-- Date Range Filter Bar (Dari Tgl s/d Sampai Tgl) -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">RENTANG TANGGAL:</span>
+                            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                                <span class="text-[11px] text-gray-400">Dari:</span>
+                                <input type="date" id="pekan-filter-from" onchange="loadRiwayatPekanCustom()"
+                                    class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                                <span class="text-[11px] text-gray-400">Sampai:</span>
+                                <input type="date" id="pekan-filter-to" onchange="loadRiwayatPekanCustom()"
+                                    class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                            </div>
+                            <button onclick="presetPekanFilter('7days')" class="px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 text-xs font-semibold transition">
+                                7 Hari Terakhir
+                            </button>
+                            <button onclick="presetPekanFilter('thisweek')" class="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold transition">
+                                Pekan Ini
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400" id="pekan-summary-range-label">Periode 7 hari terakhir</p>
+                    </div>
+
+                    <!-- 3 Stat Cards for 7 Days / Range -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="glass-stat rounded-2xl p-4 border border-red-200/60 dark:border-red-900/30" style="--accent:#ef4444">
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Omset 7 Hari Terakhir</p>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Omset Pekan / Rentang</p>
                             <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="pekan-stat-omset">Rp 0</h3>
                             <p class="text-[11px] text-gray-400 mt-0.5" id="pekan-stat-date-range">-</p>
                         </div>
                         <div class="glass-stat rounded-2xl p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Cup Terjual (7 Hari)</p>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Cup Terjual</p>
                             <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="pekan-stat-cups">0 Cup</h3>
                             <p class="text-[11px] text-gray-400 mt-0.5" id="pekan-stat-trx-count">0 kali transaksi</p>
                         </div>
@@ -2158,12 +2246,45 @@
                         </div>
                     </div>
 
-                    <!-- 7 Days Breakdown Table -->
+                    <!-- 1. Rekapitulasi Penjualan Per Menu (Pekan / Rentang) -->
                     <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
                         <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
                             <div>
-                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">Rincian Penjualan Harian (7 Hari Terakhir)</h3>
-                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Rekapitulasi data transaksi per hari dalam sepekan terakhir</p>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-chart-pie text-purple-500"></i>
+                                    <span>Rekapitulasi Penjualan Per Menu (Pekan Ini)</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Total cup, omset, dan kontribusi masing-masing menu selama sepekan</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Cup Terjual</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Rata-rata/Hari</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-riwayat-menu-pekan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Rincian Penjualan Harian Breakdown (7 Hari / Rentang) -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-calendar-day text-red-500"></i>
+                                    <span>Rincian Penjualan Harian (Breakdown Tanggal)</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Rekapitulasi data transaksi per hari dalam rentang tanggal terpilih</p>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
@@ -2184,14 +2305,36 @@
                     </div>
                 </div>
 
-                <!-- ================= TAB 3: REKAPAN 1 BULAN INI ================= -->
+                <!-- ================= TAB 3: REKAPAN 1 BULAN & RENTANG FLEKSIBEL (PER MENU & HARIAN) ================= -->
                 <div id="riwayat-tab-bulan" class="hidden space-y-4">
-                    <!-- Month Selector & Month KPI Cards -->
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">PILIH BULAN:</label>
-                            <input type="month" id="riwayat-filter-month" onchange="loadRiwayatBulan()"
-                                class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                    <!-- Month Selector & Custom Date Range Filter -->
+                    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">PILIH BULAN:</label>
+                                <input type="month" id="riwayat-filter-month" onchange="loadRiwayatBulan()"
+                                    class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                            </div>
+
+                            <span class="text-xs text-gray-400 font-bold px-1">ATAU</span>
+
+                            <!-- Rentang Tanggal Kustom Bulan -->
+                            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                                <span class="text-[11px] text-gray-400">Dari:</span>
+                                <input type="date" id="bulan-filter-from" onchange="loadRiwayatBulanCustomRange()"
+                                    class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                                <span class="text-[11px] text-gray-400">Sampai:</span>
+                                <input type="date" id="bulan-filter-to" onchange="loadRiwayatBulanCustomRange()"
+                                    class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                            </div>
+                            <button onclick="presetBulanFilter('thismonth')" class="px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 text-xs font-semibold transition">
+                                Bulan Ini
+                            </button>
+                            <button onclick="presetBulanFilter('lastmonth')" class="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold transition">
+                                Bulan Lalu
+                            </button>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400" id="bulan-summary-label">Rekapan bulan berjalan</p>
                     </div>
@@ -2220,11 +2363,44 @@
                         </div>
                     </div>
 
-                    <!-- Monthly Daily Breakdown Table -->
+                    <!-- 1. Rekapitulasi Penjualan Per Menu (Bulan Ini / Rentang) -->
                     <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
                         <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
                             <div>
-                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">Rincian Penjualan Harian Bulan Ini</h3>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-layer-group text-blue-500"></i>
+                                    <span>Rekapitulasi Penjualan Per Menu (Bulan Ini)</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Rincian performa penjualan setiap varian menu selama satu bulan</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Total Cup</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Rata-rata/Hari</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi Omset</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-riwayat-menu-bulan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Rincian Penjualan Harian Bulan Ini -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <i class="fas fa-calendar-alt text-emerald-500"></i>
+                                    <span>Rincian Penjualan Harian Bulan Ini (Distribusi Tanggal)</span>
+                                </h3>
                                 <p class="text-[11px] text-gray-500 dark:text-gray-400">Distribusi omset dan volume cup per tanggal transaksi</p>
                             </div>
                         </div>
@@ -3985,8 +4161,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.9.4"></script>
-    <script src="js/app.js?v=3.9.4"></script>
+    <script src="js/haltea_data.js?v=3.9.5"></script>
+    <script src="js/app.js?v=3.9.5"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

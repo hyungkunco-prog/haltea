@@ -797,12 +797,60 @@ async function checkAuth() {
 }
 
 
+// ============================================================
+// OPENING VOICE NARRATION (MALE SPEECH SYNTHESIS)
+// ============================================================
+let hasSpokenOpeningVoice = false;
+
+function playWelcomeVoice(force = false) {
+    if (!('speechSynthesis' in window)) return;
+    if (!force && hasSpokenOpeningVoice) return;
+    hasSpokenOpeningVoice = true;
+
+    try {
+        window.speechSynthesis.cancel();
+        const text = "Welcome to POS Haltea Indonesia";
+        const utter = new SpeechSynthesisUtterance(text);
+        
+        // Find best male voice
+        const voices = window.speechSynthesis.getVoices() || [];
+        const maleVoice = voices.find(v => {
+            const n = v.name.toLowerCase();
+            return (n.includes('male') || n.includes('david') || n.includes('george') || n.includes('guy') || n.includes('richard') || n.includes('ardhi') || n.includes('damon') || n.includes('natural')) && (v.lang.startsWith('en') || v.lang.startsWith('id'));
+        }) || voices.find(v => v.lang.startsWith('en') || v.lang.startsWith('id')) || voices[0];
+
+        if (maleVoice) utter.voice = maleVoice;
+        utter.rate = 0.92;
+        utter.pitch = 0.82; // Lower pitch ensures masculine voice
+        utter.volume = 1;
+
+        window.speechSynthesis.speak(utter);
+    } catch (e) {
+        console.warn('Speech playback notice:', e);
+    }
+}
+window.playWelcomeVoice = () => playWelcomeVoice(true);
+
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {};
+    const handleFirstGestureAudio = () => {
+        if (!hasSpokenOpeningVoice && currentUser) {
+            playWelcomeVoice();
+        }
+        window.removeEventListener('click', handleFirstGestureAudio);
+        window.removeEventListener('keydown', handleFirstGestureAudio);
+    };
+    window.addEventListener('click', handleFirstGestureAudio, { once: true });
+    window.addEventListener('keydown', handleFirstGestureAudio, { once: true });
+}
+
 function showApp() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
     setupSidebar();
     updateLayoutMode();
     showPage('dashboard');
+    setTimeout(() => { playWelcomeVoice(); }, 600);
 }
 
 function showLogin() {
@@ -3237,7 +3285,7 @@ async function deleteTodayTrx(id) {
 }
 
 // ============================================================
-// RIWAYAT TRANSAKSI (3 TABS: PER TRANSAKSI, 1 PEKAN, 1 BULAN)
+// RIWAYAT TRANSAKSI (3 TABS: HARIAN & PER TRX, 1 PEKAN, 1 BULAN)
 // ============================================================
 let currentRiwayatTab = 'per_transaksi';
 let riwayatSearchQuery = '';
@@ -3277,7 +3325,7 @@ async function loadRiwayatTransaksi() {
 
     let allTrx = [];
     try {
-        const res = await apiFetch('/api/transaksi?limit=2000');
+        const res = await apiFetch('/api/transaksi?limit=3000');
         if (res && res.ok) allTrx = await res.json();
     } catch (e) {
         console.error('Error loading riwayat transaksi:', e);
@@ -3314,9 +3362,57 @@ function resetRiwayatFilter() {
 }
 window.resetRiwayatFilter = resetRiwayatFilter;
 
+function setRiwayatDateToday() {
+    const dateInput = document.getElementById('riwayat-filter-date');
+    if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+    loadRiwayatTransaksi();
+}
+window.setRiwayatDateToday = setRiwayatDateToday;
+
+// Helper: group transactions by menu and calculate sum & stats
+function groupTrxByMenu(trxs) {
+    const map = {};
+    let grandTotalOmset = 0;
+    let grandTotalCups = 0;
+
+    (trxs || []).forEach(t => {
+        const menuId = t.id_menu || t.nama_menu;
+        const menuName = t.nama_menu || 'Menu Lainnya';
+        const harga = parseInt(t.harga) || 0;
+        const jml = parseInt(t.jumlah) || 1;
+        const total = parseInt(t.total_harga) || (harga * jml);
+        const kategori = t.kategori || (allMenu.find(m => m.id === t.id_menu)?.kategori) || 'Minuman';
+
+        if (!map[menuId]) {
+            map[menuId] = {
+                id_menu: menuId,
+                nama_menu: menuName,
+                kategori: kategori,
+                harga: harga,
+                total_cups: 0,
+                total_omset: 0,
+                trx_count: 0
+            };
+        }
+        map[menuId].total_cups += jml;
+        map[menuId].total_omset += total;
+        map[menuId].trx_count += 1;
+
+        grandTotalOmset += total;
+        grandTotalCups += jml;
+    });
+
+    const list = Object.values(map).sort((a, b) => b.total_cups - a.total_cups || b.total_omset - a.total_omset);
+    return { list, grandTotalOmset, grandTotalCups };
+}
+
+// -------------------------------------------------------------
+// TAB 1: HARIAN & PER TRANSAKSI
+// -------------------------------------------------------------
 function renderRiwayatPerTransaksi(allTrx) {
     const filterDateInput = document.getElementById('riwayat-filter-date');
     const filterDate = filterDateInput?.value || '';
+    const todayIso = new Date().toISOString().slice(0, 10);
     
     let filtered = (allTrx || []).filter(t => {
         if (filterDate && t.tanggal !== filterDate) return false;
@@ -3331,140 +3427,305 @@ function renderRiwayatPerTransaksi(allTrx) {
         return true;
     });
 
+    // 1. Update Harian KPI Stat Cards
+    const totalOmset = filtered.reduce((s, t) => s + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah || 1)) || 0), 0);
+    const totalCups = filtered.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
+    const { list: menuBreakdown } = groupTrxByMenu(filtered);
+
+    const elStatOmset = document.getElementById('harian-stat-omset');
+    const elStatDate = document.getElementById('harian-stat-date-label');
+    const elStatCups = document.getElementById('harian-stat-cups');
+    const elStatTrx = document.getElementById('harian-stat-trx');
+    const elStatMenuCount = document.getElementById('harian-stat-menu-count');
+    const elStatTopMenu = document.getElementById('harian-stat-top-menu');
     const badge = document.getElementById('riwayat-total-count-badge');
-    if (badge) badge.textContent = `${filtered.length} Data`;
 
-    const tbody = document.getElementById('table-riwayat-per-trx-body');
-    if (!tbody) return;
+    if (elStatOmset) elStatOmset.textContent = 'Rp ' + formatNum(totalOmset, 0);
+    if (elStatDate) {
+        elStatDate.textContent = filterDate ? (filterDate === todayIso ? 'Hari ini (' + filterDate + ')' : 'Tanggal ' + filterDate) : 'Semua Riwayat Terdata';
+    }
+    if (elStatCups) elStatCups.textContent = `${totalCups.toLocaleString('id-ID')} Cup`;
+    if (elStatTrx) elStatTrx.textContent = `${filtered.length} kali transaksi`;
+    if (elStatMenuCount) elStatMenuCount.textContent = `${menuBreakdown.length} Menu Terjual`;
+    if (elStatTopMenu) {
+        elStatTopMenu.textContent = menuBreakdown.length > 0 ? `Top: ${menuBreakdown[0].nama_menu} (${menuBreakdown[0].total_cups} cup)` : 'Top: Belum ada penjualan';
+    }
+    if (badge) badge.textContent = `${filtered.length} Transaksi`;
 
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400 dark:text-gray-600 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
-        return;
+    // 2. Render Rekap Penjualan Per Menu Harian
+    const tbodyMenu = document.getElementById('table-riwayat-menu-harian-body');
+    if (tbodyMenu) {
+        if (menuBreakdown.length === 0) {
+            tbodyMenu.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada menu terjual pada filter tanggal ini.</td></tr>`;
+        } else {
+            tbodyMenu.innerHTML = menuBreakdown.map((m, idx) => {
+                const pct = totalOmset > 0 ? ((m.total_omset / totalOmset) * 100).toFixed(1) : 0;
+                return `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
+                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${m.total_cups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+                </tr>`;
+            }).join('');
+        }
     }
 
-    tbody.innerHTML = filtered.map(t => {
-        const harga = parseInt(t.harga) || 0;
-        const total = parseInt(t.total_harga) || (harga * parseInt(t.jumlah || 1));
-        const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">Import</span>` :
-            t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold">Historis</span>` :
-                `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">POS</span>`;
-
-        // Edit button is available to both Admin and Kasir
-        const editBtn = `<button onclick="openEditTransaksi(${t.id})" title="Edit Transaksi" class="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-edit text-xs"></i> <span>Edit</span></button>`;
-        const delBtn = `<button onclick="deleteTransaksi(${t.id})" title="Hapus Transaksi" class="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-trash text-xs"></i></button>`;
-
-        return `
-        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-            <td class="px-4 py-3 text-xs text-gray-900 dark:text-white font-medium" data-label="Tanggal">${t.tanggal}</td>
-            <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Menu">${t.nama_menu || '-'}</td>
-            <td class="px-4 py-3 text-xs text-center font-extrabold text-gray-900 dark:text-white" data-label="Jumlah">${(t.jumlah || 0).toLocaleString('id-ID')}</td>
-            <td class="px-4 py-3 text-xs text-right text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
-            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
-            <td class="px-4 py-3 text-xs text-center" data-label="Sumber">${src}</td>
-            <td class="px-4 py-3 td-actions" data-label="Aksi">
-                <div class="flex items-center justify-center gap-1.5">
-                    ${editBtn}
-                    ${delBtn}
-                </div>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-function renderRiwayatPekan(allTrx) {
-    const daysArr = [];
-    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const now = new Date();
-
-    // Generate last 7 days starting from today down to 6 days ago
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const iso = d.toISOString().slice(0, 10);
-        const dayName = dayNames[d.getDay()];
-        daysArr.push({ date: iso, dayName, dObj: d });
-    }
-
-    let totalPekanOmset = 0;
-    let totalPekanCups = 0;
-    let totalPekanTrx = 0;
-
-    const rowsHtml = daysArr.map(dayItem => {
-        const trxsOnDay = (allTrx || []).filter(t => t.tanggal === dayItem.date);
-        const countTrx = trxsOnDay.length;
-        const cupsOnDay = trxsOnDay.reduce((sum, t) => sum + (parseInt(t.jumlah) || 0), 0);
-        const omsetOnDay = trxsOnDay.reduce((sum, t) => sum + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
-
-        totalPekanOmset += omsetOnDay;
-        totalPekanCups += cupsOnDay;
-        totalPekanTrx += countTrx;
-
-        // Find popular menu on this day
-        const menuCounter = {};
-        trxsOnDay.forEach(t => {
-            if (t.nama_menu) {
-                menuCounter[t.nama_menu] = (menuCounter[t.nama_menu] || 0) + (parseInt(t.jumlah) || 1);
-            }
-        });
-        let topMenu = '-';
-        let maxCount = 0;
-        for (const [mName, mCount] of Object.entries(menuCounter)) {
-            if (mCount > maxCount) {
-                maxCount = mCount;
-                topMenu = `${mName} (${mCount} cup)`;
-            }
+    // 3. Render Detail Transaksi Realtime (Urutan Waktu, Dapat Diedit)
+    const tbodyTrx = document.getElementById('table-riwayat-per-trx-body');
+    if (tbodyTrx) {
+        if (filtered.length === 0) {
+            tbodyTrx.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400 dark:text-gray-600 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+            return;
         }
 
-        const isToday = dayItem.date === now.toISOString().slice(0, 10);
-        const dayBadge = isToday ? `<span class="ml-1.5 px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold rounded">Hari Ini</span>` : '';
+        tbodyTrx.innerHTML = filtered.map(t => {
+            const harga = parseInt(t.harga) || 0;
+            const total = parseInt(t.total_harga) || (harga * parseInt(t.jumlah || 1));
+            const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">Import</span>` :
+                t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold">Historis</span>` :
+                    `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">POS</span>`;
 
-        return `
-        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-            <td class="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white" data-label="Hari & Tanggal">
-                <span>${dayItem.dayName}, ${dayItem.date}</span>
-                ${dayBadge}
-            </td>
-            <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Total Transaksi">${countTrx} kali</td>
-            <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${cupsOnDay} Cup</td>
-            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(omsetOnDay, 0)}</td>
-            <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400" data-label="Menu Terpopuler">${topMenu}</td>
-        </tr>`;
-    }).join('');
+            const editBtn = `<button onclick="openEditTransaksi(${t.id})" title="Edit Transaksi" class="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-edit text-xs"></i> <span>Edit</span></button>`;
+            const delBtn = `<button onclick="deleteTransaksi(${t.id})" title="Hapus Transaksi" class="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-trash text-xs"></i></button>`;
 
-    const tbody = document.getElementById('table-riwayat-pekan-body');
-    if (tbody) tbody.innerHTML = rowsHtml;
+            return `
+            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                <td class="px-4 py-3 text-xs text-gray-900 dark:text-white font-medium" data-label="Tanggal">${t.tanggal}</td>
+                <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Menu">${t.nama_menu || '-'}</td>
+                <td class="px-4 py-3 text-xs text-center font-extrabold text-gray-900 dark:text-white" data-label="Jumlah">${(t.jumlah || 0).toLocaleString('id-ID')}</td>
+                <td class="px-4 py-3 text-xs text-right text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
+                <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
+                <td class="px-4 py-3 text-xs text-center" data-label="Sumber">${src}</td>
+                <td class="px-4 py-3 td-actions" data-label="Aksi">
+                    <div class="flex items-center justify-center gap-1.5">
+                        ${editBtn}
+                        ${delBtn}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+}
 
-    // Stat cards for 7 Days
+// -------------------------------------------------------------
+// TAB 2: RIWAYAT 1 PEKAN & RENTANG TANGGAL
+// -------------------------------------------------------------
+function presetPekanFilter(type) {
+    const fromEl = document.getElementById('pekan-filter-from');
+    const toEl = document.getElementById('pekan-filter-to');
+    const now = new Date();
+
+    if (type === '7days') {
+        const fromD = new Date(now);
+        fromD.setDate(fromD.getDate() - 6);
+        if (fromEl) fromEl.value = fromD.toISOString().slice(0, 10);
+        if (toEl) toEl.value = now.toISOString().slice(0, 10);
+    } else if (type === 'thisweek') {
+        const dayOfWeek = now.getDay();
+        const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(monday.getDate() + diffToMonday);
+        if (fromEl) fromEl.value = monday.toISOString().slice(0, 10);
+        if (toEl) toEl.value = now.toISOString().slice(0, 10);
+    }
+    loadRiwayatPekanCustom();
+}
+window.presetPekanFilter = presetPekanFilter;
+
+function loadRiwayatPekanCustom() {
+    loadRiwayatTransaksi();
+}
+window.loadRiwayatPekanCustom = loadRiwayatPekanCustom;
+
+function renderRiwayatPekan(allTrx) {
+    const fromEl = document.getElementById('pekan-filter-from');
+    const toEl = document.getElementById('pekan-filter-to');
+    const now = new Date();
+
+    if (fromEl && !fromEl.value) {
+        const defaultFrom = new Date(now);
+        defaultFrom.setDate(defaultFrom.getDate() - 6);
+        fromEl.value = defaultFrom.toISOString().slice(0, 10);
+    }
+    if (toEl && !toEl.value) {
+        toEl.value = now.toISOString().slice(0, 10);
+    }
+
+    const fromDate = fromEl?.value || '';
+    const toDate = toEl?.value || '';
+
+    // Filter transactions in date range
+    const filteredTrxs = (allTrx || []).filter(t => {
+        if (!t.tanggal) return false;
+        if (fromDate && t.tanggal < fromDate) return false;
+        if (toDate && t.tanggal > toDate) return false;
+        return true;
+    });
+
+    // 1. KPI Cards
+    const totalPekanOmset = filteredTrxs.reduce((s, t) => s + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah || 1)) || 0), 0);
+    const totalPekanCups = filteredTrxs.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
+    const dayCount = fromDate && toDate ? Math.max(1, Math.round((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)) + 1) : 7;
+    const avgDailyOmset = Math.round(totalPekanOmset / dayCount);
+    const avgDailyCups = Math.round(totalPekanCups / dayCount);
+
     const elPekanOmset = document.getElementById('pekan-stat-omset');
     const elPekanCups = document.getElementById('pekan-stat-cups');
     const elPekanTrx = document.getElementById('pekan-stat-trx-count');
     const elPekanAvg = document.getElementById('pekan-stat-avg');
     const elPekanAvgCups = document.getElementById('pekan-stat-avg-cups');
     const elPekanDateRange = document.getElementById('pekan-stat-date-range');
+    const elPekanSummary = document.getElementById('pekan-summary-range-label');
 
     if (elPekanOmset) elPekanOmset.textContent = 'Rp ' + formatNum(totalPekanOmset, 0);
     if (elPekanCups) elPekanCups.textContent = `${totalPekanCups.toLocaleString('id-ID')} Cup`;
-    if (elPekanTrx) elPekanTrx.textContent = `${totalPekanTrx} kali transaksi`;
-    if (elPekanAvg) elPekanAvg.textContent = 'Rp ' + formatNum(Math.round(totalPekanOmset / 7), 0) + ' / hari';
-    if (elPekanAvgCups) elPekanAvgCups.textContent = `${Math.round(totalPekanCups / 7)} cup / hari`;
-    if (elPekanDateRange && daysArr.length >= 7) {
-        elPekanDateRange.textContent = `${daysArr[6].date} s/d ${daysArr[0].date}`;
+    if (elPekanTrx) elPekanTrx.textContent = `${filteredTrxs.length} kali transaksi`;
+    if (elPekanAvg) elPekanAvg.textContent = 'Rp ' + formatNum(avgDailyOmset, 0) + ' / hari';
+    if (elPekanAvgCups) elPekanAvgCups.textContent = `${avgDailyCups} cup / hari (${dayCount} hari)`;
+    if (elPekanDateRange) elPekanDateRange.textContent = `${fromDate} s/d ${toDate}`;
+    if (elPekanSummary) elPekanSummary.textContent = `Periode: ${fromDate} s/d ${toDate}`;
+
+    // 2. Rekapitulasi Penjualan Per Menu Pekan / Rentang
+    const { list: menuPekanList } = groupTrxByMenu(filteredTrxs);
+    const tbodyMenuPekan = document.getElementById('table-riwayat-menu-pekan-body');
+    if (tbodyMenuPekan) {
+        if (menuPekanList.length === 0) {
+            tbodyMenuPekan.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada transaksi dalam rentang tanggal ini.</td></tr>`;
+        } else {
+            tbodyMenuPekan.innerHTML = menuPekanList.map((m, idx) => {
+                const pct = totalPekanOmset > 0 ? ((m.total_omset / totalPekanOmset) * 100).toFixed(1) : 0;
+                const avgMenuCup = (m.total_cups / dayCount).toFixed(1);
+                return `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
+                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${m.total_cups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Hari">${avgMenuCup} cup/hari</td>
+                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+                </tr>`;
+            }).join('');
+        }
+    }
+
+    // 3. Rincian Penjualan Harian (Breakdown Tanggal)
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const daysMap = {};
+
+    filteredTrxs.forEach(t => {
+        const d = t.tanggal;
+        if (!daysMap[d]) {
+            daysMap[d] = { date: d, countTrx: 0, cups: 0, omset: 0, menus: {} };
+        }
+        daysMap[d].countTrx += 1;
+        daysMap[d].cups += (parseInt(t.jumlah) || 0);
+        daysMap[d].omset += (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0);
+        if (t.nama_menu) {
+            daysMap[d].menus[t.nama_menu] = (daysMap[d].menus[t.nama_menu] || 0) + (parseInt(t.jumlah) || 1);
+        }
+    });
+
+    const datesSorted = Object.keys(daysMap).sort((a, b) => b.localeCompare(a));
+    const tbodyPekan = document.getElementById('table-riwayat-pekan-body');
+    if (tbodyPekan) {
+        if (datesSorted.length === 0) {
+            tbodyPekan.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada data harian pada rentang tanggal ini.</td></tr>`;
+        } else {
+            tbodyPekan.innerHTML = datesSorted.map(dateStr => {
+                const item = daysMap[dateStr];
+                const dObj = new Date(dateStr);
+                const dayName = !isNaN(dObj.getTime()) ? dayNames[dObj.getDay()] : '-';
+                
+                let topMenu = '-';
+                let maxCount = 0;
+                for (const [mName, mCount] of Object.entries(item.menus)) {
+                    if (mCount > maxCount) {
+                        maxCount = mCount;
+                        topMenu = `${mName} (${mCount} cup)`;
+                    }
+                }
+
+                const isToday = dateStr === now.toISOString().slice(0, 10);
+                const dayBadge = isToday ? `<span class="ml-1.5 px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold rounded">Hari Ini</span>` : '';
+
+                return `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white" data-label="Hari & Tanggal">
+                        <span>${dayName}, ${dateStr}</span>
+                        ${dayBadge}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Total Transaksi">${item.countTrx} kali</td>
+                    <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${item.cups} Cup</td>
+                    <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400" data-label="Menu Terpopuler">${topMenu}</td>
+                </tr>`;
+            }).join('');
+        }
     }
 }
 
+// -------------------------------------------------------------
+// TAB 3: REKAPAN 1 BULAN & RENTANG FLEKSIBEL
+// -------------------------------------------------------------
+function presetBulanFilter(type) {
+    const monthInput = document.getElementById('riwayat-filter-month');
+    const fromEl = document.getElementById('bulan-filter-from');
+    const toEl = document.getElementById('bulan-filter-to');
+    const now = new Date();
+
+    if (fromEl) fromEl.value = '';
+    if (toEl) toEl.value = '';
+
+    if (type === 'thismonth') {
+        if (monthInput) monthInput.value = now.toISOString().slice(0, 7);
+    } else if (type === 'lastmonth') {
+        const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        if (monthInput) monthInput.value = lastM.toISOString().slice(0, 7);
+    }
+    loadRiwayatBulan();
+}
+window.presetBulanFilter = presetBulanFilter;
+
+function loadRiwayatBulanCustomRange() {
+    loadRiwayatTransaksi();
+}
+window.loadRiwayatBulanCustomRange = loadRiwayatBulanCustomRange;
+
 function renderRiwayatBulan(allTrx) {
     const monthInput = document.getElementById('riwayat-filter-month');
+    const fromEl = document.getElementById('bulan-filter-from');
+    const toEl = document.getElementById('bulan-filter-to');
     const now = new Date();
     const currentMonthIso = now.toISOString().slice(0, 7); // YYYY-MM
-    if (monthInput && !monthInput.value) {
-        monthInput.value = currentMonthIso;
-    }
-    const selectedMonth = monthInput?.value || currentMonthIso;
 
-    // Filter transactions in that month
-    const trxsInMonth = (allTrx || []).filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
-    
-    // Group transactions by date
+    const customFrom = fromEl?.value || '';
+    const customTo = toEl?.value || '';
+
+    let trxsInMonth = [];
+    let periodLabel = '';
+
+    if (customFrom || customTo) {
+        trxsInMonth = (allTrx || []).filter(t => {
+            if (!t.tanggal) return false;
+            if (customFrom && t.tanggal < customFrom) return false;
+            if (customTo && t.tanggal > customTo) return false;
+            return true;
+        });
+        periodLabel = `Rentang ${customFrom || 'Awal'} s/d ${customTo || 'Akhir'}`;
+    } else {
+        if (monthInput && !monthInput.value) {
+            monthInput.value = currentMonthIso;
+        }
+        const selectedMonth = monthInput?.value || currentMonthIso;
+        trxsInMonth = (allTrx || []).filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
+        periodLabel = `Periode Bulan ${selectedMonth}`;
+    }
+
+    // 1. Group by date for daily table & active days count
     const dailyMap = {};
     trxsInMonth.forEach(t => {
         const d = t.tanggal;
@@ -3482,7 +3743,7 @@ function renderRiwayatBulan(allTrx) {
     const activeDays = datesSorted.length;
     const avgDailyOmset = activeDays > 0 ? Math.round(totalMonthOmset / activeDays) : 0;
 
-    // Update KPI Stat Cards
+    // 2. Update KPI Stat Cards
     const elBulanOmset = document.getElementById('bulan-stat-omset');
     const elBulanCups = document.getElementById('bulan-stat-cups');
     const elBulanTrx = document.getElementById('bulan-stat-trx-count');
@@ -3495,29 +3756,53 @@ function renderRiwayatBulan(allTrx) {
     if (elBulanTrx) elBulanTrx.textContent = `${trxsInMonth.length} transaksi`;
     if (elBulanDays) elBulanDays.textContent = `${activeDays} Hari`;
     if (elBulanAvg) elBulanAvg.textContent = 'Rp ' + formatNum(avgDailyOmset, 0) + ' / hari';
-    if (elBulanLabel) elBulanLabel.textContent = `Rekapan penjualan periode ${selectedMonth}`;
+    if (elBulanLabel) elBulanLabel.textContent = `Rekapan penjualan: ${periodLabel}`;
 
-    const tbody = document.getElementById('table-riwayat-bulan-body');
-    if (!tbody) return;
-
-    if (datesSorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-400 dark:text-gray-600 text-xs">Belum ada data transaksi pada bulan ${selectedMonth}.</td></tr>`;
-        return;
+    // 3. Rekapitulasi Penjualan Per Menu Bulan Ini
+    const { list: menuBulanList } = groupTrxByMenu(trxsInMonth);
+    const tbodyMenuBulan = document.getElementById('table-riwayat-menu-bulan-body');
+    if (tbodyMenuBulan) {
+        if (menuBulanList.length === 0) {
+            tbodyMenuBulan.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada penjualan menu pada periode ini.</td></tr>`;
+        } else {
+            tbodyMenuBulan.innerHTML = menuBulanList.map((m, idx) => {
+                const pct = totalMonthOmset > 0 ? ((m.total_omset / totalMonthOmset) * 100).toFixed(1) : 0;
+                const avgMenuCup = activeDays > 0 ? (m.total_cups / activeDays).toFixed(1) : m.total_cups;
+                return `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
+                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.total_cups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Hari">${avgMenuCup} cup/hari</td>
+                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi Omset">${pct}%</td>
+                </tr>`;
+            }).join('');
+        }
     }
 
-    tbody.innerHTML = datesSorted.map(d => {
-        const item = dailyMap[d];
-        const pct = totalMonthOmset > 0 ? ((item.omset / totalMonthOmset) * 100).toFixed(1) : 0;
+    // 4. Rincian Penjualan Harian Bulan Ini
+    const tbodyBulan = document.getElementById('table-riwayat-bulan-body');
+    if (tbodyBulan) {
+        if (datesSorted.length === 0) {
+            tbodyBulan.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada data transaksi pada ${periodLabel}.</td></tr>`;
+        } else {
+            tbodyBulan.innerHTML = datesSorted.map(d => {
+                const item = dailyMap[d];
+                const pct = totalMonthOmset > 0 ? ((item.omset / totalMonthOmset) * 100).toFixed(1) : 0;
 
-        return `
-        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-            <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Tanggal">${item.date}</td>
-            <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Jumlah Transaksi">${item.trxCount} transaksi</td>
-            <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Total Cup">${item.cups} Cup</td>
-            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
-            <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
-        </tr>`;
-    }).join('');
+                return `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Tanggal">${item.date}</td>
+                    <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Jumlah Transaksi">${item.trxCount} transaksi</td>
+                    <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Total Cup">${item.cups} Cup</td>
+                    <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
+                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+                </tr>`;
+            }).join('');
+        }
+    }
 }
 window.loadRiwayatBulan = () => {
     loadRiwayatTransaksi();
