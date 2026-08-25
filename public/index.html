@@ -1245,33 +1245,41 @@
         .mobile-nav-btn {
             color: #6b7280;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 68px;
-            height: 44px;
+            flex: 1;
+            max-width: 72px;
+            height: 42px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 9999px;
-            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            padding: 0.2rem 0.35rem;
             cursor: pointer;
         }
         .dark .mobile-nav-btn {
             color: #9ca3af;
         }
         .mobile-nav-btn.active {
-            background-color: #dc2626 !important;
-            color: #ffffff !important;
-            border-radius: 9999px !important;
-            padding: 0.35rem 0.95rem !important;
-            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+            background-color: rgba(220, 38, 38, 0.12) !important;
+            color: #dc2626 !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
+        .dark .mobile-nav-btn.active {
+            background-color: rgba(239, 68, 68, 0.16) !important;
+            color: #f87171 !important;
         }
         .mobile-nav-btn.active i,
         .mobile-nav-btn.active span {
-            color: #ffffff !important;
+            color: #dc2626 !important;
             font-weight: 700 !important;
         }
+        .dark .mobile-nav-btn.active i,
+        .dark .mobile-nav-btn.active span {
+            color: #f87171 !important;
+        }
         .mobile-nav-btn.active i {
-            transform: scale(1.08);
+            transform: scale(1.1);
         }
         .cat-pill.active {
             background-color: #ef4444 !important;
@@ -1631,71 +1639,74 @@
                 </div>
 
                 <!-- Stat Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div class="stat-card glass-stat rounded-xl p-5"
-                        style="--accent:#3b82f6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p
-                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    Bahan Baku</p>
-                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1"
-                                    id="stat-total-barang">0</h3>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">item terdaftar</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                                <i class="fas fa-boxes text-blue-500 dark:text-blue-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-stat rounded-xl p-5"
-                        style="--accent:#10b981">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p
-                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    Menu Aktif</p>
-                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-menu">0
-                                </h3>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">produk minuman</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
-                                <i class="fas fa-mug-hot text-green-500 dark:text-green-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-stat rounded-xl p-5"
-                        style="--accent:#8b5cf6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p
-                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    Total Transaksi</p>
-                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-trx">0
-                                </h3>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">data penjualan</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-                                <i class="fas fa-receipt text-purple-500 dark:text-purple-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-stat rounded-xl p-5"
+                <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4 mb-6">
+                    <div class="stat-card glass-stat rounded-xl p-4 sm:p-5 col-span-2 sm:col-span-1"
                         style="--accent:#ef4444">
                         <div class="flex justify-between items-start">
                             <div>
-                                <p
-                                    class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    Rata-rata WMAPE</p>
-                                <h3 class="text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-wmape">-</h3>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">akurasi prediksi</p>
+                                <p class="text-[11px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Total Omset Hari Ini</p>
+                                <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="stat-omset-today">Rp 0</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1" id="stat-omset-today-cups">0 cup terjual (Hari ini)</p>
                             </div>
-                            <div
-                                class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
-                                <i class="fas fa-bullseye text-red-500 dark:text-red-400"></i>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-coins text-red-500 dark:text-red-400 text-base"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-4 sm:p-5"
+                        style="--accent:#8b5cf6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[11px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Total Transaksi</p>
+                                <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-trx">0</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">semua data penjualan</p>
+                            </div>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-receipt text-purple-500 dark:text-purple-400 text-base"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-4 sm:p-5"
+                        style="--accent:#10b981">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[11px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Menu Aktif</p>
+                                <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-menu">0</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">produk minuman</p>
+                            </div>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-mug-hot text-green-500 dark:text-green-400 text-base"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-4 sm:p-5"
+                        style="--accent:#3b82f6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[11px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Bahan Baku</p>
+                                <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-total-barang">0</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">item terdaftar</p>
+                            </div>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-boxes text-blue-500 dark:text-blue-400 text-base"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-stat rounded-xl p-4 sm:p-5 col-span-2 sm:col-span-1"
+                        style="--accent:#f59e0b">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[11px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    Rata-rata WMAPE</p>
+                                <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1" id="stat-wmape">-</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">akurasi prediksi</p>
+                            </div>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-bullseye text-amber-500 dark:text-amber-400 text-base"></i>
                             </div>
                         </div>
                     </div>
@@ -1899,29 +1910,19 @@
                 <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div class="min-w-0">
                         <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Transaksi Penjualan</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Catat penjualan minuman Haltea dan kelola transaksi harian.</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Pilih menu produk untuk mencatat pesanan pelanggan dan proses transaksi.</p>
                     </div>
-                    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
-                        <!-- Mode Tampilan Dropdown (Left) -->
-                        <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-2.5 py-2 rounded-xl min-w-0">
-                            <i class="fas fa-layer-group text-gray-400 text-xs flex-shrink-0"></i>
-                            <select id="select-pos-mode" onchange="togglePosViewMode(this.value)"
-                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-semibold cursor-pointer w-full truncate">
-                                <option value="catalog" class="bg-white dark:bg-gray-900">Kasir POS</option>
-                                <option value="history" class="bg-white dark:bg-gray-900">Riwayat Hari Ini</option>
-                            </select>
-                        </div>
-
-                        <!-- Date Filter (Right) -->
-                        <div class="flex items-center gap-1.5 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-2 min-w-0">
-                            <i class="far fa-calendar-alt text-gray-400 text-xs flex-shrink-0"></i>
+                    <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 justify-end">
+                        <!-- Date Filter / Indicator -->
+                        <div class="flex items-center gap-1.5 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 min-w-0 shadow-xs">
+                            <i class="far fa-calendar-alt text-red-500 text-xs flex-shrink-0"></i>
                             <input type="date" id="trx-tanggal"
-                                class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer w-full">
+                                class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
                         </div>
                     </div>
                 </div>
 
-                <!-- 1. MODE: Kasir Penjualan (Catalog + Shopping Cart) -->
+                <!-- Kasir Penjualan (Catalog + Shopping Cart) -->
                 <div id="pos-catalog-wrapper" class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
                     <!-- Left Column: Daftar Menu Produk (8 Cols on Desktop, Full Width on Mobile) -->
                     <div class="md:col-span-7 xl:col-span-8 flex flex-col">
@@ -1967,7 +1968,7 @@
                                 <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Pembayaran:</span>
                                 <span id="mobile-inpage-cart-total" class="text-base font-black text-red-600 dark:text-red-400">Rp 0</span>
                             </div>
-                            <button onclick="submitKatalogTransaksi()" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 active:scale-98">
+                            <button onclick="submitKatalogTransaksi()" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md shadow-red-500/25 flex items-center justify-center gap-2 active:scale-98">
                                 <i class="fas fa-check-circle"></i>
                                 <span>Pesan Sekarang / Simpan Transaksi</span>
                             </button>
@@ -2008,11 +2009,11 @@
                                 </div>
 
                                 <div class="flex items-center gap-2">
-                                    <button onclick="clearCart()" title="Kosongkan Keranjang" class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-red-500 transition">
+                                    <button onclick="clearCart()" title="Kosongkan Keranjang" class="px-3 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-red-500 transition">
                                         <i class="fas fa-trash-alt text-sm"></i>
                                     </button>
                                     <button onclick="submitKatalogTransaksi()"
-                                        class="flex-1 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-red-500/25 transition-all">
+                                        class="flex-1 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-md shadow-red-500/25 transition-all">
                                         <span>Simpan Transaksi</span>
                                     </button>
                                 </div>
@@ -2020,146 +2021,234 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- 2. MODE: Riwayat Transaksi Hari Ini (Placed at Top) -->
-                <div id="pos-today-history-wrapper" class="hidden mb-6">
-                    <div class="glass-table rounded-xl overflow-hidden mobile-card-table">
-                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                            <div>
-                                <p class="font-bold text-gray-900 dark:text-white text-sm">Riwayat Transaksi Hari Ini</p>
-                                <p id="today-history-date" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"></p>
+            <!-- ==== RIWAYAT TRANSAKSI (3 TABS: PER TRANSAKSI, 1 PEKAN, 1 BULAN) ==== -->
+            <div id="page-riwayat-transaksi" class="page-content p-3 sm:p-6 fade-in hidden w-full max-w-full">
+                <!-- Header -->
+                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-sm font-bold">
+                                <i class="fas fa-clock-rotate-left"></i>
                             </div>
-                            <button onclick="loadTodayHistory()" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                                Refresh Data
+                            <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Riwayat Transaksi</h1>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5 ml-10">Pantau transaksi penjualan harian, ringkasan 1 pekan (7 hari), dan rekapan bulanan.</p>
+                    </div>
+
+                    <!-- Admin Reset & Restore Actions (Admin Only) -->
+                    <div class="admin-only flex items-center gap-2 w-full sm:w-auto shrink-0">
+                        <button id="btn-reset-data" onclick="resetTransaksiData()" title="Kosongkan seluruh data transaksi"
+                            class="bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold transition border border-red-200 dark:border-red-800/40 whitespace-nowrap flex-1 sm:flex-none">
+                            <i class="fas fa-trash-can text-xs"></i>
+                            <span>Reset Data</span>
+                        </button>
+                        <button id="btn-restore-data" onclick="restoreTransaksiData()" title="Lihat riwayat reset dan restore dataset transaksi"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold shadow-md shadow-blue-500/20 transition-all whitespace-nowrap flex-1 sm:flex-none">
+                            <i class="fas fa-rotate-left text-xs"></i>
+                            <span>Restore</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Navigation Tabs: 1. Per Transaksi, 2. Riwayat 1 Pekan, 3. Rekapan 1 Bulan -->
+                <div class="grid grid-cols-3 gap-1.5 sm:gap-2 bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl mb-5 w-full max-w-xl">
+                    <button type="button" id="tab-btn-riwayat-per-trx" onclick="switchRiwayatTab('per_transaksi')"
+                        class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-red-600 dark:text-white shadow-xs text-center truncate">
+                        <i class="fas fa-list-check mr-1 text-xs"></i> Per Transaksi
+                    </button>
+                    <button type="button" id="tab-btn-riwayat-pekan" onclick="switchRiwayatTab('pekan')"
+                        class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate">
+                        <i class="fas fa-calendar-week mr-1 text-xs"></i> 1 Pekan (7 Hari)
+                    </button>
+                    <button type="button" id="tab-btn-riwayat-bulan" onclick="switchRiwayatTab('bulan')"
+                        class="py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate">
+                        <i class="fas fa-calendar-days mr-1 text-xs"></i> Rekapan 1 Bulan
+                    </button>
+                </div>
+
+                <!-- ================= TAB 1: PER TRANSAKSI (DETAIL & EDIT) ================= -->
+                <div id="riwayat-tab-per-transaksi" class="space-y-4">
+                    <!-- Filters & Search Bar -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
+                        <div class="flex flex-wrap items-center gap-2 flex-1">
+                            <div class="relative flex-1 min-w-[160px]">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                <input type="text" id="riwayat-search-input" oninput="handleRiwayatSearch(this.value)" placeholder="Cari nama menu / transaksi..."
+                                    class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500">
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                                <i class="far fa-calendar text-gray-400 text-xs"></i>
+                                <input type="date" id="riwayat-filter-date" onchange="loadRiwayatTransaksi()"
+                                    class="bg-transparent border-0 text-gray-900 dark:text-white text-xs outline-none focus:ring-0 p-0 font-medium cursor-pointer">
+                            </div>
+                            <button onclick="resetRiwayatFilter()" class="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold transition">
+                                Reset
                             </button>
                         </div>
+
+                        <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium" id="riwayat-total-count-badge">0 Data</span>
+                            <button onclick="openAddTransaksiModal()" class="admin-only bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition">
+                                <i class="fas fa-plus"></i>
+                                <span>Tambah Manual</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload Excel Panel (Admin Only) -->
+                    <div class="glass-panel rounded-2xl p-4 admin-only border border-gray-200/80 dark:border-gray-800">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">Impor Dataset Transaksi Excel</h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Unggah file (.xlsx) untuk menambahkan data penjualan ke database.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="file-import-excel-riwayat" accept=".xlsx, .xls"
+                                    class="text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 dark:file:bg-red-900/30 dark:file:text-red-300 hover:file:bg-red-100 cursor-pointer">
+                                <button onclick="handleImportExcelRiwayat()"
+                                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1 transition whitespace-nowrap">
+                                    <i class="fas fa-file-excel"></i> Impor
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detail Transactions Table -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-left font-semibold">Tanggal</th>
                                         <th class="px-4 py-3 text-left font-semibold">Menu</th>
                                         <th class="px-4 py-3 text-center font-semibold">Jumlah</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Harga</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Total</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Harga</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Sumber</th>
                                         <th class="px-4 py-3 text-center font-semibold">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="today-history-body" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                  <!-- ==== DATA TRANSAKSI (Riwayat & Import & Rekap) ==== -->
-            <div id="page-data-transaksi" class="page-content p-4 sm:p-6 fade-in hidden">
-                <div class="mb-4 sm:mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-3 sm:pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                    <div class="min-w-0">
-                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Data Transaksi</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Riwayat penjualan, rekap perpekan, pengosongan data, dan impor data transaksi.</p>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
-                        <!-- Mode Tampilan Dropdown -->
-                        <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-2.5 py-2 rounded-xl">
-                            <i class="fas fa-table-list text-gray-400 text-xs flex-shrink-0"></i>
-                            <select id="select-trx-mode" onchange="toggleDataTransaksiRekapView(this.value)"
-                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-semibold cursor-pointer w-full">
-                                <option value="list" class="bg-white dark:bg-gray-900">Detail Data Transaksi</option>
-                                <option value="rekap" class="bg-white dark:bg-gray-900">Rekap Penjualan Perpekan</option>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
-                            <button id="btn-reset-data" onclick="resetTransaksiData()" title="Kosongkan seluruh data transaksi"
-                                class="bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold transition border border-red-200 dark:border-red-800/40 whitespace-nowrap">
-                                <i class="fas fa-trash-can text-xs"></i>
-                                <span>Reset Data</span>
-                            </button>
-                            <button id="btn-restore-data" onclick="restoreTransaksiData()" title="Lihat riwayat reset dan restore dataset transaksi"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold shadow-md shadow-blue-500/20 transition-all whitespace-nowrap">
-                                <i class="fas fa-clock-rotate-left text-xs"></i>
-                                <span>Restore</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- View 1: Detail List Data Transaksi & Import -->
-                <div id="trx-view-list">
-                    <!-- Filter -->
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-5">
-                        <div class="flex-1 sm:flex-none flex items-center gap-2 bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2">
-                            <i class="fas fa-filter text-gray-400 text-sm"></i>
-                            <input type="date" id="filter-trx-date" onchange="loadRiwayatPage()"
-                                class="bg-transparent border-0 text-gray-900 dark:text-white text-sm outline-none focus:ring-0 p-0 w-full">
-                        </div>
-                        <button onclick="loadRiwayatPage(true)" class="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-                            Semua
-                        </button>
-                    </div>
-
-                    <!-- Upload Excel Panel -->
-                    <div class="glass-panel rounded-2xl p-5 mb-6 admin-only">
-                        <h3 class="font-bold text-gray-900 dark:text-white text-sm mb-1">Impor Data Transaksi Excel</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Unggah file (.xlsx) untuk menambahkan data transaksi baru ke database.</p>
-                        <div class="flex flex-col sm:flex-row items-center gap-3">
-                            <input type="file" id="file-import-excel" accept=".xlsx, .xls"
-                                class="w-full sm:w-auto flex-1 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 dark:file:bg-red-900/30 dark:file:text-red-300 hover:file:bg-red-100 cursor-pointer">
-                            <button onclick="handleImportExcel()"
-                                class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition">
-                                <i class="fas fa-file-excel"></i> Proses Impor
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Data Transaksi Table -->
-                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table">
-                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                            <h3 class="font-bold text-gray-900 dark:text-white text-sm">Daftar Transaksi</h3>
-                            <span class="text-xs text-gray-500" id="trx-total-count">0 Data</span>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full data-table">
-                                <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                                        <th class="px-4 py-3 text-left">Tanggal</th>
-                                        <th class="px-4 py-3 text-left">Menu</th>
-                                        <th class="px-4 py-3 text-center">Jumlah</th>
-                                        <th class="px-4 py-3 text-right">Harga</th>
-                                        <th class="px-4 py-3 text-right">Total</th>
-                                        <th class="px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-trx-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <tbody id="table-riwayat-per-trx-body" class="divide-y divide-gray-100 dark:divide-gray-800">
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- View 2: Rekap Penjualan Perpekan Table (Admin Only) -->
-                <div id="trx-view-rekap" class="hidden">
-                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table">
-                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                            <h3 class="font-bold text-gray-900 dark:text-white text-sm">Rekap Total Penjualan Minuman Perpekan</h3>
-                            <span class="text-xs text-gray-500" id="rekap-total-rows">0 Pekan</span>
+                <!-- ================= TAB 2: RIWAYAT 1 PEKAN (7 HARI TERAKHIR) ================= -->
+                <div id="riwayat-tab-pekan" class="hidden space-y-4">
+                    <!-- 3 Stat Cards for 7 Days -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="glass-stat rounded-2xl p-4 border border-red-200/60 dark:border-red-900/30" style="--accent:#ef4444">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Omset 7 Hari Terakhir</p>
+                            <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="pekan-stat-omset">Rp 0</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="pekan-stat-date-range">-</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Cup Terjual (7 Hari)</p>
+                            <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="pekan-stat-cups">0 Cup</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="pekan-stat-trx-count">0 kali transaksi</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-4 border border-emerald-200/60 dark:border-emerald-900/30" style="--accent:#10b981">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Rata-rata Penjualan Harian</p>
+                            <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="pekan-stat-avg">Rp 0 / hari</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5" id="pekan-stat-avg-cups">0 cup / hari</p>
+                        </div>
+                    </div>
+
+                    <!-- 7 Days Breakdown Table -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">Rincian Penjualan Harian (7 Hari Terakhir)</h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Rekapitulasi data transaksi per hari dalam sepekan terakhir</p>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                                        <th class="px-4 py-3 text-left">Pekan Ke-</th>
-                                        <th class="px-4 py-3 text-left">Rentang Tanggal</th>
-                                        <th class="px-4 py-3 text-center">Cup Terjual</th>
-                                        <th class="px-4 py-3 text-right">Estimasi Omset</th>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-left font-semibold">Hari & Tanggal</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Total Transaksi</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Cup Terjual</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Menu Terpopuler</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-rekap-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <tbody id="table-riwayat-pekan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= TAB 3: REKAPAN 1 BULAN INI ================= -->
+                <div id="riwayat-tab-bulan" class="hidden space-y-4">
+                    <!-- Month Selector & Month KPI Cards -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">PILIH BULAN:</label>
+                            <input type="month" id="riwayat-filter-month" onchange="loadRiwayatBulan()"
+                                class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400" id="bulan-summary-label">Rekapan bulan berjalan</p>
+                    </div>
+
+                    <!-- 4 Monthly KPI Cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-red-200/60 dark:border-red-900/30" style="--accent:#ef4444">
+                            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Total Omset Bulan Ini</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="bulan-stat-omset">Rp 0</h3>
+                            <p class="text-[10px] text-gray-400 mt-0.5">Pendapatan kotor</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
+                            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Total Cup Terjual</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="bulan-stat-cups">0 Cup</h3>
+                            <p class="text-[10px] text-gray-400 mt-0.5" id="bulan-stat-trx-count">0 transaksi</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-blue-200/60 dark:border-blue-900/30" style="--accent:#3b82f6">
+                            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Hari Aktif / Buka</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="bulan-stat-days">0 Hari</h3>
+                            <p class="text-[10px] text-gray-400 mt-0.5">Hari ada penjualan</p>
+                        </div>
+                        <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-emerald-200/60 dark:border-emerald-900/30" style="--accent:#10b981">
+                            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Rata-rata Omset / Hari</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="bulan-stat-avg">Rp 0</h3>
+                            <p class="text-[10px] text-gray-400 mt-0.5">Rata-rata per hari aktif</p>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Daily Breakdown Table -->
+                    <div class="glass-table rounded-2xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                        <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">Rincian Penjualan Harian Bulan Ini</h3>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Distribusi omset dan volume cup per tanggal transaksi</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-4 py-3 text-left font-semibold">Tanggal</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Jumlah Transaksi</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Total Cup</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
+                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-riwayat-bulan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Legacy alias for data-transaksi wrapper if referenced by any plugin -->
+            <div id="page-data-transaksi" class="hidden"></div>
 
             <!-- ==== PREDIKSI BAHAN BAKU ==== -->
             <div id="page-prediksi" class="page-content p-4 sm:p-6 fade-in hidden">
@@ -2575,57 +2664,57 @@
                 </div>
             </div>
 
-            <!-- ==== ABSENSI KARYAWAN / KASIR (EXACT SCREENSHOT DESIGN) ==== -->
-            <div id="page-absensi-karyawan" class="page-content p-4 sm:p-6 fade-in hidden">
+            <!-- ==== ABSENSI KARYAWAN / KASIR (RESPONSIVE MOBILE & DESKTOP) ==== -->
+            <div id="page-absensi-karyawan" class="page-content p-3 sm:p-6 fade-in hidden w-full max-w-full overflow-x-hidden">
                 <!-- Header -->
-                <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Absensi Karyawan</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Catat absensi kehadiran harian dan ajukan izin kerja Anda</p>
+                <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-800 pb-3 sm:pb-4">
+                    <div class="min-w-0">
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Absensi Karyawan</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Catat absensi kehadiran harian dan ajukan izin kerja Anda</p>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2.5 self-end sm:self-auto">
                         <div class="text-right">
-                            <p id="karyawan-absensi-user-name" class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">Kasir Haltea (Karyawan)</p>
-                            <span id="karyawan-absensi-user-role" class="text-[11px] text-gray-400 font-medium">Kasir</span>
+                            <p id="karyawan-absensi-user-name" class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">Kasir Haltea</p>
+                            <span id="karyawan-absensi-user-role" class="text-[10px] sm:text-[11px] text-gray-400 font-medium">Kasir</span>
                         </div>
-                        <div id="karyawan-absensi-avatar-initial" class="w-10 h-10 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md">
+                        <div id="karyawan-absensi-avatar-initial" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md shrink-0">
                             KA
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 w-full max-w-full">
                     <!-- Left Panel: Pencatatan Absensi Hari Ini -->
-                    <div class="lg:col-span-5 flex flex-col">
-                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between">
+                    <div class="lg:col-span-5 flex flex-col w-full min-w-0">
+                        <div class="glass-panel rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between w-full min-w-0">
                             <div>
-                                <span id="karyawan-absensi-today-badge" class="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold rounded-xl mb-3">
+                                <span id="karyawan-absensi-today-badge" class="inline-block px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold rounded-xl mb-3">
                                     2026-08-24
                                 </span>
-                                <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-5">Pencatatan Absensi Hari Ini</h2>
+                                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Pencatatan Absensi Hari Ini</h2>
 
                                 <!-- Tabs: Absen Hadir vs Ajukan Izin -->
-                                <div class="grid grid-cols-2 gap-2 bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl mb-5">
+                                <div class="grid grid-cols-2 gap-1.5 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-2xl mb-4 w-full">
                                     <button type="button" id="tab-btn-absen-hadir" onclick="switchKaryawanAbsensiTab('hadir')"
-                                        class="py-2.5 px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs">
+                                        class="py-2 px-2 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs text-center truncate">
                                         Absen Hadir
                                     </button>
                                     <button type="button" id="tab-btn-ajukan-izin" onclick="switchKaryawanAbsensiTab('izin')"
-                                        class="py-2.5 px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                                        class="py-2 px-2 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate">
                                         Ajukan Izin
                                     </button>
                                 </div>
 
                                 <!-- TAB 1: FORM ABSEN HADIR -->
-                                <div id="karyawan-tab-content-hadir" class="space-y-4">
+                                <div id="karyawan-tab-content-hadir" class="space-y-3 sm:space-y-4">
                                     <!-- Blue Alert Box -->
-                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-4 text-xs text-blue-900 dark:text-blue-300 space-y-1.5">
-                                        <div class="flex items-center justify-between font-bold text-blue-700 dark:text-blue-400">
-                                            <div class="flex items-center gap-1.5">
-                                                <i class="far fa-clock"></i>
-                                                <span id="karyawan-jam-masuk-alert">Masuk: 08:00 (Toleransi s/d 08:10)</span>
+                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-3 sm:p-4 text-xs text-blue-900 dark:text-blue-300 space-y-1.5">
+                                        <div class="flex flex-wrap items-center justify-between gap-1.5 font-bold text-blue-700 dark:text-blue-400 text-xs">
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <i class="far fa-clock text-xs"></i>
+                                                <span id="karyawan-jam-masuk-alert" class="truncate">Masuk: 08:00 (Toleransi s/d 08:10)</span>
                                             </div>
-                                            <span class="text-[10px] bg-blue-100 dark:bg-blue-800/50 px-2 py-0.5 rounded-lg">Pulang: 16:00 WIB</span>
+                                            <span class="text-[10px] bg-blue-100 dark:bg-blue-800/50 px-2 py-0.5 rounded-lg whitespace-nowrap">Pulang: 16:00 WIB</span>
                                         </div>
                                         <p class="text-blue-800/80 dark:text-blue-300/80 leading-relaxed text-[11px]">
                                             Pemberitahuan: Unggah bukti foto selfie sampai kerja. Absensi Hari Ini Lengkap setelah Anda melakukan <strong>Absen Masuk</strong> dan <strong>Absen Pulang</strong>.
@@ -2634,64 +2723,64 @@
 
                                     <!-- Upload Selfie Box -->
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        <label class="block text-[11px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                                             UNGGAH FOTO BUKTI SAMPAI KERJA
                                         </label>
                                         <div onclick="document.getElementById('karyawan-selfie-file').click()"
-                                            class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl p-5 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50/30 transition group">
+                                            class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl p-4 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50/30 transition group">
                                             <div id="karyawan-selfie-preview-box" class="flex flex-col items-center justify-center">
-                                                <i class="fas fa-camera text-2xl text-gray-400 group-hover:text-blue-500 transition mb-2"></i>
+                                                <i class="fas fa-camera text-xl sm:text-2xl text-gray-400 group-hover:text-blue-500 transition mb-1.5"></i>
                                                 <p class="text-xs font-bold text-gray-700 dark:text-gray-300">Ambil/Unggah Foto Selfie</p>
-                                                <p class="text-[11px] text-gray-400 mt-0.5">Maksimal resolusi file foto 4MB</p>
+                                                <p class="text-[10px] sm:text-[11px] text-gray-400 mt-0.5">Maksimal resolusi file foto 4MB</p>
                                             </div>
-                                            <img id="karyawan-selfie-img-preview" src="" class="hidden w-28 h-28 object-cover rounded-xl mx-auto shadow-md border border-gray-200">
+                                            <img id="karyawan-selfie-img-preview" src="" class="hidden w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-xl mx-auto shadow-md border border-gray-200">
                                             <input type="file" id="karyawan-selfie-file" accept="image/*" class="hidden" onchange="handleKaryawanSelfieChange(event)">
                                         </div>
                                     </div>
 
                                     <!-- Action Buttons: Absen Masuk & Absen Pulang -->
-                                    <div id="karyawan-absen-actions" class="pt-2">
+                                    <div id="karyawan-absen-actions" class="pt-1">
                                         <!-- Dynamically rendered via renderKaryawanAbsenButtons() in app.js -->
                                     </div>
                                 </div>
 
                                 <!-- TAB 2: FORM AJUKAN IZIN -->
-                                <div id="karyawan-tab-content-izin" class="hidden space-y-4">
+                                <div id="karyawan-tab-content-izin" class="hidden space-y-3 sm:space-y-4">
                                     <!-- Amber Alert Box -->
-                                    <div class="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-3.5 text-xs text-amber-900 dark:text-amber-300">
-                                        <p class="font-medium leading-relaxed">
+                                    <div class="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-3 text-xs text-amber-900 dark:text-amber-300">
+                                        <p class="font-medium leading-relaxed text-[11px]">
                                             <strong>Pemberitahuan:</strong> Anda dapat mengajukan izin sebagian (Masuk atau Pulang) maupun izin penuh keduanya.
                                         </p>
                                     </div>
 
                                     <!-- Pilih Jenis Izin -->
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        <label class="block text-[11px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                                             PILIH JENIS IZIN (BISA SALAH SATU / KEDUANYA)
                                         </label>
-                                        <div class="grid grid-cols-3 gap-2">
+                                        <div class="grid grid-cols-3 gap-1.5 sm:gap-2">
                                             <button type="button" id="btn-izin-type-masuk" onclick="selectIzinType('masuk')"
-                                                class="p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs">
-                                                <i class="fas fa-sun text-sm text-amber-500"></i>
+                                                class="p-2 sm:p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs">
+                                                <i class="fas fa-sun text-xs sm:text-sm text-amber-500"></i>
                                                 <span>Izin Masuk</span>
                                             </button>
                                             <button type="button" id="btn-izin-type-pulang" onclick="selectIzinType('pulang')"
-                                                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                                                <i class="fas fa-moon text-sm text-indigo-500"></i>
+                                                class="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                                                <i class="fas fa-moon text-xs sm:text-sm text-indigo-500"></i>
                                                 <span>Izin Pulang</span>
                                             </button>
                                             <button type="button" id="btn-izin-type-keduanya" onclick="selectIzinType('keduanya')"
-                                                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                                                <i class="fas fa-calendar-check text-sm text-emerald-500"></i>
+                                                class="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                                                <i class="fas fa-calendar-check text-xs sm:text-sm text-emerald-500"></i>
                                                 <span>Keduanya</span>
                                             </button>
                                         </div>
                                     </div>
 
                                     <!-- Info Box Catatan Kewajiban Absensi -->
-                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 rounded-2xl p-3 text-xs text-blue-900 dark:text-blue-300" id="karyawan-izin-note-box">
+                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 rounded-2xl p-2.5 sm:p-3 text-xs text-blue-900 dark:text-blue-300" id="karyawan-izin-note-box">
                                         <div class="flex items-start gap-2">
-                                            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-sm mt-0.5 flex-shrink-0"></i>
+                                            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-xs sm:text-sm mt-0.5 flex-shrink-0"></i>
                                             <p class="leading-relaxed text-[11px]" id="karyawan-izin-note-text">
                                                 <strong>Izin Masuk Dipilih:</strong> Anda izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.
                                             </p>
@@ -2700,16 +2789,16 @@
 
                                     <!-- Keterangan Izin Textarea -->
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        <label class="block text-[11px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                                             KETERANGAN ALASAN IZIN
                                         </label>
                                         <textarea id="karyawan-izin-alasan" rows="3" placeholder="Sebutkan alasan Anda mengajukan izin hari ini..."
-                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl p-3 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl p-2.5 sm:p-3 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                                     </div>
 
                                     <!-- Submit Izin Button -->
                                     <button type="button" onclick="submitKaryawanIzin()"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-xs sm:text-sm transition active:scale-[0.98] cursor-pointer">
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-4 rounded-xl sm:rounded-2xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 text-xs sm:text-sm transition active:scale-[0.98] cursor-pointer">
                                         <span>Kirim Permohonan Izin</span>
                                     </button>
                                 </div>
@@ -2718,36 +2807,36 @@
                     </div>
 
                     <!-- Right Panel: Riwayat Kehadiran Saya -->
-                    <div class="lg:col-span-7">
-                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
-                            <h2 class="text-base font-bold text-gray-900 dark:text-white mb-4">Riwayat Kehadiran Saya</h2>
+                    <div class="lg:col-span-7 w-full min-w-0">
+                        <div class="glass-panel rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 w-full min-w-0">
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Riwayat Kehadiran Saya</h2>
 
                             <!-- Rekap Izin Karyawan Bulan Ini (Hanya Muncul Jika Ada Izin) -->
-                            <div id="karyawan-izin-summary-box" class="hidden mb-5 p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center justify-between shadow-xs">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                                        <i class="fas fa-calendar-check text-sm"></i>
+                            <div id="karyawan-izin-summary-box" class="hidden mb-4 p-3 sm:p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center justify-between shadow-xs">
+                                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                                        <i class="fas fa-calendar-check text-xs sm:text-sm"></i>
                                     </div>
-                                    <div>
-                                        <p class="text-xs font-bold text-gray-900 dark:text-white">Riwayat Izin Bulan Ini (<span id="karyawan-izin-month-label">Bulan Ini</span>)</p>
-                                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Total permohonan izin Anda yang tercatat</p>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-gray-900 dark:text-white truncate">Riwayat Izin Bulan Ini (<span id="karyawan-izin-month-label">Bulan Ini</span>)</p>
+                                        <p class="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 truncate">Total permohonan izin Anda yang tercatat</p>
                                     </div>
                                 </div>
-                                <div>
-                                    <span id="karyawan-izin-count-badge" class="px-3 py-1.5 bg-blue-600 text-white font-black text-xs rounded-xl shadow-sm">
+                                <div class="shrink-0 ml-2">
+                                    <span id="karyawan-izin-count-badge" class="px-2.5 py-1 bg-blue-600 text-white font-black text-xs rounded-xl shadow-sm">
                                         0x Izin
                                     </span>
                                 </div>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left">
+                            <div class="overflow-x-auto w-full">
+                                <table class="w-full text-xs text-left min-w-[320px]">
                                     <thead>
-                                        <tr class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80 pb-3">
-                                            <th class="py-3 px-3">TANGGAL</th>
-                                            <th class="py-3 px-3 text-center">STATUS</th>
-                                            <th class="py-3 px-3 text-center">MASUK</th>
-                                            <th class="py-3 px-3 text-center">PULANG</th>
-                                            <th class="py-3 px-3">KETERANGAN</th>
+                                        <tr class="text-[10px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800/80 pb-2 sm:pb-3">
+                                            <th class="py-2.5 px-2 sm:px-3">TANGGAL</th>
+                                            <th class="py-2.5 px-2 sm:px-3 text-center">STATUS</th>
+                                            <th class="py-2.5 px-2 sm:px-3 text-center">MASUK</th>
+                                            <th class="py-2.5 px-2 sm:px-3 text-center">PULANG</th>
+                                            <th class="py-2.5 px-2 sm:px-3">KETERANGAN</th>
                                         </tr>
                                     </thead>
                                     <tbody id="table-karyawan-absensi-body" class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -3896,8 +3985,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.9.2"></script>
-    <script src="js/app.js?v=3.9.2"></script>
+    <script src="js/haltea_data.js?v=3.9.4"></script>
+    <script src="js/app.js?v=3.9.4"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

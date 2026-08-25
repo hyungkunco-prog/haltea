@@ -830,9 +830,9 @@ function doLogout() {
 const ADMIN_NAV = [
     { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', role: 'all' },
     { id: 'transaksi', icon: 'fa-shopping-cart', label: 'Transaksi Penjualan', role: 'all' },
+    { id: 'riwayat_transaksi', icon: 'fa-clock-rotate-left', label: 'Riwayat Transaksi', role: 'all' },
     { id: 'stok', icon: 'fa-boxes', label: 'Kelola Stok Gudang', role: 'admin' },
     { id: 'sop', icon: 'fa-utensils', label: 'Kelola & Input Takaran Menu', role: 'admin' },
-    { id: 'data_transaksi', icon: 'fa-database', label: 'Data Transaksi', role: 'admin' },
     { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'admin' },
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
@@ -1213,7 +1213,8 @@ async function showPage(pageId) {
         sop: loadSopPage,
         takaran: loadSopPage,
         transaksi: loadTransaksiCatalog,
-        data_transaksi: loadDataTransaksi,
+        riwayat_transaksi: loadRiwayatTransaksi,
+        data_transaksi: loadRiwayatTransaksi,
         prediksi: loadPrediksi,
         laporan_keuangan: loadLaporanKeuangan,
         arus_kas: loadArusKas,
@@ -1471,6 +1472,31 @@ async function loadDashboard() {
                     banner.classList.add('hidden');
                 }
             }
+        }
+
+        // Calculate Total Omset Hari Ini (Auto-refresh on date change)
+        const todayIsoStr = new Date().toISOString().slice(0, 10);
+        let todayTrxs = [];
+        try {
+            let trxs = [];
+            const tRes = await apiFetch('/api/transaksi?limit=1000');
+            if (tRes && tRes.ok) trxs = await tRes.json();
+            if (!trxs || trxs.length === 0) {
+                trxs = typeof getMockStorage === 'function' ? getMockStorage('transaksi', DEFAULT_TRANSAKSI) : (window.DEFAULT_TRANSAKSI || []);
+            }
+            todayTrxs = (trxs || []).filter(t => t.tanggal === todayIsoStr);
+        } catch (e) {
+            console.error('Error fetching today transactions for dashboard:', e);
+        }
+
+        const todayOmset = todayTrxs.reduce((sum, t) => sum + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
+        const todayCups = todayTrxs.reduce((sum, t) => sum + (parseInt(t.jumlah) || 0), 0);
+
+        const elOmsetToday = document.getElementById('stat-omset-today');
+        const elOmsetTodayCups = document.getElementById('stat-omset-today-cups');
+        if (elOmsetToday) elOmsetToday.textContent = 'Rp ' + formatNum(todayOmset, 0);
+        if (elOmsetTodayCups) {
+            elOmsetTodayCups.textContent = todayCups > 0 ? `${todayCups} cup hari ini` : '0 cup hari ini';
         }
 
         // Load menu for chart
@@ -3210,89 +3236,133 @@ async function deleteTodayTrx(id) {
     });
 }
 
-async function loadDataTransaksi() {
-    toggleDataTransaksiRekapView('list');
-    await loadRiwayatPage();
-    loadExcelPage();
+// ============================================================
+// RIWAYAT TRANSAKSI (3 TABS: PER TRANSAKSI, 1 PEKAN, 1 BULAN)
+// ============================================================
+let currentRiwayatTab = 'per_transaksi';
+let riwayatSearchQuery = '';
+
+function switchRiwayatTab(tab) {
+    currentRiwayatTab = tab;
+    
+    // Tab buttons active styling
+    const tabs = ['per_transaksi', 'pekan', 'bulan'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-riwayat-${t === 'per_transaksi' ? 'per-trx' : t}`);
+        const view = document.getElementById(`riwayat-tab-${t === 'per_transaksi' ? 'per-transaksi' : t}`);
+        if (btn) {
+            if (t === tab) {
+                btn.className = 'py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-red-600 dark:text-white shadow-xs text-center truncate';
+            } else {
+                btn.className = 'py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white text-center truncate';
+            }
+        }
+        if (view) {
+            if (t === tab) view.classList.remove('hidden');
+            else view.classList.add('hidden');
+        }
+    });
+
+    loadRiwayatTransaksi();
 }
+window.switchRiwayatTab = switchRiwayatTab;
 
-function toggleDataTransaksiRekapView(mode = null) {
-    const viewList = document.getElementById('trx-view-list');
-    const viewRekap = document.getElementById('trx-view-rekap');
-    const selectMode = document.getElementById('select-trx-mode');
-    if (!viewList || !viewRekap) return;
-
-    let showRekap = false;
-    if (mode === 'rekap') {
-        showRekap = true;
-    } else if (mode === 'list' || mode === 'detail') {
-        showRekap = false;
-    } else {
-        showRekap = viewRekap.classList.contains('hidden');
-    }
-
-    if (selectMode) {
-        selectMode.value = showRekap ? 'rekap' : 'list';
-    }
-
-    if (showRekap) {
-        viewList.classList.add('hidden');
-        viewRekap.classList.remove('hidden');
-        loadRekapPerPekan();
-    } else {
-        viewRekap.classList.add('hidden');
-        viewList.classList.remove('hidden');
-    }
-}
-window.toggleDataTransaksiRekapView = toggleDataTransaksiRekapView;
-
-async function loadRiwayatPage(showAll = false) {
+async function loadRiwayatTransaksi() {
     if (allMenu.length === 0) {
-        const mRes = await apiFetch('/api/menu');
-        allMenu = await mRes.json();
+        try {
+            const mRes = await apiFetch('/api/menu');
+            if (mRes && mRes.ok) allMenu = await mRes.json();
+        } catch (e) {}
     }
-    const filterDateInput = document.getElementById('filter-trx-date');
-    if (showAll && filterDateInput) {
-        filterDateInput.value = '';
-    }
-    const filterDate = filterDateInput?.value || '';
-    const url = filterDate ? `/api/transaksi?tanggal=${filterDate}&limit=100` : '/api/transaksi?limit=100';
+
+    let allTrx = [];
     try {
-        const res = await apiFetch(url);
-        const data = await res.json();
-        renderTransaksiTable(data);
+        const res = await apiFetch('/api/transaksi?limit=2000');
+        if (res && res.ok) allTrx = await res.json();
     } catch (e) {
-        showToast('Gagal memuat riwayat transaksi.', 'error');
+        console.error('Error loading riwayat transaksi:', e);
+    }
+    if (!allTrx || allTrx.length === 0) {
+        allTrx = typeof getMockStorage === 'function' ? getMockStorage('transaksi', DEFAULT_TRANSAKSI) : (window.DEFAULT_TRANSAKSI || []);
+    }
+
+    if (currentRiwayatTab === 'per_transaksi') {
+        renderRiwayatPerTransaksi(allTrx);
+    } else if (currentRiwayatTab === 'pekan') {
+        renderRiwayatPekan(allTrx);
+    } else if (currentRiwayatTab === 'bulan') {
+        renderRiwayatBulan(allTrx);
     }
 }
+window.loadRiwayatTransaksi = loadRiwayatTransaksi;
+window.loadDataTransaksi = loadRiwayatTransaksi;
+window.loadRiwayatPage = loadRiwayatTransaksi;
 
-function renderTransaksiTable(data) {
-    const tbody = document.getElementById('table-transaksi-body');
+function handleRiwayatSearch(val) {
+    riwayatSearchQuery = (val || '').toLowerCase().trim();
+    loadRiwayatTransaksi();
+}
+window.handleRiwayatSearch = handleRiwayatSearch;
+
+function resetRiwayatFilter() {
+    const searchInput = document.getElementById('riwayat-search-input');
+    const dateInput = document.getElementById('riwayat-filter-date');
+    if (searchInput) searchInput.value = '';
+    if (dateInput) dateInput.value = '';
+    riwayatSearchQuery = '';
+    loadRiwayatTransaksi();
+}
+window.resetRiwayatFilter = resetRiwayatFilter;
+
+function renderRiwayatPerTransaksi(allTrx) {
+    const filterDateInput = document.getElementById('riwayat-filter-date');
+    const filterDate = filterDateInput?.value || '';
+    
+    let filtered = (allTrx || []).filter(t => {
+        if (filterDate && t.tanggal !== filterDate) return false;
+        if (riwayatSearchQuery) {
+            const menuName = (t.nama_menu || '').toLowerCase();
+            const tgl = (t.tanggal || '').toLowerCase();
+            const jml = String(t.jumlah || '');
+            if (!menuName.includes(riwayatSearchQuery) && !tgl.includes(riwayatSearchQuery) && !jml.includes(riwayatSearchQuery)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    const badge = document.getElementById('riwayat-total-count-badge');
+    if (badge) badge.textContent = `${filtered.length} Data`;
+
+    const tbody = document.getElementById('table-riwayat-per-trx-body');
     if (!tbody) return;
-    if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400 dark:text-gray-600 text-sm">Belum ada data transaksi.</td></tr>`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400 dark:text-gray-600 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
         return;
     }
-    tbody.innerHTML = data.map(t => {
-        const harga = parseInt(t.harga) || 0;
-        const total = harga * parseInt(t.jumlah);
-        const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">Import</span>` :
-            t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500">Historis</span>` :
-                `<span class="px-2 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">Manual</span>`;
 
-        const editBtn = `<button onclick="openEditTransaksi(${t.id})" class="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"><i class="fas fa-edit text-xs"></i></button>`;
-        const delBtn = currentUser?.role === 'admin' ? `<button onclick="deleteTransaksi(${t.id})" class="w-6 h-6 rounded-md bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition"><i class="fas fa-trash text-xs"></i></button>` : '';
+    tbody.innerHTML = filtered.map(t => {
+        const harga = parseInt(t.harga) || 0;
+        const total = parseInt(t.total_harga) || (harga * parseInt(t.jumlah || 1));
+        const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">Import</span>` :
+            t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold">Historis</span>` :
+                `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">POS</span>`;
+
+        // Edit button is available to both Admin and Kasir
+        const editBtn = `<button onclick="openEditTransaksi(${t.id})" title="Edit Transaksi" class="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-edit text-xs"></i> <span>Edit</span></button>`;
+        const delBtn = `<button onclick="deleteTransaksi(${t.id})" title="Hapus Transaksi" class="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-trash text-xs"></i></button>`;
 
         return `
-        <tr>
-            <td class="px-5 py-3" data-label="Tanggal">${t.tanggal}</td>
-            <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100" data-label="Menu">${t.nama_menu}</td>
-            <td class="px-5 py-3 text-center font-bold text-gray-900 dark:text-white" data-label="Jumlah">${t.jumlah.toLocaleString('id-ID')}</td>
-            <td class="px-5 py-3 text-center text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
-            <td class="px-5 py-3 text-center font-semibold text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
-            <td class="px-5 py-3 text-center" data-label="Sumber">${src}</td>
-            <td class="px-5 py-3 td-actions" data-label="Aksi">
-                <div class="flex items-center justify-end gap-1.5">
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+            <td class="px-4 py-3 text-xs text-gray-900 dark:text-white font-medium" data-label="Tanggal">${t.tanggal}</td>
+            <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Menu">${t.nama_menu || '-'}</td>
+            <td class="px-4 py-3 text-xs text-center font-extrabold text-gray-900 dark:text-white" data-label="Jumlah">${(t.jumlah || 0).toLocaleString('id-ID')}</td>
+            <td class="px-4 py-3 text-xs text-right text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
+            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
+            <td class="px-4 py-3 text-xs text-center" data-label="Sumber">${src}</td>
+            <td class="px-4 py-3 td-actions" data-label="Aksi">
+                <div class="flex items-center justify-center gap-1.5">
                     ${editBtn}
                     ${delBtn}
                 </div>
@@ -3300,6 +3370,168 @@ function renderTransaksiTable(data) {
         </tr>`;
     }).join('');
 }
+
+function renderRiwayatPekan(allTrx) {
+    const daysArr = [];
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const now = new Date();
+
+    // Generate last 7 days starting from today down to 6 days ago
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const iso = d.toISOString().slice(0, 10);
+        const dayName = dayNames[d.getDay()];
+        daysArr.push({ date: iso, dayName, dObj: d });
+    }
+
+    let totalPekanOmset = 0;
+    let totalPekanCups = 0;
+    let totalPekanTrx = 0;
+
+    const rowsHtml = daysArr.map(dayItem => {
+        const trxsOnDay = (allTrx || []).filter(t => t.tanggal === dayItem.date);
+        const countTrx = trxsOnDay.length;
+        const cupsOnDay = trxsOnDay.reduce((sum, t) => sum + (parseInt(t.jumlah) || 0), 0);
+        const omsetOnDay = trxsOnDay.reduce((sum, t) => sum + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
+
+        totalPekanOmset += omsetOnDay;
+        totalPekanCups += cupsOnDay;
+        totalPekanTrx += countTrx;
+
+        // Find popular menu on this day
+        const menuCounter = {};
+        trxsOnDay.forEach(t => {
+            if (t.nama_menu) {
+                menuCounter[t.nama_menu] = (menuCounter[t.nama_menu] || 0) + (parseInt(t.jumlah) || 1);
+            }
+        });
+        let topMenu = '-';
+        let maxCount = 0;
+        for (const [mName, mCount] of Object.entries(menuCounter)) {
+            if (mCount > maxCount) {
+                maxCount = mCount;
+                topMenu = `${mName} (${mCount} cup)`;
+            }
+        }
+
+        const isToday = dayItem.date === now.toISOString().slice(0, 10);
+        const dayBadge = isToday ? `<span class="ml-1.5 px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold rounded">Hari Ini</span>` : '';
+
+        return `
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+            <td class="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white" data-label="Hari & Tanggal">
+                <span>${dayItem.dayName}, ${dayItem.date}</span>
+                ${dayBadge}
+            </td>
+            <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Total Transaksi">${countTrx} kali</td>
+            <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${cupsOnDay} Cup</td>
+            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(omsetOnDay, 0)}</td>
+            <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400" data-label="Menu Terpopuler">${topMenu}</td>
+        </tr>`;
+    }).join('');
+
+    const tbody = document.getElementById('table-riwayat-pekan-body');
+    if (tbody) tbody.innerHTML = rowsHtml;
+
+    // Stat cards for 7 Days
+    const elPekanOmset = document.getElementById('pekan-stat-omset');
+    const elPekanCups = document.getElementById('pekan-stat-cups');
+    const elPekanTrx = document.getElementById('pekan-stat-trx-count');
+    const elPekanAvg = document.getElementById('pekan-stat-avg');
+    const elPekanAvgCups = document.getElementById('pekan-stat-avg-cups');
+    const elPekanDateRange = document.getElementById('pekan-stat-date-range');
+
+    if (elPekanOmset) elPekanOmset.textContent = 'Rp ' + formatNum(totalPekanOmset, 0);
+    if (elPekanCups) elPekanCups.textContent = `${totalPekanCups.toLocaleString('id-ID')} Cup`;
+    if (elPekanTrx) elPekanTrx.textContent = `${totalPekanTrx} kali transaksi`;
+    if (elPekanAvg) elPekanAvg.textContent = 'Rp ' + formatNum(Math.round(totalPekanOmset / 7), 0) + ' / hari';
+    if (elPekanAvgCups) elPekanAvgCups.textContent = `${Math.round(totalPekanCups / 7)} cup / hari`;
+    if (elPekanDateRange && daysArr.length >= 7) {
+        elPekanDateRange.textContent = `${daysArr[6].date} s/d ${daysArr[0].date}`;
+    }
+}
+
+function renderRiwayatBulan(allTrx) {
+    const monthInput = document.getElementById('riwayat-filter-month');
+    const now = new Date();
+    const currentMonthIso = now.toISOString().slice(0, 7); // YYYY-MM
+    if (monthInput && !monthInput.value) {
+        monthInput.value = currentMonthIso;
+    }
+    const selectedMonth = monthInput?.value || currentMonthIso;
+
+    // Filter transactions in that month
+    const trxsInMonth = (allTrx || []).filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
+    
+    // Group transactions by date
+    const dailyMap = {};
+    trxsInMonth.forEach(t => {
+        const d = t.tanggal;
+        if (!dailyMap[d]) {
+            dailyMap[d] = { date: d, trxCount: 0, cups: 0, omset: 0 };
+        }
+        dailyMap[d].trxCount += 1;
+        dailyMap[d].cups += (parseInt(t.jumlah) || 0);
+        dailyMap[d].omset += (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0);
+    });
+
+    const datesSorted = Object.keys(dailyMap).sort((a, b) => b.localeCompare(a));
+    const totalMonthOmset = trxsInMonth.reduce((sum, t) => sum + (parseInt(t.total_harga) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
+    const totalMonthCups = trxsInMonth.reduce((sum, t) => sum + (parseInt(t.jumlah) || 0), 0);
+    const activeDays = datesSorted.length;
+    const avgDailyOmset = activeDays > 0 ? Math.round(totalMonthOmset / activeDays) : 0;
+
+    // Update KPI Stat Cards
+    const elBulanOmset = document.getElementById('bulan-stat-omset');
+    const elBulanCups = document.getElementById('bulan-stat-cups');
+    const elBulanTrx = document.getElementById('bulan-stat-trx-count');
+    const elBulanDays = document.getElementById('bulan-stat-days');
+    const elBulanAvg = document.getElementById('bulan-stat-avg');
+    const elBulanLabel = document.getElementById('bulan-summary-label');
+
+    if (elBulanOmset) elBulanOmset.textContent = 'Rp ' + formatNum(totalMonthOmset, 0);
+    if (elBulanCups) elBulanCups.textContent = `${totalMonthCups.toLocaleString('id-ID')} Cup`;
+    if (elBulanTrx) elBulanTrx.textContent = `${trxsInMonth.length} transaksi`;
+    if (elBulanDays) elBulanDays.textContent = `${activeDays} Hari`;
+    if (elBulanAvg) elBulanAvg.textContent = 'Rp ' + formatNum(avgDailyOmset, 0) + ' / hari';
+    if (elBulanLabel) elBulanLabel.textContent = `Rekapan penjualan periode ${selectedMonth}`;
+
+    const tbody = document.getElementById('table-riwayat-bulan-body');
+    if (!tbody) return;
+
+    if (datesSorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-400 dark:text-gray-600 text-xs">Belum ada data transaksi pada bulan ${selectedMonth}.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = datesSorted.map(d => {
+        const item = dailyMap[d];
+        const pct = totalMonthOmset > 0 ? ((item.omset / totalMonthOmset) * 100).toFixed(1) : 0;
+
+        return `
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+            <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Tanggal">${item.date}</td>
+            <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Jumlah Transaksi">${item.trxCount} transaksi</td>
+            <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Total Cup">${item.cups} Cup</td>
+            <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
+            <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+        </tr>`;
+    }).join('');
+}
+window.loadRiwayatBulan = () => {
+    loadRiwayatTransaksi();
+};
+
+function handleImportExcelRiwayat() {
+    const fileInput = document.getElementById('file-import-excel-riwayat');
+    if (fileInput && fileInput.files[0]) {
+        uploadExcel(fileInput.files[0]);
+    } else {
+        showToast('Pilih berkas Excel (.xlsx) terlebih dahulu.', 'warn');
+    }
+}
+window.handleImportExcelRiwayat = handleImportExcelRiwayat;
 
 let currentEditTrx = null;
 
