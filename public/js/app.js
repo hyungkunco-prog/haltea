@@ -105,7 +105,7 @@ function initMockDataIfEmpty() {
     const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
     const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
 
-    const versionKey = 'haltea_db_real_v4';
+    const versionKey = 'haltea_db_real_v5';
     if (!localStorage.getItem(versionKey)) {
         setMockStorage('barang', fullBarang);
         setMockStorage('menu', fullMenu);
@@ -1029,7 +1029,33 @@ async function showPage(pageId) {
 
     // Smartphone bottom navigation active state
     document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
-    const bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`) || document.getElementById(`bottom-nav-${pageId.replace(/_/g, '-')}`);
+
+    // Dynamic tab 4 (Reports vs Staff)
+    const tab4 = document.getElementById('bottom-nav-absensi-karyawan');
+    if (tab4) {
+        if (pageId === 'laporan_keuangan' || pageId === 'arus_kas' || pageId === 'prediksi') {
+            tab4.innerHTML = `<i class="fas fa-file-invoice-dollar text-base mb-0.5"></i><span class="text-[10px] tracking-tight">Reports</span>`;
+            tab4.onclick = () => showPage('laporan_keuangan');
+        } else if (pageId === 'absensi_staf' || pageId === 'absensi_karyawan') {
+            tab4.innerHTML = `<i class="fas fa-id-badge text-base mb-0.5"></i><span class="text-[10px] tracking-tight">Staff</span>`;
+            tab4.onclick = () => showPage('absensi_karyawan');
+        }
+    }
+
+    let bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`) || document.getElementById(`bottom-nav-${pageId.replace(/_/g, '-')}`);
+    if (!bottomNavBtn) {
+        if (pageId === 'absensi_staf' || pageId === 'absensi_karyawan') {
+            bottomNavBtn = document.getElementById('bottom-nav-absensi-karyawan');
+        } else if (pageId === 'laporan_keuangan' || pageId === 'arus_kas' || pageId === 'prediksi') {
+            bottomNavBtn = document.getElementById('bottom-nav-absensi-karyawan');
+        } else if (pageId === 'data_transaksi') {
+            bottomNavBtn = document.getElementById('bottom-nav-transaksi');
+        } else if (pageId === 'sop' || pageId === 'takaran') {
+            bottomNavBtn = document.getElementById('bottom-nav-stok');
+        } else {
+            bottomNavBtn = document.getElementById('bottom-nav-menu');
+        }
+    }
     if (bottomNavBtn) bottomNavBtn.classList.add('active');
 
     // Smartphone floating cart bar visibility
