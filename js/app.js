@@ -3594,7 +3594,7 @@ function renderRiwayatPerTransaksi(allTrx) {
     if (badge) badge.textContent = `${filtered.length} Transaksi`;
 
     // 2. Render Rekap Penjualan Per Menu Hari Terpilih
-    const tbodyMenu = document.getElementById('riwayat-menu-summary-tbody');
+    const tbodyMenu = document.getElementById('table-riwayat-menu-harian-body') || document.getElementById('riwayat-menu-summary-tbody');
     if (tbodyMenu) {
         if (menuBreakdown.length === 0) {
             tbodyMenu.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada penjualan menu pada tanggal terpilih.</td></tr>`;
@@ -3627,7 +3627,7 @@ function renderRiwayatPerTransaksi(allTrx) {
     }
 
     // 3. Render Detail Transaksi (Log Urutan Waktu)
-    const tbodyTrx = document.getElementById('riwayat-table-tbody');
+    const tbodyTrx = document.getElementById('table-riwayat-per-trx-body') || document.getElementById('riwayat-table-tbody');
     if (tbodyTrx) {
         if (filtered.length === 0) {
             tbodyTrx.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada riwayat transaksi yang cocok dengan filter.</td></tr>`;
