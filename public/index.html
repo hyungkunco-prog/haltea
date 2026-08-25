@@ -892,22 +892,6 @@
                 margin-top: 0 !important;
             }
 
-            /* --- Laporan Keuangan & Arus Kas mobile stack --- */
-            #page-laporan-keuangan .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4,
-            #page-arus-kas .grid.grid-cols-1.sm\:grid-cols-3 {
-                grid-template-columns: 1fr !important;
-                gap: 0.75rem !important;
-            }
-            #page-laporan-keuangan .stat-card,
-            #page-arus-kas .stat-card {
-                padding: 1.15rem !important;
-                border-radius: 1.15rem !important;
-            }
-            #page-laporan-keuangan .stat-card h3,
-            #page-arus-kas .stat-card h3 {
-                font-size: 1.6rem !important;
-            }
-
             /* --- Dashboard chart + info: full width stack --- */
             .page-content .grid.grid-cols-1.lg\:grid-cols-3 {
                 grid-template-columns: 1fr !important;
@@ -1069,8 +1053,124 @@
 
             /* --- Glass panels tighter --- */
             .glass-panel {
-                border-radius: 0.875rem !important;
-                padding: 0.875rem !important;
+                border-radius: 1.25rem !important;
+                padding: 1rem !important;
+            }
+
+            /* --- Stat Cards: Full Width Stack on Mobile --- */
+            #page-laporan-keuangan .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4,
+            #page-arus-kas .grid.grid-cols-1.sm\:grid-cols-3 {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+            #page-laporan-keuangan .stat-card,
+            #page-arus-kas .stat-card {
+                padding: 1.125rem !important;
+                border-radius: 1.25rem !important;
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.06) !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+            }
+            .dark #page-laporan-keuangan .stat-card,
+            .dark #page-arus-kas .stat-card {
+                background: #0d1117 !important;
+                border-color: rgba(255, 255, 255, 0.08) !important;
+            }
+            #page-laporan-keuangan .stat-card .w-10,
+            #page-arus-kas .stat-card .w-10 {
+                width: 2.5rem !important;
+                height: 2.5rem !important;
+                border-radius: 9999px !important;
+            }
+
+            /* --- Prediksi Mobile Cards --- */
+            #page-prediksi .mobile-card-table thead {
+                display: none !important;
+            }
+            #table-pred-bahan-body {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+                padding: 0.75rem !important;
+            }
+            #table-pred-bahan-body tr {
+                display: block !important;
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 1.25rem !important;
+                padding: 1rem !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+            }
+            .dark #table-pred-bahan-body tr {
+                background: #0d1117 !important;
+                border-color: rgba(255, 255, 255, 0.08) !important;
+            }
+            #table-pred-bahan-body td {
+                display: block !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+            #table-pred-bahan-body td.td-title {
+                margin-bottom: 0.75rem !important;
+                padding-bottom: 0.75rem !important;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+            }
+            .dark #table-pred-bahan-body td.td-title {
+                border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+            }
+            #table-pred-bahan-body td[data-label="Stok Gudang"],
+            #table-pred-bahan-body td[data-label="Prediksi Kebutuhan"] {
+                display: inline-block !important;
+                width: 50% !important;
+                vertical-align: top !important;
+                margin-bottom: 0.75rem !important;
+                text-align: left !important;
+            }
+            #table-pred-bahan-body td[data-label="Stok Gudang"]::before {
+                content: "Stok Gudang";
+                display: block;
+                font-size: 0.65rem;
+                font-weight: 600;
+                color: #9ca3af;
+                text-transform: uppercase;
+                margin-bottom: 0.2rem;
+            }
+            #table-pred-bahan-body td[data-label="Prediksi Kebutuhan"] {
+                text-align: right !important;
+            }
+            #table-pred-bahan-body td[data-label="Prediksi Kebutuhan"]::before {
+                content: "Prediksi";
+                display: block;
+                font-size: 0.65rem;
+                font-weight: 600;
+                color: #9ca3af;
+                text-transform: uppercase;
+                margin-bottom: 0.2rem;
+            }
+            #table-pred-bahan-body td[data-label="Akurasi Prediksi"],
+            #table-pred-bahan-body td[data-label="Rekomendasi Belanja"] {
+                display: inline-block !important;
+                width: 50% !important;
+                vertical-align: middle !important;
+                padding-top: 0.5rem !important;
+                border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+                text-align: left !important;
+            }
+            .dark #table-pred-bahan-body td[data-label="Akurasi Prediksi"],
+            .dark #table-pred-bahan-body td[data-label="Rekomendasi Belanja"] {
+                border-top-color: rgba(255, 255, 255, 0.06) !important;
+            }
+            #table-pred-bahan-body td[data-label="Rekomendasi Belanja"] {
+                text-align: right !important;
+            }
+            #table-pred-bahan-body td[data-label="Rekomendasi Belanja"]::before {
+                content: "Rekomendasi";
+                display: block;
+                font-size: 0.65rem;
+                font-weight: 600;
+                color: #9ca3af;
+                text-transform: uppercase;
+                margin-bottom: 0.15rem;
             }
 
             /* --- Today history panel compact --- */
@@ -1947,33 +2047,35 @@
             <!-- ==== PREDIKSI BAHAN BAKU ==== -->
             <div id="page-prediksi" class="page-content p-6 fade-in hidden">
                 <div class="mb-5 border-b border-gray-200/60 dark:border-gray-800/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                         <!-- Mode Sortir Tampilan Prediksi (Admin Only) -->
-                        <div class="admin-only flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
-                            <label for="select-pred-mode" class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap">
-                                Mode Tampilan:
+                        <div class="admin-only flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-2.5 sm:px-3 sm:py-1.5 rounded-2xl sm:rounded-xl">
+                            <label for="select-pred-mode" class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-1.5 whitespace-nowrap">
+                                Mode Tampilan
                             </label>
                             <select id="select-pred-mode" onchange="handlePredModeChange(this.value)"
-                                class="text-xs bg-transparent text-gray-900 dark:text-white outline-none font-bold cursor-pointer">
+                                class="text-xs bg-white sm:bg-transparent dark:bg-gray-900 border border-gray-200 sm:border-0 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold cursor-pointer p-2 sm:p-0 rounded-xl sm:rounded-none">
                                 <option value="semua_menu" class="bg-white dark:bg-gray-900">Prediksi Semua Menu</option>
                                 <option value="single_menu" class="bg-white dark:bg-gray-900">Prediksi Single Menu (Only)</option>
                             </select>
                         </div>
 
                         <!-- Setting Parameter Alpha (Admin Only) -->
-                        <div class="admin-only flex items-center gap-2 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200/80 dark:border-red-800/40 px-3 py-1.5 rounded-xl shadow-xs">
-                            <label for="input-alpha-setting" class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 whitespace-nowrap">
-                                <i class="fas fa-sliders-h text-red-500"></i> Parameter Alpha (&alpha;):
+                        <div class="admin-only flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 border border-red-200/80 dark:border-red-800/40 p-2.5 sm:px-3 sm:py-1.5 rounded-2xl sm:rounded-xl shadow-xs">
+                            <label for="input-alpha-setting" class="text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 whitespace-nowrap">
+                                <i class="fas fa-sliders-h text-red-500"></i> Parameter Alpha (&alpha;)
                             </label>
-                            <input type="number" id="input-alpha-setting" min="0.01" max="1.00" step="0.01" value="0.50"
-                                onchange="handleAlphaInputChange(this.value)"
-                                class="w-16 text-xs bg-white dark:bg-gray-900 border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 font-bold rounded-lg px-2 py-1 outline-none text-center focus:ring-2 focus:ring-red-500 shadow-inner">
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">(0 - 1)</span>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-alpha-setting" min="0.01" max="1.00" step="0.01" value="0.50"
+                                    onchange="handleAlphaInputChange(this.value)"
+                                    class="w-20 sm:w-16 text-xs bg-white dark:bg-gray-900 border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 font-bold rounded-lg px-2 py-1.5 sm:py-1 outline-none text-center focus:ring-2 focus:ring-red-500 shadow-inner">
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">(0 - 1)</span>
+                            </div>
                         </div>
                     </div>
 
                     <button id="btn-manual-predict" onclick="triggerManualPrediction()"
-                        class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-semibold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 whitespace-nowrap">
+                        class="w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-2xl sm:rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 whitespace-nowrap">
                         <span>Hitung Rekomendasi Belanja</span>
                     </button>
                 </div>
@@ -2313,7 +2415,7 @@
                                     </div>
 
                                     <button type="submit"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]">
+                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]">
                                         Simpan Perubahan
                                     </button>
                                 </form>
@@ -2321,9 +2423,9 @@
 
                             <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
                                 <button onclick="openModalCatatAbsensi()"
-                                    class="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 transition">
+                                    class="w-full bg-blue-50/80 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition border border-blue-100 dark:border-blue-800/50">
                                     <i class="fas fa-user-plus text-blue-500"></i>
-                                    <span>+ Catat Kehadiran Staff Manual</span>
+                                    <span>Catat Kehadiran Staff Manual</span>
                                 </button>
                             </div>
                         </div>
@@ -2461,7 +2563,7 @@
                                     <!-- Action Buttons -->
                                     <div id="karyawan-absen-actions" class="pt-2">
                                         <button type="button" onclick="submitKaryawanCheckIn()" id="btn-karyawan-checkin"
-                                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
+                                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
                                             <i class="fas fa-sign-in-alt"></i>
                                             <span>Absen Masuk (Check-in)</span>
                                         </button>

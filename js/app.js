@@ -105,7 +105,7 @@ function initMockDataIfEmpty() {
     const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
     const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
 
-    const versionKey = 'haltea_db_real_v7';
+    const versionKey = 'haltea_db_real_v5';
     if (!localStorage.getItem(versionKey)) {
         setMockStorage('barang', fullBarang);
         setMockStorage('menu', fullMenu);
@@ -354,14 +354,10 @@ async function handleClientSideMock(url, config = {}) {
         const menu = getMockStorage('menu', DEFAULT_MENU);
         const barang = getMockStorage('barang', DEFAULT_BARANG);
         const rows = takaran.map(t => {
-            const m = menu.find(x => String(x.id) === String(t.id_menu)) || {};
-            const b = barang.find(x => String(x.id) === String(t.id_barang)) || {};
+            const m = menu.find(x => x.id === t.id_menu) || {};
+            const b = barang.find(x => x.id === t.id_barang) || {};
             return {
                 ...t,
-                id: parseInt(t.id, 10),
-                id_menu: parseInt(t.id_menu, 10),
-                id_barang: parseInt(t.id_barang, 10),
-                gramasi: parseFloat(t.gramasi) || 0,
                 nama_menu: m.nama_menu || '-',
                 nama_barang: b.nama_barang || '-',
                 satuan: b.satuan || 'Pack',
@@ -372,48 +368,44 @@ async function handleClientSideMock(url, config = {}) {
     }
 
     if ((path.startsWith('/takaran/menu/') || path.startsWith('/sop/menu/')) && method === 'GET') {
-        const id_menu = parseInt(path.split('/').pop(), 10);
+        const id_menu = parseInt(path.split('/').pop());
         const takaran = getMockStorage('takaran', DEFAULT_TAKARAN);
         const barang = getMockStorage('barang', DEFAULT_BARANG);
         const menu = getMockStorage('menu', DEFAULT_MENU);
-        const items = takaran.filter(t => String(t.id_menu) === String(id_menu)).map(t => {
-            const b = barang.find(x => String(x.id) === String(t.id_barang)) || {};
+        const items = takaran.filter(t => t.id_menu === id_menu).map(t => {
+            const b = barang.find(x => x.id === t.id_barang) || {};
             return {
                 ...t,
-                id: parseInt(t.id, 10),
-                id_menu: parseInt(t.id_menu, 10),
-                id_barang: parseInt(t.id_barang, 10),
-                gramasi: parseFloat(t.gramasi) || 0,
                 nama_barang: b.nama_barang || '-',
                 satuan: b.satuan || 'Pack',
                 satuan_resep: b.satuan_resep || 'gram',
                 kode_barang: b.kode_barang || '-'
             };
         });
-        const m = menu.find(x => String(x.id) === String(id_menu)) || {};
+        const m = menu.find(x => x.id === id_menu) || {};
         return new Response(JSON.stringify({ items, harga: m.harga || 0 }), { status: 200 });
     }
 
     if ((path === '/takaran' || path === '/sop') && method === 'POST') {
         const { id_menu, items = [], harga } = body;
         let takaran = getMockStorage('takaran', DEFAULT_TAKARAN);
-        takaran = takaran.filter(t => String(t.id_menu) !== String(id_menu));
+        takaran = takaran.filter(t => t.id_menu !== id_menu);
         items.forEach(item => {
             if (item.id_barang && item.gramasi > 0) {
                 takaran.push({
                     id: takaran.length + 1,
-                    id_menu: parseInt(id_menu, 10),
-                    id_barang: parseInt(item.id_barang, 10),
-                    gramasi: parseFloat(item.gramasi) || 0
+                    id_menu,
+                    id_barang: parseInt(item.id_barang),
+                    gramasi: parseFloat(item.gramasi)
                 });
             }
         });
         setMockStorage('takaran', takaran);
         if (harga !== undefined) {
             const menu = getMockStorage('menu', DEFAULT_MENU);
-            const m = menu.find(x => String(x.id) === String(id_menu));
+            const m = menu.find(x => x.id === id_menu);
             if (m) {
-                m.harga = parseInt(harga, 10);
+                m.harga = parseInt(harga);
                 setMockStorage('menu', menu);
             }
         }
@@ -1037,24 +1029,9 @@ async function showPage(pageId) {
 
     // Smartphone bottom navigation active state
     document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
-
-    // Dynamic tab 4 (Reports vs Staff)
-    const tab4 = document.getElementById('bottom-nav-absensi-karyawan');
-    if (tab4) {
-        if (pageId === 'laporan_keuangan' || pageId === 'arus_kas' || pageId === 'prediksi') {
-            tab4.innerHTML = `<i class="fas fa-file-invoice-dollar text-base mb-0.5"></i><span class="text-[10px] tracking-tight">Reports</span>`;
-            tab4.onclick = () => showPage('laporan_keuangan');
-        } else if (pageId === 'absensi_staf' || pageId === 'absensi_karyawan') {
-            tab4.innerHTML = `<i class="fas fa-id-badge text-base mb-0.5"></i><span class="text-[10px] tracking-tight">Staff</span>`;
-            tab4.onclick = () => showPage('absensi_karyawan');
-        }
-    }
-
     let bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`) || document.getElementById(`bottom-nav-${pageId.replace(/_/g, '-')}`);
     if (!bottomNavBtn) {
         if (pageId === 'absensi_staf' || pageId === 'absensi_karyawan') {
-            bottomNavBtn = document.getElementById('bottom-nav-absensi-karyawan');
-        } else if (pageId === 'laporan_keuangan' || pageId === 'arus_kas' || pageId === 'prediksi') {
             bottomNavBtn = document.getElementById('bottom-nav-absensi-karyawan');
         } else if (pageId === 'data_transaksi') {
             bottomNavBtn = document.getElementById('bottom-nav-transaksi');
