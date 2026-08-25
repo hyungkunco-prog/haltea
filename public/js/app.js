@@ -2718,21 +2718,57 @@ function renderCartPanel() {
     // Update Floating Cart Bar and Bottom Nav Badge on Smartphones
     const floatBar = document.getElementById('mobile-floating-cart-bar');
     const floatCount = document.getElementById('mobile-cart-item-count');
+    const floatBadge = document.getElementById('mobile-cart-badge-count');
     const floatTotal = document.getElementById('mobile-cart-total-price');
     const bottomNavBadge = document.getElementById('bottom-nav-cart-badge');
 
+    // Update In-Page Mobile Cart Section
+    const inpageCart = document.getElementById('mobile-inpage-cart');
+    const inpageItems = document.getElementById('mobile-inpage-cart-items');
+    const inpageTotal = document.getElementById('mobile-inpage-cart-total');
+
     if (totalItems > 0) {
-        if (floatBar && currentPageId === 'transaksi') floatBar.classList.remove('hidden');
+        if (floatBar) floatBar.classList.remove('hidden');
         if (floatCount) floatCount.textContent = `${totalItems} Menu Dipilih`;
+        if (floatBadge) floatBadge.textContent = totalItems;
         if (floatTotal) floatTotal.textContent = `Rp ${formatNum(totalPrice, 0)}`;
         if (bottomNavBadge) {
             bottomNavBadge.textContent = totalItems;
             bottomNavBadge.classList.remove('hidden');
         }
+        if (inpageCart) {
+            inpageCart.classList.remove('hidden');
+            if (inpageTotal) inpageTotal.textContent = `Rp ${formatNum(totalPrice, 0)}`;
+            if (inpageItems) {
+                inpageItems.innerHTML = cartEntries.map(item => `
+                    <div class="flex items-center justify-between gap-3 pt-2.5 first:pt-0">
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                            <img src="${item.gambar || 'haltea-logo.png'}" class="w-10 h-10 rounded-xl object-cover bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                            <div class="min-w-0 flex-1">
+                                <h4 class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">${item.nama_menu}</h4>
+                                <p class="text-[11px] text-red-600 dark:text-red-400 font-semibold">Rp ${formatNum(item.harga, 0)} × ${item.jumlah}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button onclick="updateCartQty(${item.id_menu}, -1)" class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-700 dark:text-gray-200 font-bold text-sm flex items-center justify-center">
+                                −
+                            </button>
+                            <span class="w-6 text-center font-bold text-xs text-gray-900 dark:text-white">${item.jumlah}</span>
+                            <button onclick="updateCartQty(${item.id_menu}, 1)" class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-700 dark:text-gray-200 font-bold text-sm flex items-center justify-center">
+                                +
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
     } else {
         if (floatBar) floatBar.classList.add('hidden');
         if (bottomNavBadge) bottomNavBadge.classList.add('hidden');
+        if (inpageCart) inpageCart.classList.add('hidden');
     }
+
+    renderMobileCartModal();
 
     if (cartEntries.length === 0) {
         itemsList.innerHTML = `
