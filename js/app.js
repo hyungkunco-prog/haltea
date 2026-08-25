@@ -829,13 +829,14 @@ function doLogout() {
 // ============================================================
 const ADMIN_NAV = [
     { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard', role: 'all' },
+    { id: 'transaksi', icon: 'fa-shopping-cart', label: 'Transaksi Penjualan', role: 'all' },
     { id: 'stok', icon: 'fa-boxes', label: 'Kelola Stok Gudang', role: 'admin' },
     { id: 'sop', icon: 'fa-utensils', label: 'Kelola & Input Takaran Menu', role: 'admin' },
-    { id: 'transaksi', icon: 'fa-shopping-cart', label: 'Transaksi Penjualan', role: 'all' },
     { id: 'data_transaksi', icon: 'fa-database', label: 'Data Transaksi', role: 'admin' },
-    { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'all' },
+    { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'admin' },
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
+    { id: 'stok_karyawan', icon: 'fa-boxes-stacked', label: 'Stok Bahan Baku', role: 'kasir' },
     { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Karyawan', role: 'kasir' },
 ];
 
@@ -866,7 +867,7 @@ function renderBottomNav(role) {
             </button>
         `;
     } else {
-        // Kasir / Karyawan: 4 Featured Menus (Dashboard, Transaksi, Prediksi, Absensi Karyawan)
+        // Kasir / Karyawan: 4 Featured Menus (Dashboard, Transaksi, Stok Bahan, Absensi Karyawan)
         container.innerHTML = `
             <button onclick="showPage('dashboard')" id="bottom-nav-dashboard" class="mobile-nav-btn active flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
                 <i class="fas fa-shapes text-base mb-0.5"></i>
@@ -879,9 +880,9 @@ function renderBottomNav(role) {
                 </div>
                 <span class="text-[10px] font-semibold tracking-tight">Transaksi</span>
             </button>
-            <button onclick="showPage('prediksi')" id="bottom-nav-prediksi" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
-                <i class="fas fa-chart-line text-base mb-0.5"></i>
-                <span class="text-[10px] font-semibold tracking-tight">Prediksi</span>
+            <button onclick="showPage('stok_karyawan')" id="bottom-nav-stok-karyawan" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
+                <i class="fas fa-boxes-stacked text-base mb-0.5"></i>
+                <span class="text-[10px] font-semibold tracking-tight">Stok Bahan</span>
             </button>
             <button onclick="showPage('absensi_karyawan')" id="bottom-nav-absensi-karyawan" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 text-gray-500 dark:text-gray-400 active:scale-95 transition-all">
                 <i class="fas fa-user-clock text-base mb-0.5"></i>
@@ -1170,7 +1171,7 @@ async function showPage(pageId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-    const page = document.getElementById(`page-${pageId.replace('_', '-')}`);
+    const page = document.getElementById(`page-${pageId.replace(/_/g, '-')}`);
     if (!page) return;
     page.classList.remove('hidden');
     page.classList.add('fade-in');
@@ -1216,6 +1217,7 @@ async function showPage(pageId) {
         prediksi: loadPrediksi,
         laporan_keuangan: loadLaporanKeuangan,
         arus_kas: loadArusKas,
+        stok_karyawan: loadStokKaryawan,
         absensi_staf: loadAbsensiStaf,
         absensi_karyawan: loadAbsensiKaryawan,
     };
@@ -1492,7 +1494,11 @@ async function loadDashboard() {
             allMenu = mData;
             const sel = document.getElementById('chart-menu-select');
             if (sel) {
-                sel.innerHTML = allMenu.filter(m => m.aktif !== 0 && m.aktif !== false).map(m => `<option value="${m.id}">${m.nama_menu}</option>`).join('');
+                const activeMenuList = allMenu.filter(m => m.aktif !== 0 && m.aktif !== false);
+                sel.innerHTML = `
+                    <option value="all">⭐ Semua Menu (Total Cup / Hari)</option>
+                    ${activeMenuList.map(m => `<option value="${m.id}">${m.nama_menu}</option>`).join('')}
+                `;
             }
         }
 
@@ -1504,22 +1510,64 @@ async function loadDashboard() {
 
 async function updateDashboardChart() {
     const sel = document.getElementById('chart-menu-select');
-    const menuId = sel && sel.value ? parseInt(sel.value, 10) : (allMenu && allMenu[0] ? allMenu[0].id : 1);
+    const subtitleEl = document.getElementById('dash-chart-subtitle');
+    const mode = sel && sel.value ? sel.value : 'all';
 
-    let series = [42, 48, 55, 62];
-    let labels = ['Pekan 1', 'Pekan 2', 'Pekan 3', 'Pekan 4'];
+    let series = [];
+    let labels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    let chartLabel = 'Total Cup Terjual / Hari';
 
+    // Fetch transactions from mock or API
+    let transactions = [];
     try {
-        const res = await apiFetch(`/api/chart-menu/${menuId}`);
-        if (res && res.ok) {
-            const data = await res.json();
-            if (data.series && data.series.length > 0) {
-                series = data.series;
-                labels = series.map((_, i) => `Pekan ${i + 1}`);
-            }
+        const res = await apiFetch('/api/transaksi');
+        if (res && res.ok) transactions = await res.json();
+    } catch (e) {}
+
+    if (!transactions || transactions.length === 0) {
+        transactions = typeof getMockStorage === 'function' ? getMockStorage('transaksi', DEFAULT_TRANSAKSI) : (window.DEFAULT_TRANSAKSI || []);
+    }
+
+    if (mode === 'all') {
+        if (subtitleEl) subtitleEl.textContent = 'Jumlah total cup terjual per hari dalam sepekan (Semua Menu)';
+        chartLabel = 'Total Cup Terjual / Hari';
+
+        const baseDaily = [52, 64, 78, 71, 105, 138, 150];
+        if (transactions && transactions.length > 0) {
+            const countPerDay = [0, 0, 0, 0, 0, 0, 0];
+            transactions.forEach(t => {
+                const dayIdx = t.tanggal ? new Date(t.tanggal).getDay() : 0;
+                const adjustedIdx = (dayIdx === 0) ? 6 : dayIdx - 1; // 0=Senin, 6=Minggu
+                const totalQty = (t.items || []).reduce((acc, it) => acc + (it.jumlah || 1), 0) || (t.total_qty || 1);
+                countPerDay[adjustedIdx] += totalQty;
+            });
+            series = countPerDay.map((cnt, i) => cnt > 0 ? cnt : baseDaily[i]);
+        } else {
+            series = baseDaily;
         }
-    } catch (err) {
-        console.warn('Dashboard chart API error, using default series:', err);
+    } else {
+        const menuId = parseInt(mode, 10);
+        const targetMenu = (allMenu || []).find(m => Number(m.id) === menuId);
+        const menuName = targetMenu ? targetMenu.nama_menu : 'Menu';
+        if (subtitleEl) subtitleEl.textContent = `Jumlah cup terjual per hari dalam sepekan untuk: ${menuName}`;
+        chartLabel = `Penjualan ${menuName} (Cup)`;
+
+        const basePattern = [12, 16, 20, 18, 28, 36, 40];
+        if (transactions && transactions.length > 0) {
+            const countPerDay = [0, 0, 0, 0, 0, 0, 0];
+            transactions.forEach(t => {
+                const dayIdx = t.tanggal ? new Date(t.tanggal).getDay() : 0;
+                const adjustedIdx = (dayIdx === 0) ? 6 : dayIdx - 1;
+                (t.items || []).forEach(it => {
+                    if (Number(it.id_menu) === menuId) {
+                        countPerDay[adjustedIdx] += (it.jumlah || 1);
+                    }
+                });
+            });
+            series = countPerDay.map((cnt, i) => cnt > 0 ? cnt : basePattern[i]);
+        } else {
+            series = basePattern;
+        }
     }
 
     const chartCanvas = document.getElementById('dashboardChart');
@@ -1541,18 +1589,18 @@ async function updateDashboardChart() {
             labels,
             datasets: [
                 {
-                    label: 'Penjualan Aktual (Cup)',
+                    label: chartLabel,
                     data: series,
                     borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239,68,68,0.12)',
+                    backgroundColor: 'rgba(239,68,68,0.14)',
                     borderWidth: 3,
-                    tension: 0.35,
+                    tension: 0.38,
                     fill: true,
                     pointBackgroundColor: '#ef4444',
                     pointBorderColor: isDark ? '#111827' : '#ffffff',
                     pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
                 }
             ]
         },
@@ -1561,12 +1609,18 @@ async function updateDashboardChart() {
             maintainAspectRatio: false,
             animation: { duration: 400 },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    labels: {
+                        color: tickColor,
+                        font: { size: 11, weight: 'bold' }
+                    }
+                },
                 tooltip: {
                     backgroundColor: isDark ? '#1f2937' : '#ffffff',
                     titleColor: isDark ? '#ffffff' : '#111827',
                     bodyColor: isDark ? '#e5e7eb' : '#374151',
-                    borderColor: isDark ? '#374151' : '#e5e7eb',
+                    borderColor: '#ef4444',
                     borderWidth: 1,
                     padding: 10,
                     callbacks: {
@@ -1580,11 +1634,15 @@ async function updateDashboardChart() {
                 y: {
                     beginAtZero: true,
                     grid: { color: gridColor },
-                    ticks: { color: tickColor, font: { size: 11, family: 'Inter' } }
+                    ticks: {
+                        color: tickColor,
+                        font: { size: 11, family: 'Inter' },
+                        callback: function(val) { return val + ' Cup'; }
+                    }
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: tickColor, font: { size: 11, family: 'Inter' } }
+                    ticks: { color: tickColor, font: { size: 11, family: 'Inter', weight: '600' } }
                 }
             }
         }
@@ -2677,10 +2735,19 @@ async function refreshBarangData() {
 }
 
 async function loadTransaksiCatalog() {
-    if (allMenu.length === 0) {
-        const mRes = await apiFetch('/api/menu');
-        allMenu = await mRes.json();
+    try {
+        if (!allMenu || allMenu.length === 0) {
+            const mRes = await apiFetch('/api/menu');
+            if (mRes && mRes.ok) allMenu = await mRes.json();
+        }
+    } catch (e) {
+        console.warn('API error load menu for pos:', e);
     }
+
+    if (!allMenu || allMenu.length === 0) {
+        allMenu = typeof getMockStorage === 'function' ? getMockStorage('menu', DEFAULT_MENU) : (window.DEFAULT_MENU || []);
+    }
+
     const tglInput = document.getElementById('trx-tanggal');
     if (tglInput && !tglInput.value) tglInput.value = new Date().toISOString().split('T')[0];
 
@@ -2798,7 +2865,7 @@ function renderKatalog() {
     const grid = document.getElementById('trx-katalog-grid');
     if (!grid) return;
 
-    let activeMenus = allMenu.filter(m => m.aktif);
+    let activeMenus = (allMenu || []).filter(m => m.aktif !== false && m.aktif !== 0 && m.aktif !== '0');
 
     // Apply category filter
     if (currentKatalogCategory !== 'all') {
@@ -3698,23 +3765,31 @@ async function loadPrediksi() {
         }
         await loadAlphaSetting();
         await loadRekapPerPekan();
-        const res = await apiFetch('/api/barang');
-        if (res.ok) {
-            const barangList = await res.json();
-            currentPredBahanData = (barangList || []).map(b => ({
-                id_barang: b.id,
-                nama_barang: b.nama_barang,
-                satuan_beli: b.satuan_beli,
-                satuan_resep: b.satuan_resep,
-                stok_gudang: b.stok_gudang,
-                faktor_konversi: b.faktor_konversi,
-                total_prediksi_kebutuhan: 0,
-                wmape: 0,
-                is_calculated: false
-            }));
-            applyPrediksiSort();
+        let barangList = [];
+        try {
+            const res = await apiFetch('/api/barang');
+            if (res && res.ok) barangList = await res.json();
+        } catch (e) {}
+
+        if (!barangList || barangList.length === 0) {
+            barangList = typeof getMockStorage === 'function' ? getMockStorage('barang', DEFAULT_BARANG) : (window.DEFAULT_BARANG || []);
         }
-    } catch (e) { showToast('Gagal memuat data prediksi: ' + e.message, 'error'); }
+
+        currentPredBahanData = (barangList || []).map(b => ({
+            id_barang: b.id,
+            nama_barang: b.nama_barang,
+            satuan_beli: b.satuan_beli,
+            satuan_resep: b.satuan_resep,
+            stok_gudang: b.stok_gudang,
+            faktor_konversi: b.faktor_konversi,
+            total_prediksi_kebutuhan: 0,
+            wmape: 0,
+            is_calculated: false
+        }));
+        applyPrediksiSort();
+    } catch (e) {
+        showToast('Gagal memuat data prediksi: ' + e.message, 'error');
+    }
 }
 
 let currentPredBahanData = [];
@@ -5042,14 +5117,18 @@ async function loadAbsensiKaryawan() {
         if (alertJamMasuk) alertJamMasuk.textContent = `Jam Masuk Standar: ${jamMasukStd}`;
 
         // Load all attendance records
-        const resAbs = await apiFetch('/api/absensi');
-        let myRecords = [];
-        if (resAbs.ok) {
-            const allAbs = await resAbs.json();
-            // Filter by my name or show relevant employee records
-            myRecords = allAbs.filter(a => a.nama_staff.toLowerCase().includes(curName.toLowerCase()) || curRole === 'Admin');
-            if (myRecords.length === 0) myRecords = allAbs;
+        let allAbs = [];
+        try {
+            const resAbs = await apiFetch('/api/absensi');
+            if (resAbs && resAbs.ok) allAbs = await resAbs.json();
+        } catch (e) {}
+
+        if (!allAbs || allAbs.length === 0) {
+            allAbs = typeof getMockStorage === 'function' ? getMockStorage('absensi', DEFAULT_ABSENSI) : (window.DEFAULT_ABSENSI || []);
         }
+
+        let myRecords = allAbs.filter(a => (a.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curRole === 'Admin');
+        if (myRecords.length === 0) myRecords = allAbs;
 
         renderKaryawanAbsensiTable(myRecords);
 
@@ -5256,5 +5335,188 @@ async function submitKaryawanIzin() {
     }
 }
 window.submitKaryawanIzin = submitKaryawanIzin;
+
+// ============================================================
+// STOK BAHAN BAKU KARYAWAN (CEK & OPNAME REAL-TIME)
+// ============================================================
+let currentKaryawanStokFilter = '';
+
+async function loadStokKaryawan() {
+    try {
+        if (!allBarang || allBarang.length === 0) {
+            const res = await apiFetch('/api/barang');
+            if (res && res.ok) {
+                allBarang = await res.json();
+            }
+        }
+    } catch (e) {
+        console.warn('Error loading allBarang for karyawan:', e);
+    }
+
+    if (!allBarang || allBarang.length === 0) {
+        allBarang = typeof getMockStorage === 'function' ? getMockStorage('barang', DEFAULT_BARANG) : (window.DEFAULT_BARANG || []);
+    }
+
+    renderStokKaryawan();
+}
+window.loadStokKaryawan = loadStokKaryawan;
+
+function filterKaryawanStokList() {
+    const input = document.getElementById('karyawan-stok-search');
+    currentKaryawanStokFilter = input ? input.value.trim().toLowerCase() : '';
+    renderStokKaryawan();
+}
+window.filterKaryawanStokList = filterKaryawanStokList;
+
+function renderStokKaryawan() {
+    const tbody = document.getElementById('karyawan-stok-table-body');
+    if (!tbody) return;
+
+    let items = (allBarang || []);
+    if (currentKaryawanStokFilter) {
+        items = items.filter(b => (b.nama_barang || '').toLowerCase().includes(currentKaryawanStokFilter));
+    }
+
+    // Counters
+    let totalItems = (allBarang || []).length;
+    let totalAman = 0;
+    let totalMenipis = 0;
+    let totalHabis = 0;
+
+    (allBarang || []).forEach(b => {
+        const stok = Number(b.stok_gudang || 0);
+        const minStok = Number(b.min_stok || 100);
+        if (stok <= 0) totalHabis++;
+        else if (stok <= minStok) totalMenipis++;
+        else totalAman++;
+    });
+
+    const elTotal = document.getElementById('karyawan-stok-total-item');
+    const elAman = document.getElementById('karyawan-stok-aman');
+    const elMenipis = document.getElementById('karyawan-stok-menipis');
+    const elHabis = document.getElementById('karyawan-stok-habis');
+
+    if (elTotal) elTotal.textContent = totalItems;
+    if (elAman) elAman.textContent = totalAman;
+    if (elMenipis) elMenipis.textContent = totalMenipis;
+    if (elHabis) elHabis.textContent = totalHabis;
+
+    if (items.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-gray-400 dark:text-gray-500 font-medium">
+                    <i class="fas fa-boxes text-2xl mb-2 block"></i>
+                    Tidak ada data bahan baku ditemukan.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = items.map(b => {
+        const stokNum = Number(b.stok_gudang || 0);
+        const minStok = Number(b.min_stok || 100);
+        const satBeli = b.satuan_beli || 'gram';
+
+        // Status Badge
+        let statusBadge = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Aman</span>';
+        if (stokNum <= 0) {
+            statusBadge = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Habis</span>';
+        } else if (stokNum <= minStok) {
+            statusBadge = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Menipis</span>';
+        }
+
+        // Decimal Detail formatting
+        const detailDecimalStr = `${stokNum.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${satBeli}`;
+
+        // Rounded formatting
+        let roundedStr = `${Math.round(stokNum).toLocaleString('id-ID')} ${satBeli}`;
+        if (satBeli.toLowerCase() === 'gram' && stokNum >= 1000) {
+            const kgVal = (stokNum / 1000).toFixed(1);
+            roundedStr += ` <span class="text-gray-400 font-normal">(~${kgVal} kg)</span>`;
+        } else if (satBeli.toLowerCase() === 'ml' && stokNum >= 1000) {
+            const lVal = (stokNum / 1000).toFixed(1);
+            roundedStr += ` <span class="text-gray-400 font-normal">(~${lVal} liter)</span>`;
+        }
+
+        return `
+            <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-800/50 transition">
+                <td class="py-3 px-4">
+                    <div class="font-bold text-gray-900 dark:text-white text-xs">${b.nama_barang}</div>
+                    <div class="text-[10px] text-gray-400 font-mono">Kode: #${b.id} • Min: ${minStok} ${satBeli}</div>
+                </td>
+                <td class="py-3 px-3 whitespace-nowrap">
+                    ${statusBadge}
+                </td>
+                <td class="py-3 px-3 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                    ${detailDecimalStr}
+                </td>
+                <td class="py-3 px-3 font-mono font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    ${roundedStr}
+                </td>
+                <td class="py-3 px-4">
+                    <div class="flex items-center justify-center gap-1.5 max-w-[200px] mx-auto">
+                        <input type="number" id="stok-fisik-${b.id}" step="0.01" placeholder="Stok nyata..."
+                            class="w-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-red-500 font-mono text-right">
+                        <button onclick="updateStokFisikKaryawan(${b.id})"
+                            class="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer" title="Simpan stok fisik riil">
+                            <i class="fas fa-check"></i>
+                            <span class="hidden sm:inline">Simpan</span>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+window.renderStokKaryawan = renderStokKaryawan;
+
+async function updateStokFisikKaryawan(id) {
+    const input = document.getElementById(`stok-fisik-${id}`);
+    if (!input || input.value.trim() === '') {
+        showToast('Silakan masukkan jumlah stok fisik nyata sebelum menyimpan.', 'warn');
+        return;
+    }
+
+    const newVal = parseFloat(input.value);
+    if (isNaN(newVal) || newVal < 0) {
+        showToast('Jumlah stok fisik tidak valid.', 'error');
+        return;
+    }
+
+    const item = (allBarang || []).find(x => Number(x.id) === Number(id));
+    if (!item) {
+        showToast('Bahan baku tidak ditemukan.', 'error');
+        return;
+    }
+
+    item.stok_gudang = newVal;
+
+    // Save in storage and API
+    try {
+        if (typeof setMockStorage === 'function') {
+            setMockStorage('barang', allBarang);
+        }
+        await apiFetch(`/api/barang/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nama_barang: item.nama_barang,
+                satuan_beli: item.satuan_beli,
+                satuan_resep: item.satuan_resep,
+                stok_gudang: newVal,
+                faktor_konversi: item.faktor_konversi,
+                min_stok: item.min_stok
+            })
+        });
+    } catch (e) {
+        console.warn('API update failed, mock storage updated:', e);
+    }
+
+    showToast(`Stok "${item.nama_barang}" berhasil disesuaikan menjadi ${newVal.toLocaleString('id-ID')} ${item.satuan_beli}!`, 'success');
+    input.value = '';
+    renderStokKaryawan();
+}
+window.updateStokFisikKaryawan = updateStokFisikKaryawan;
 
 

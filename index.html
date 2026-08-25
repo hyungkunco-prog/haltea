@@ -1433,8 +1433,8 @@
             <p class="text-xs sm:text-sm font-semibold tracking-[0.25em] text-red-100 uppercase mt-1 drop-shadow-xs">
                 INDONESIA
             </p>
-            <p class="text-[11px] sm:text-xs text-red-200/80 mt-2 font-medium tracking-normal max-w-xs">
-                Point of Sales & Inventory Prediction System
+            <p class="text-[11px] sm:text-xs text-red-200/90 mt-2 font-semibold tracking-wider max-w-xs">
+                Point of Sales & Inventory
             </p>
 
             <!-- Elegant Loading Line -->
@@ -1445,7 +1445,7 @@
     </div>
 
     <!-- ===== LOGIN SCREEN ===== -->
-    <div id="login-screen" class="fixed inset-0 w-full h-full min-h-screen z-[100] flex items-center justify-center p-4 bg-gradient-to-br from-[#9b0b1c] via-[#bd1326] to-[#60000a] select-none overflow-y-auto">
+    <div id="login-screen" class="fixed inset-0 w-full h-full min-h-screen z-[100] flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#9b0b1c] via-[#bd1326] to-[#60000a] select-none overflow-y-auto">
         <!-- Ambient radial glow background effect -->
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)] pointer-events-none"></div>
 
@@ -1458,7 +1458,7 @@
                 <h1 class="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
                     HALTEA <span class="text-red-600">POS</span>
                 </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Sistem Prediksi Stok & Transaksi</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Point of Sales & Inventory</p>
             </div>
 
             <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
@@ -1495,6 +1495,12 @@
                     <i id="login-btn-spinner" class="fas fa-spinner fa-spin hidden"></i>
                 </button>
             </form>
+
+            <!-- Official Watermark on Login Card -->
+            <div class="mt-5 pt-3 border-t border-gray-100 dark:border-gray-800 text-center text-[10px] text-gray-400 dark:text-gray-500 font-semibold tracking-wider uppercase flex items-center justify-center gap-1.5">
+                <i class="fas fa-certificate text-red-500 text-xs"></i>
+                <span>Official System • Haltea Indonesia</span>
+            </div>
         </div>
     </div>
 
@@ -1548,6 +1554,12 @@
             <nav id="sidebar-nav" class="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
                 <!-- Admin-only items will be shown/hidden via JS -->
             </nav>
+
+            <!-- Official System Watermark in Sidebar -->
+            <div class="px-3 py-2 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 dark:text-gray-500 font-semibold tracking-wider uppercase text-center flex items-center justify-center gap-1.5">
+                <i class="fas fa-shield-halved text-red-500 text-xs"></i>
+                <span>Official HALTEA Indonesia</span>
+            </div>
 
             <!-- Logout -->
             <div class="p-3 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
@@ -1690,6 +1702,7 @@
                 </div>
 
                 <!-- Chart & Last Prediction info -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div class="lg:col-span-2 glass-panel rounded-2xl p-4 sm:p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-between">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
                             <div>
@@ -1697,13 +1710,14 @@
                                     <div class="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-xs">
                                         <i class="fas fa-chart-line"></i>
                                     </div>
-                                    <h2 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">Grafik Penjualan Menu</h2>
+                                    <h2 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">Grafik Penjualan Harian & Menu</h2>
                                 </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-9">Tren penjualan mingguan aktual (Cup)</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-9" id="dash-chart-subtitle">Jumlah cup terjual per hari dalam sepekan</p>
                             </div>
                             <div class="flex items-center gap-2">
                                 <select id="chart-menu-select" onchange="updateDashboardChart()"
-                                    class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer max-w-[200px] truncate">
+                                    class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer max-w-[240px] truncate">
+                                    <option value="all">⭐ Semua Menu (Total Cup / Hari)</option>
                                 </select>
                             </div>
                         </div>
@@ -2736,6 +2750,100 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== STOK BAHAN BAKU (KHUSUS KARYAWAN / KASIR - CEK & OPNAME REALTIME) ==== -->
+            <div id="page-stok-karyawan" class="page-content p-4 sm:p-6 fade-in hidden">
+                <!-- Header -->
+                <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg">Stok Real-time</span>
+                            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Stok Bahan Baku</h1>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">Pantau sisa stok bahan baku dan sesuaikan stok fisik jika terdapat selisih nyata.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="karyawan-stok-search" oninput="filterKaryawanStokList()" placeholder="Cari bahan baku..."
+                                class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs rounded-xl pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-red-500">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        </div>
+                        <button onclick="loadStokKaryawan()" class="px-3 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs" title="Refresh Stok">
+                            <i class="fas fa-rotate"></i>
+                            <span class="hidden sm:inline">Segarkan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Summary Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-500 font-medium">Total Item Bahan</p>
+                            <h3 id="karyawan-stok-total-item" class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base">
+                            <i class="fas fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-500 font-medium">Stok Aman</p>
+                            <h3 id="karyawan-stok-aman" class="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-base">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-500 font-medium">Stok Menipis</p>
+                            <h3 id="karyawan-stok-menipis" class="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-base">
+                            <i class="fas fa-circle-xmark"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-500 font-medium">Stok Habis</p>
+                            <h3 id="karyawan-stok-habis" class="text-base sm:text-lg font-bold text-red-600 dark:text-red-400">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="mb-5 p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 text-xs flex items-start gap-2.5">
+                    <i class="fas fa-info-circle text-sm mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <p class="font-semibold">Informasi Opname Fisik Real-time:</p>
+                        <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5">Kolom <strong>"Stok Fisik Nyata (Opsional)"</strong> disediakan jika stok di outlet berbeda dengan hitungan sistem. Mengisi dan menekan tombol simpan akan langsung menyinkronkan stok sistem.</p>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="glass-panel rounded-2xl border border-gray-200/80 dark:border-gray-800 overflow-hidden shadow-xs">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-gray-50/80 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold text-[10px]">
+                                    <th class="py-3.5 px-4">Bahan Baku</th>
+                                    <th class="py-3.5 px-3">Status</th>
+                                    <th class="py-3.5 px-3">Stok Detail (Desimal)</th>
+                                    <th class="py-3.5 px-3">Stok Pembulatan</th>
+                                    <th class="py-3.5 px-4 text-center">Stok Fisik Nyata (Opsional)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="karyawan-stok-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <!-- Dynamically populated by renderStokKaryawan() -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -3787,8 +3895,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.8.0"></script>
-    <script src="js/app.js?v=3.8.0"></script>
+    <script src="js/haltea_data.js?v=3.9.0"></script>
+    <script src="js/app.js?v=3.9.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js
