@@ -766,6 +766,22 @@ async function apiFetch(url, config = {}) {
 }
 
 async function checkAuth() {
+    // 24-Hour & Calendar Day Reset: Force re-login after 24 hours or next day
+    const token = localStorage.getItem('auth_token');
+    const loginTime = localStorage.getItem('auth_login_time');
+    const loginDate = localStorage.getItem('auth_login_date');
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    if (token && loginTime) {
+        const elapsedHours = (Date.now() - parseInt(loginTime, 10)) / (1000 * 60 * 60);
+        if (elapsedHours >= 24 || (loginDate && loginDate !== todayStr)) {
+            console.log('Sesi login kedaluwarsa (24 jam / ganti hari). Mengharuskan login ulang.');
+            doLogout();
+            showLogin();
+            return;
+        }
+    }
+
     try {
         const res = await apiFetch('/api/auth/status');
         const data = await res.json();
@@ -796,11 +812,16 @@ function showLogin() {
 
 function doLogout() {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_login_time');
+    localStorage.removeItem('auth_login_date');
     currentUser = null;
     showLogin();
-    document.getElementById('login-form').reset();
-    document.getElementById('login-password').type = 'password';
-    document.getElementById('toggle-pwd-icon').className = 'fas fa-eye text-sm';
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) loginForm.reset();
+    const pwdInput = document.getElementById('login-password');
+    if (pwdInput) pwdInput.type = 'password';
+    const pwdIcon = document.getElementById('toggle-pwd-icon');
+    if (pwdIcon) pwdIcon.className = 'fas fa-eye text-sm';
 }
 
 // ============================================================
@@ -1363,6 +1384,8 @@ async function handleLoginSubmit(e) {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('auth_login_time', Date.now().toString());
+            localStorage.setItem('auth_login_date', new Date().toISOString().slice(0, 10));
             currentUser = { role: data.role, nama: data.nama, avatar: data.avatar || null };
             showToast('Login berhasil! Selamat datang ' + (data.nama || username), 'success');
             showApp();
@@ -4133,8 +4156,12 @@ async function checkAutoSundayPrediction() {
 // EXCLUSIVE INTRO SPLASH & WELCOME VOICE
 // ============================================================
 let splashDismissed = false;
+let audioPlayed = false;
 
 function playWelcomeAudio() {
+    if (audioPlayed) return;
+    audioPlayed = true;
+
     try {
         // 1. Play sleek luxury chime sound (Web Audio API)
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -4153,7 +4180,7 @@ function playWelcomeAudio() {
                 osc.frequency.setValueAtTime(freq, now + idx * 0.09);
 
                 gain.gain.setValueAtTime(0, now + idx * 0.09);
-                gain.gain.linearRampToValueAtTime(0.08, now + idx * 0.09 + 0.05);
+                gain.gain.linearRampToValueAtTime(0.09, now + idx * 0.09 + 0.05);
                 gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.09 + 1.2);
 
                 osc.connect(gain);
@@ -4191,13 +4218,25 @@ function playWelcomeAudio() {
                     speakNow();
                 };
             } else {
-                setTimeout(speakNow, 250);
+                setTimeout(speakNow, 200);
             }
         }
     } catch (e) {
         console.warn('SpeechSynthesis error:', e);
     }
 }
+
+function triggerAudioAndDismiss(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    playWelcomeAudio();
+    setTimeout(() => {
+        dismissSplashScreen();
+    }, 1200);
+}
+window.triggerAudioAndDismiss = triggerAudioAndDismiss;
 
 function initSplashScreen() {
     const splash = document.getElementById('app-splash-screen');
@@ -4216,6 +4255,15 @@ function initSplashScreen() {
         }
         playWelcomeAudio();
     }, 200);
+
+    // Auto unlock audio on any user gesture
+    const unlockHandler = () => {
+        playWelcomeAudio();
+        window.removeEventListener('click', unlockHandler);
+        window.removeEventListener('touchstart', unlockHandler);
+    };
+    window.addEventListener('click', unlockHandler, { once: true });
+    window.addEventListener('touchstart', unlockHandler, { once: true });
 
     // Auto dismiss after 5 seconds
     setTimeout(() => {
