@@ -288,27 +288,46 @@
             transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Mobile drawer: sidebar completely hidden until opened */
+        /* Mobile bottom sheet drawer: sidebar anchored at bottom */
         #main-app.layout-mobile #sidebar {
             display: none !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            z-index: 50 !important;
-            width: min(85vw, 18rem) !important;
-            max-width: 18rem !important;
-            height: 100dvh !important;
-            margin: 0 !important;
-            transform: none !important;
         }
         #main-app.layout-mobile #sidebar.sidebar-open {
             display: flex !important;
+            flex-direction: column !important;
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            top: auto !important;
+            z-index: 60 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 88dvh !important;
+            height: auto !important;
+            background: rgba(255, 255, 255, 0.98) !important;
+            border-radius: 1.75rem 1.75rem 0 0 !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.8) !important;
+            box-shadow: 0 -12px 50px rgba(0, 0, 0, 0.4) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            animation: slideUpMobileMenu 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+        .dark #main-app.layout-mobile #sidebar.sidebar-open {
+            background: rgba(13, 18, 28, 0.98) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        #main-app.layout-mobile #sidebar.sidebar-open #sidebar-nav {
+            max-height: calc(88dvh - 160px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 1rem !important;
         }
         #main-app.layout-mobile #sidebar-overlay.show {
             display: block !important;
             opacity: 1 !important;
             pointer-events: auto !important;
+            z-index: 55 !important;
         }
         #main-app.layout-mobile #sidebar-overlay {
             display: none;
@@ -320,15 +339,14 @@
             height: 100dvh;
             display: flex;
             flex-direction: column;
+            padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)) !important;
         }
         #main-app.layout-mobile .top-bar {
-            z-index: 60 !important;
+            z-index: 40 !important;
             position: sticky;
         }
         #main-app.layout-mobile #sidebar-toggle {
             display: flex !important;
-            position: relative;
-            z-index: 61;
         }
 
         /* Desktop: sidebar always visible unless collapsed */
