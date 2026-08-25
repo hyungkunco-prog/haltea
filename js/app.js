@@ -4130,10 +4130,127 @@ async function checkAutoSundayPrediction() {
 }
 
 // ============================================================
+// EXCLUSIVE INTRO SPLASH & WELCOME VOICE
+// ============================================================
+let splashDismissed = false;
+
+function playWelcomeAudio() {
+    try {
+        // 1. Play sleek luxury chime sound (Web Audio API)
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            const now = ctx.currentTime;
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (Haltea Welcome Harmony)
+            freqs.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+
+                gain.gain.setValueAtTime(0, now + idx * 0.09);
+                gain.gain.linearRampToValueAtTime(0.08, now + idx * 0.09 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.09 + 1.2);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now + idx * 0.09);
+                osc.stop(now + idx * 0.09 + 1.3);
+            });
+        }
+    } catch (e) {
+        console.warn('AudioContext chime error:', e);
+    }
+
+    try {
+        // 2. Play Speech Synthesis Voice: "Welcome to POS Haltea Indonesia"
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance("Welcome to POS Haltea Indonesia");
+            utter.rate = 0.92;
+            utter.pitch = 1.05;
+            utter.volume = 1.0;
+            utter.lang = 'en-US';
+
+            const speakNow = () => {
+                const voices = window.speechSynthesis.getVoices();
+                if (voices && voices.length > 0) {
+                    const naturalVoice = voices.find(v => (v.lang.startsWith('en') || v.lang.startsWith('id')) && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira')));
+                    if (naturalVoice) utter.voice = naturalVoice;
+                }
+                window.speechSynthesis.speak(utter);
+            };
+
+            if (window.speechSynthesis.getVoices().length === 0) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    speakNow();
+                };
+            } else {
+                setTimeout(speakNow, 250);
+            }
+        }
+    } catch (e) {
+        console.warn('SpeechSynthesis error:', e);
+    }
+}
+
+function initSplashScreen() {
+    const splash = document.getElementById('app-splash-screen');
+    const logoContainer = document.getElementById('splash-logo-container');
+    const progressBar = document.getElementById('splash-progress-bar');
+    if (!splash) return;
+
+    // Trigger smooth fade-in
+    setTimeout(() => {
+        if (logoContainer) {
+            logoContainer.classList.remove('opacity-0', 'scale-90');
+            logoContainer.classList.add('opacity-100', 'scale-100');
+        }
+        if (progressBar) {
+            progressBar.style.width = '100%';
+        }
+        playWelcomeAudio();
+    }, 200);
+
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        dismissSplashScreen();
+    }, 5000);
+}
+
+function dismissSplashScreen() {
+    if (splashDismissed) return;
+    splashDismissed = true;
+    const splash = document.getElementById('app-splash-screen');
+    const logoContainer = document.getElementById('splash-logo-container');
+    if (!splash) return;
+
+    if (logoContainer) {
+        logoContainer.classList.remove('opacity-100', 'scale-100');
+        logoContainer.classList.add('opacity-0', 'scale-95');
+    }
+
+    splash.classList.add('opacity-0', 'pointer-events-none');
+    setTimeout(() => {
+        splash.style.display = 'none';
+    }, 1000);
+}
+window.initSplashScreen = initSplashScreen;
+window.dismissSplashScreen = dismissSplashScreen;
+window.playWelcomeAudio = playWelcomeAudio;
+
+// ============================================================
 // INIT
 // ============================================================
 window.onload = () => {
     try {
+        initSplashScreen();
+
         const modalBarangUmum = document.getElementById('modal-barang-umum');
         if (modalBarangUmum) {
             modalBarangUmum.addEventListener('click', (e) => {
