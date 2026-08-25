@@ -1701,55 +1701,27 @@
                     </div>
                 </div>
 
-                <!-- Chart & Last Prediction info -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div class="lg:col-span-2 glass-panel rounded-2xl p-4 sm:p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-between">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-xs">
-                                        <i class="fas fa-chart-line"></i>
-                                    </div>
-                                    <h2 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">Grafik Penjualan Harian & Menu</h2>
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-9" id="dash-chart-subtitle">Jumlah cup terjual per hari dalam sepekan</p>
-                            </div>
+                <!-- Chart Section (Full Width) -->
+                <div class="glass-panel rounded-2xl p-4 sm:p-6 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
+                        <div>
                             <div class="flex items-center gap-2">
-                                <select id="chart-menu-select" onchange="updateDashboardChart()"
-                                    class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer max-w-[240px] truncate">
-                                    <option value="all">⭐ Semua Menu (Total Cup / Hari)</option>
-                                </select>
+                                <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-sm">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h2 class="font-bold text-gray-900 dark:text-white text-base sm:text-lg">Grafik Penjualan Harian & Menu</h2>
                             </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-10" id="dash-chart-subtitle">Jumlah cup terjual per hari dalam sepekan</p>
                         </div>
-                        <div class="relative w-full h-60 sm:h-72">
-                            <canvas id="dashboardChart"></canvas>
+                        <div class="flex items-center gap-2">
+                            <select id="chart-menu-select" onchange="updateDashboardChart()"
+                                class="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer max-w-[240px] truncate">
+                                <option value="all">⭐ Semua Menu (Total Cup / Hari)</option>
+                            </select>
                         </div>
                     </div>
-                    <div
-                        class="glass-panel rounded-xl p-5">
-                        <h2 class="font-semibold text-gray-900 dark:text-white text-sm mb-4">Info Prediksi</h2>
-                        <div class="space-y-3 text-sm">
-                            <div
-                                class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
-                                <span class="text-gray-500 dark:text-gray-400">Prediksi Aktif</span>
-                                <span id="dash-prediksi-aktif" class="font-semibold text-gray-900 dark:text-white">0
-                                    menu</span>
-                            </div>
-                            <div
-                                class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
-                                <span class="text-gray-500 dark:text-gray-400">Terakhir Diproses</span>
-                                <span id="dash-last-pred"
-                                    class="font-semibold text-gray-900 dark:text-white text-xs">-</span>
-                            </div>
-                            <div class="flex justify-between items-center py-2">
-                                <span class="text-gray-500 dark:text-gray-400">Interval Auto</span>
-                                <span class="font-semibold text-gray-900 dark:text-white">7 hari</span>
-                            </div>
-                        </div>
-                        <button id="btn-predict-manual" onclick="runPredictionManual()"
-                            class="mt-4 w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-red-500/20 active:scale-[0.98] cursor-pointer">
-                            <span>Jalankan Prediksi Sekarang</span>
-                        </button>
+                    <div class="relative w-full h-64 sm:h-80">
+                        <canvas id="dashboardChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -2759,11 +2731,10 @@
                 <!-- Header -->
                 <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg">Stok Real-time</span>
-                            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Stok Bahan Baku</h1>
-                        </div>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">Pantau sisa stok bahan baku dan sesuaikan stok fisik jika terdapat selisih nyata.</p>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Stok Bahan Baku</h1>
+                        <p class="text-red-600 dark:text-red-400 text-xs sm:text-[13px] font-medium mt-1 leading-relaxed">
+                            Pantau sisa stok bahan baku dan sesuaikan stok fisik jika terdapat selisih nyata. Pastikan sebelum tutup untuk mengecek stok bahan baku yg ada.
+                        </p>
                     </div>
                     <div class="flex items-center gap-2 w-full sm:w-auto">
                         <div class="relative flex-1 sm:w-64">
@@ -2819,12 +2790,9 @@
                 </div>
 
                 <!-- Info Alert -->
-                <div class="mb-5 p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 text-xs flex items-start gap-2.5">
-                    <i class="fas fa-info-circle text-sm mt-0.5 flex-shrink-0"></i>
-                    <div>
-                        <p class="font-semibold">Informasi Opname Fisik Real-time:</p>
-                        <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5">Kolom <strong>"Stok Fisik Nyata (Opsional)"</strong> disediakan jika stok di outlet berbeda dengan hitungan sistem. Mengisi dan menekan tombol simpan akan langsung menyinkronkan stok sistem.</p>
-                    </div>
+                <div class="mb-5 p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/70 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5 shadow-xs">
+                    <i class="fas fa-circle-info text-amber-600 dark:text-amber-400 text-base flex-shrink-0"></i>
+                    <p class="font-medium text-xs sm:text-[13px]">Mohon isi informasi stok jika terdapat perbedaan, jika tidak ada diamkan/kosongkan.</p>
                 </div>
 
                 <!-- Table Container -->
@@ -3895,8 +3863,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.9.0"></script>
-    <script src="js/app.js?v=3.9.0"></script>
+    <script src="js/haltea_data.js?v=3.9.1"></script>
+    <script src="js/app.js?v=3.9.1"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js
