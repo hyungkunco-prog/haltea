@@ -1022,23 +1022,22 @@ async function showPage(pageId) {
     page.classList.add('fade-in');
     setTimeout(() => page.classList.remove('fade-in'), 400);
 
+    // Auto close sidebar drawer on mobile when navigating
+    closeSidebarMobile();
+
     // Sidebar navigation active state
     document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
     const link = document.getElementById(`link-${pageId}`);
     if (link) link.classList.add('active');
 
-    // Smartphone bottom navigation active state
+    // Smartphone bottom navigation active state (4 Featured Buttons)
     document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
     let bottomNavBtn = document.getElementById(`bottom-nav-${pageId}`) || document.getElementById(`bottom-nav-${pageId.replace(/_/g, '-')}`);
     if (!bottomNavBtn) {
-        if (pageId === 'absensi_staf' || pageId === 'absensi_karyawan') {
-            bottomNavBtn = document.getElementById('bottom-nav-absensi-karyawan');
+        if (pageId === 'sop' || pageId === 'takaran') {
+            bottomNavBtn = document.getElementById('bottom-nav-sop');
         } else if (pageId === 'data_transaksi') {
             bottomNavBtn = document.getElementById('bottom-nav-transaksi');
-        } else if (pageId === 'sop' || pageId === 'takaran') {
-            bottomNavBtn = document.getElementById('bottom-nav-stok');
-        } else {
-            bottomNavBtn = document.getElementById('bottom-nav-menu');
         }
     }
     if (bottomNavBtn) bottomNavBtn.classList.add('active');
@@ -2629,12 +2628,12 @@ function renderKatalog() {
 
         return `
         <div onclick="addToCart(${m.id})" id="katalog-card-${m.id}"
-            class="group relative bg-white dark:bg-[#0d1117] border ${isSelected ? 'border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-800 hover:border-red-500 dark:hover:border-red-500/80'} rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col select-none">
+            class="group relative bg-white dark:bg-[#0d1117] border ${isSelected ? 'border-2 border-red-600 ring-2 ring-red-500/20' : 'border border-gray-200 dark:border-gray-800 hover:border-red-500'} rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col select-none">
             <!-- Product Image Top -->
             <div class="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
                 <img src="${m.gambar || 'haltea-logo.png'}" alt="${m.nama_menu}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 ${isSelected ? `
-                    <div class="absolute top-2 right-2 bg-red-600 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-md animate-fade-in flex items-center gap-1">
+                    <div class="absolute top-2 right-2 bg-red-600 text-white text-[11px] font-black px-2 py-0.5 rounded-lg shadow-md animate-fade-in flex items-center gap-1">
                         <i class="fas fa-shopping-bag text-[9px]"></i> ${inCartQty}
                     </div>
                 ` : ''}
@@ -2647,9 +2646,21 @@ function renderKatalog() {
                 </div>
                 <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-gray-100 dark:border-gray-800">
                     <span class="text-xs sm:text-sm font-extrabold text-red-600 dark:text-red-400">Rp ${formatNum(m.harga, 0)}</span>
-                    <button onclick="event.stopPropagation(); addToCart(${m.id})" class="w-7 h-7 rounded-lg ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 group-hover:bg-red-600 group-hover:text-white'} flex items-center justify-center transition-colors">
+                    ${isSelected ? `
+                    <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                        <button onclick="updateCartQty(${m.id}, -1)" class="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center active:scale-90">
+                            <i class="fas fa-minus text-[9px]"></i>
+                        </button>
+                        <span class="text-xs font-black text-gray-900 dark:text-white min-w-[14px] text-center">${inCartQty}</span>
+                        <button onclick="updateCartQty(${m.id}, 1)" class="w-6 h-6 rounded-full bg-red-600 text-white font-bold text-xs flex items-center justify-center shadow-xs active:scale-90">
+                            <i class="fas fa-plus text-[9px]"></i>
+                        </button>
+                    </div>
+                    ` : `
+                    <button onclick="event.stopPropagation(); addToCart(${m.id})" class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors">
                         <i class="fas fa-plus text-xs"></i>
                     </button>
+                    `}
                 </div>
             </div>
         </div>
