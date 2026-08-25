@@ -2616,16 +2616,19 @@
                                     </button>
                                 </div>
 
-                                <!-- TAB 1: FORM ABSEN HADIR (SCREENSHOT 1) -->
+                                <!-- TAB 1: FORM ABSEN HADIR -->
                                 <div id="karyawan-tab-content-hadir" class="space-y-4">
                                     <!-- Blue Alert Box -->
                                     <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-4 text-xs text-blue-900 dark:text-blue-300 space-y-1.5">
-                                        <div class="flex items-center gap-2 font-bold text-blue-700 dark:text-blue-400">
-                                            <i class="far fa-bell"></i>
-                                            <span id="karyawan-jam-masuk-alert">Jam Masuk Standar: 08:00:00</span>
+                                        <div class="flex items-center justify-between font-bold text-blue-700 dark:text-blue-400">
+                                            <div class="flex items-center gap-1.5">
+                                                <i class="far fa-clock"></i>
+                                                <span id="karyawan-jam-masuk-alert">Masuk: 08:00 (Toleransi s/d 08:10)</span>
+                                            </div>
+                                            <span class="text-[10px] bg-blue-100 dark:bg-blue-800/50 px-2 py-0.5 rounded-lg">Pulang: 16:00 WIB</span>
                                         </div>
-                                        <p class="text-blue-800/80 dark:text-blue-300/80 leading-relaxed">
-                                            Pemberitahuan: Anda wajib mengunggah bukti foto selfie sampai di tempat kerja agar kehadiran tercatat valid.
+                                        <p class="text-blue-800/80 dark:text-blue-300/80 leading-relaxed text-[11px]">
+                                            Pemberitahuan: Unggah bukti foto selfie sampai kerja. Absensi Hari Ini Lengkap setelah Anda melakukan <strong>Absen Masuk</strong> dan <strong>Absen Pulang</strong>.
                                         </p>
                                     </div>
 
@@ -2635,7 +2638,7 @@
                                             UNGGAH FOTO BUKTI SAMPAI KERJA
                                         </label>
                                         <div onclick="document.getElementById('karyawan-selfie-file').click()"
-                                            class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50/30 transition group">
+                                            class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl p-5 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50/30 transition group">
                                             <div id="karyawan-selfie-preview-box" class="flex flex-col items-center justify-center">
                                                 <i class="fas fa-camera text-2xl text-gray-400 group-hover:text-blue-500 transition mb-2"></i>
                                                 <p class="text-xs font-bold text-gray-700 dark:text-gray-300">Ambil/Unggah Foto Selfie</p>
@@ -2646,23 +2649,53 @@
                                         </div>
                                     </div>
 
-                                    <!-- Action Buttons -->
+                                    <!-- Action Buttons: Absen Masuk & Absen Pulang -->
                                     <div id="karyawan-absen-actions" class="pt-2">
-                                        <button type="button" onclick="submitKaryawanCheckIn()" id="btn-karyawan-checkin"
-                                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
-                                            <i class="fas fa-sign-in-alt"></i>
-                                            <span>Absen Masuk (Check-in)</span>
-                                        </button>
+                                        <!-- Dynamically rendered via renderKaryawanAbsenButtons() in app.js -->
                                     </div>
                                 </div>
 
-                                <!-- TAB 2: FORM AJUKAN IZIN (SCREENSHOT 2) -->
+                                <!-- TAB 2: FORM AJUKAN IZIN -->
                                 <div id="karyawan-tab-content-izin" class="hidden space-y-4">
                                     <!-- Amber Alert Box -->
-                                    <div class="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4 text-xs text-amber-900 dark:text-amber-300">
+                                    <div class="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-3.5 text-xs text-amber-900 dark:text-amber-300">
                                         <p class="font-medium leading-relaxed">
-                                            <strong>Pemberitahuan:</strong> Izin kerja wajib memberikan keterangan tertulis alasan ketidakhadiran Anda secara jelas.
+                                            <strong>Pemberitahuan:</strong> Anda dapat mengajukan izin sebagian (Masuk atau Pulang) maupun izin penuh keduanya.
                                         </p>
+                                    </div>
+
+                                    <!-- Pilih Jenis Izin -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                            PILIH JENIS IZIN (BISA SALAH SATU / KEDUANYA)
+                                        </label>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button type="button" id="btn-izin-type-masuk" onclick="selectIzinType('masuk')"
+                                                class="p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs">
+                                                <i class="fas fa-sun text-sm text-amber-500"></i>
+                                                <span>Izin Masuk</span>
+                                            </button>
+                                            <button type="button" id="btn-izin-type-pulang" onclick="selectIzinType('pulang')"
+                                                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                                                <i class="fas fa-moon text-sm text-indigo-500"></i>
+                                                <span>Izin Pulang</span>
+                                            </button>
+                                            <button type="button" id="btn-izin-type-keduanya" onclick="selectIzinType('keduanya')"
+                                                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                                                <i class="fas fa-calendar-check text-sm text-emerald-500"></i>
+                                                <span>Keduanya</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Info Box Catatan Kewajiban Absensi -->
+                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 rounded-2xl p-3 text-xs text-blue-900 dark:text-blue-300" id="karyawan-izin-note-box">
+                                        <div class="flex items-start gap-2">
+                                            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-sm mt-0.5 flex-shrink-0"></i>
+                                            <p class="leading-relaxed text-[11px]" id="karyawan-izin-note-text">
+                                                <strong>Izin Masuk Dipilih:</strong> Anda izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.
+                                            </p>
+                                        </div>
                                     </div>
 
                                     <!-- Keterangan Izin Textarea -->
@@ -2670,13 +2703,13 @@
                                         <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                             KETERANGAN ALASAN IZIN
                                         </label>
-                                        <textarea id="karyawan-izin-alasan" rows="4" placeholder="Sebutkan alasan Anda mengajukan izin hari ini..."
-                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                                        <textarea id="karyawan-izin-alasan" rows="3" placeholder="Sebutkan alasan Anda mengajukan izin hari ini..."
+                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl p-3 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                                     </div>
 
                                     <!-- Submit Izin Button -->
                                     <button type="button" onclick="submitKaryawanIzin()"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-xs sm:text-sm transition active:scale-[0.98] cursor-pointer">
                                         <span>Kirim Permohonan Izin</span>
                                     </button>
                                 </div>
@@ -3863,8 +3896,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=3.9.1"></script>
-    <script src="js/app.js?v=3.9.1"></script>
+    <script src="js/haltea_data.js?v=3.9.2"></script>
+    <script src="js/app.js?v=3.9.2"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

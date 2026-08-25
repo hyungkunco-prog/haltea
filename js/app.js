@@ -5087,6 +5087,37 @@ async function handleKaryawanSelfieChange(e) {
 }
 window.handleKaryawanSelfieChange = handleKaryawanSelfieChange;
 
+// ============================================================
+// ABSENSI KARYAWAN (CHECK-IN, CHECK-OUT, & IZIN BERTAHAP)
+// ============================================================
+let currentIzinType = 'masuk'; // 'masuk' | 'pulang' | 'keduanya'
+
+function selectIzinType(type) {
+    currentIzinType = type;
+    const btnMasuk = document.getElementById('btn-izin-type-masuk');
+    const btnPulang = document.getElementById('btn-izin-type-pulang');
+    const btnKeduanya = document.getElementById('btn-izin-type-keduanya');
+    const noteText = document.getElementById('karyawan-izin-note-text');
+
+    const activeClass = 'p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs';
+    const inactiveClass = 'p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer';
+
+    if (btnMasuk) btnMasuk.className = (type === 'masuk') ? activeClass : inactiveClass;
+    if (btnPulang) btnPulang.className = (type === 'pulang') ? activeClass : inactiveClass;
+    if (btnKeduanya) btnKeduanya.className = (type === 'keduanya') ? activeClass : inactiveClass;
+
+    if (noteText) {
+        if (type === 'masuk') {
+            noteText.innerHTML = '<strong>Izin Masuk Dipilih:</strong> Anda mengajukan izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.';
+        } else if (type === 'pulang') {
+            noteText.innerHTML = '<strong>Izin Pulang Dipilih:</strong> Anda mengajukan izin pulang lebih awal. <strong>Anda tetap wajib melakukan Absen Masuk</strong> di pagi hari.';
+        } else {
+            noteText.innerHTML = '<strong>Izin Seharian (Keduanya) Dipilih:</strong> Anda mengajukan izin tidak hadir penuh sepanjang hari ini.';
+        }
+    }
+}
+window.selectIzinType = selectIzinType;
+
 async function loadAbsensiKaryawan() {
     const today = new Date().toISOString().slice(0, 10);
     const todayBadge = document.getElementById('karyawan-absensi-today-badge');
@@ -5106,15 +5137,14 @@ async function loadAbsensiKaryawan() {
     }
 
     try {
-        // Load standard work hour
         const resJk = await apiFetch('/api/jamkerja');
         let jamMasukStd = '08:00:00';
-        if (resJk.ok) {
+        if (resJk && resJk.ok) {
             const jk = await resJk.json();
             if (jk.jam_masuk) jamMasukStd = jk.jam_masuk;
         }
         const alertJamMasuk = document.getElementById('karyawan-jam-masuk-alert');
-        if (alertJamMasuk) alertJamMasuk.textContent = `Jam Masuk Standar: ${jamMasukStd}`;
+        if (alertJamMasuk) alertJamMasuk.textContent = `Masuk: ${jamMasukStd.substring(0, 5)} (Toleransi s/d 08:10)`;
 
         // Load all attendance records
         let allAbs = [];
@@ -5132,13 +5162,13 @@ async function loadAbsensiKaryawan() {
 
         renderKaryawanAbsensiTable(myRecords);
 
-        // Calculate monthly leave count for this employee
-        const curMonth = today.slice(0, 7); // e.g. "2026-08"
+        // Monthly leave count
+        const curMonth = today.slice(0, 7);
         const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const curDateObj = new Date();
         const monthLabel = monthNames[curDateObj.getMonth()] + " " + curDateObj.getFullYear();
 
-        const izinThisMonth = myRecords.filter(r => r.status === 'Izin' && (r.tanggal || '').startsWith(curMonth));
+        const izinThisMonth = myRecords.filter(r => (r.status || '').includes('Izin') && (r.tanggal || '').startsWith(curMonth));
         const izinCount = izinThisMonth.length;
 
         const izinBox = document.getElementById('karyawan-izin-summary-box');
@@ -5155,48 +5185,88 @@ async function loadAbsensiKaryawan() {
             }
         }
 
-        // Check if I already checked in today
+        // Check today's record
         const todayRec = myRecords.find(a => a.tanggal === today);
-        const actionBox = document.getElementById('karyawan-absen-actions');
-        if (actionBox) {
-            if (todayRec) {
-                if (todayRec.jam_pulang && todayRec.jam_pulang !== '-' && todayRec.jam_pulang !== '') {
-                    actionBox.innerHTML = `
-                        <div class="p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-center">
-                            <i class="fas fa-check-circle text-emerald-500 text-xl mb-1"></i>
-                            <p class="text-xs font-bold text-emerald-700 dark:text-emerald-300">Absensi Hari Ini Sudah Lengkap</p>
-                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Masuk: ${todayRec.jam_masuk} • Pulang: ${todayRec.jam_pulang}</p>
-                        </div>
-                    `;
-                } else {
-                    actionBox.innerHTML = `
-                        <div class="space-y-2.5">
-                            <div class="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-center text-xs text-blue-700 dark:text-blue-300 font-semibold">
-                                Sudah Check-in Pukul ${todayRec.jam_masuk} (${todayRec.status})
-                            </div>
-                            <button type="button" onclick="submitKaryawanCheckOut(${todayRec.id})"
-                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Absen Pulang (Check-out)</span>
-                            </button>
-                        </div>
-                    `;
-                }
-            } else {
-                actionBox.innerHTML = `
-                    <button type="button" onclick="submitKaryawanCheckIn()" id="btn-karyawan-checkin"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm transition active:scale-[0.98]">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Absen Masuk (Check-in)</span>
-                    </button>
-                `;
-            }
-        }
+        renderKaryawanAbsenButtons(todayRec);
     } catch (e) {
-        showToast('Gagal memuat absensi saya.', 'error');
+        showToast('Gagal memuat absensi saya: ' + e.message, 'error');
     }
 }
 window.loadAbsensiKaryawan = loadAbsensiKaryawan;
+
+function renderKaryawanAbsenButtons(todayRec) {
+    const actionBox = document.getElementById('karyawan-absen-actions');
+    if (!actionBox) return;
+
+    const hasMasuk = todayRec && todayRec.jam_masuk && todayRec.jam_masuk !== '-' && todayRec.jam_masuk !== '';
+    const hasPulang = todayRec && todayRec.jam_pulang && todayRec.jam_pulang !== '-' && todayRec.jam_pulang !== '';
+    const isIzinSeharian = todayRec && todayRec.status === 'Izin' && todayRec.jam_masuk === 'Izin' && todayRec.jam_pulang === 'Izin';
+
+    // 1. Sudah Lengkap (Masuk & Pulang sudah terisi, ATAU Izin Seharian)
+    if ((hasMasuk && hasPulang) || isIzinSeharian) {
+        actionBox.innerHTML = `
+            <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-center shadow-xs">
+                <i class="fas fa-check-circle text-emerald-500 text-2xl mb-1.5 block"></i>
+                <p class="text-sm font-bold text-emerald-700 dark:text-emerald-300">Absensi Hari Ini Sudah Lengkap</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Masuk: <strong class="text-gray-900 dark:text-white font-mono">${todayRec.jam_masuk}</strong> • Pulang: <strong class="text-gray-900 dark:text-white font-mono">${todayRec.jam_pulang}</strong></p>
+                <div class="mt-2">
+                    <span class="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-100 dark:bg-emerald-900/40 py-1 px-3 rounded-xl inline-block border border-emerald-200 dark:border-emerald-800/50">
+                        ${todayRec.keterangan || 'Kehadiran lengkap'}
+                    </span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // 2. Sudah Masuk, Belum Pulang
+    if (hasMasuk && !hasPulang) {
+        actionBox.innerHTML = `
+            <div class="space-y-3">
+                <div class="p-3 bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/70 dark:border-blue-800/40 rounded-2xl text-xs text-blue-900 dark:text-blue-200">
+                    <div class="flex items-center justify-between font-bold">
+                        <span>✅ Sudah Masuk: ${todayRec.jam_masuk}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-200 dark:bg-blue-800 font-extrabold text-blue-800 dark:text-blue-100">${todayRec.status}</span>
+                    </div>
+                    <p class="text-[11px] text-blue-700 dark:text-blue-300 mt-1">${todayRec.keterangan || 'Tepat Waktu'}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button type="button" disabled
+                        class="w-full bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-bold py-3.5 px-3 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs cursor-not-allowed">
+                        <i class="fas fa-check-circle text-emerald-500 text-sm"></i>
+                        <span>Masuk Selesai</span>
+                    </button>
+                    <button type="button" onclick="submitKaryawanCheckOut(${todayRec.id})" id="btn-karyawan-checkout"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-3 rounded-2xl shadow-md shadow-emerald-500/25 flex flex-col items-center justify-center gap-1 text-xs transition active:scale-[0.98] cursor-pointer">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
+                        <span>Absen Pulang</span>
+                    </button>
+                </div>
+                <p class="text-[10px] text-center text-gray-500 dark:text-gray-400">Pastikan Absen Pulang saat selesai jam kerja (16:00 WIB).</p>
+            </div>
+        `;
+        return;
+    }
+
+    // 3. Belum Masuk & Belum Pulang
+    actionBox.innerHTML = `
+        <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" onclick="submitKaryawanCheckIn()" id="btn-karyawan-checkin"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-3 rounded-2xl shadow-md shadow-red-500/25 flex flex-col items-center justify-center gap-1 text-xs transition active:scale-[0.98] cursor-pointer">
+                    <i class="fas fa-sign-in-alt text-sm"></i>
+                    <span>Absen Masuk</span>
+                </button>
+                <button type="button" onclick="submitKaryawanCheckOutDirect()" id="btn-karyawan-checkout"
+                    class="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold py-3.5 px-3 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs transition active:scale-[0.98] cursor-pointer">
+                    <i class="fas fa-sign-out-alt text-sm"></i>
+                    <span>Absen Pulang</span>
+                </button>
+            </div>
+            <p class="text-[10px] text-center text-gray-400">Unggah foto selfie Anda sebelum klik tombol Absen Masuk.</p>
+        </div>
+    `;
+}
 
 function renderKaryawanAbsensiTable(records) {
     const tbody = document.getElementById('table-karyawan-absensi-body');
@@ -5216,9 +5286,9 @@ function renderKaryawanAbsensiTable(records) {
     tbody.innerHTML = records.map(item => {
         let statusBadgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
         if (item.status === 'Terlambat') statusBadgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-        else if (item.status === 'Izin') statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        else if (item.status && item.status.includes('Izin')) statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
         else if (item.status === 'Sakit') statusBadgeClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-        else if (item.status === 'Alpha') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        else if (item.status === 'Alpha' || item.status === 'Tidak Lengkap') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
 
         return `
         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
@@ -5239,27 +5309,62 @@ function renderKaryawanAbsensiTable(records) {
 async function submitKaryawanCheckIn() {
     const today = new Date().toISOString().slice(0, 10);
     const now = new Date();
-    const nowTimeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+    const nowHour = now.getHours();
+    const nowMin = now.getMinutes();
+    const nowSec = now.getSeconds();
+    const totalMinutesNow = nowHour * 60 + nowMin;
+    const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
 
-    // Fetch work hours
-    let stdMasuk = '08:00:00';
-    try {
-        const resJk = await apiFetch('/api/jamkerja');
-        if (resJk.ok) {
-            const jk = await resJk.json();
-            if (jk.jam_masuk) stdMasuk = jk.jam_masuk;
+    // Standard Masuk: 08:00 (480 mins). Grace period up to 08:10 (490 mins).
+    let status = 'Hadir';
+    let keterangan = 'Tepat Waktu';
+
+    if (totalMinutesNow <= 490) { // s/d 08:10 WIB
+        status = 'Hadir';
+        keterangan = 'Tepat Waktu';
+    } else {
+        // Terlambat
+        status = 'Terlambat';
+        const lateMin = totalMinutesNow - 480;
+        if (lateMin >= 60) {
+            const jam = Math.floor(lateMin / 60);
+            const sisaMnt = lateMin % 60;
+            keterangan = sisaMnt > 0 ? `Terlambat ${jam} jam ${sisaMnt} menit` : `Terlambat ${jam} jam`;
+        } else {
+            keterangan = `Terlambat ${lateMin} menit`;
         }
-    } catch (e) {}
+    }
 
-    // Check if late
-    const isLate = nowTimeStr > stdMasuk;
-    const status = isLate ? 'Terlambat' : 'Hadir';
     const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
-    const keterangan = isLate ? `Check-in terlambat (setelah ${stdMasuk})` : 'Hadir tepat waktu';
     const foto = currentKaryawanSelfieBase64 || 'haltea-logo.png';
 
     try {
-        const res = await apiFetch('/api/absensi', {
+        let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+        const existingIdx = absList.findIndex(x => x.tanggal === today && x.nama_staff === curName);
+
+        if (existingIdx !== -1) {
+            // Update existing entry if previously Izin Masuk
+            absList[existingIdx].jam_masuk = nowTimeStr;
+            absList[existingIdx].status = status;
+            absList[existingIdx].keterangan = keterangan;
+            if (foto) absList[existingIdx].foto = foto;
+            setMockStorage('absensi', absList);
+        } else {
+            const newRecord = {
+                id: Date.now(),
+                nama_staff: curName,
+                tanggal: today,
+                jam_masuk: nowTimeStr,
+                jam_pulang: '-',
+                status,
+                keterangan,
+                foto
+            };
+            absList.unshift(newRecord);
+            setMockStorage('absensi', absList);
+        }
+
+        await apiFetch('/api/absensi', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -5271,9 +5376,9 @@ async function submitKaryawanCheckIn() {
                 keterangan,
                 foto
             })
-        });
-        if (!res.ok) throw new Error('Gagal melakukan absensi masuk');
-        showToast(`Absensi Masuk Berhasil! Status: ${status} (${nowTimeStr})`, 'success');
+        }).catch(() => {});
+
+        showToast(`Absen Masuk Berhasil! Status: ${status} (${keterangan} - ${nowTimeStr})`, status === 'Hadir' ? 'success' : 'warn');
         await loadAbsensiKaryawan();
     } catch (err) {
         showToast(err.message, 'error');
@@ -5282,24 +5387,91 @@ async function submitKaryawanCheckIn() {
 window.submitKaryawanCheckIn = submitKaryawanCheckIn;
 
 async function submitKaryawanCheckOut(recordId) {
+    const today = new Date().toISOString().slice(0, 10);
     const now = new Date();
-    const nowTimeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+    const nowHour = now.getHours();
+    const nowMin = now.getMinutes();
+    const nowSec = now.getSeconds();
+    const totalMinutesNow = nowHour * 60 + nowMin;
+    const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
+
+    // Standard Pulang: 16:00 (960 mins). Normal: 16:00 s/d 18:00 (1080 mins) or later
+    let pulangKet = '';
+    if (totalMinutesNow >= 960) {
+        pulangKet = 'Jam Kerja Terpenuhi';
+    } else {
+        const earlyMin = 960 - totalMinutesNow;
+        if (earlyMin >= 60) {
+            const jam = Math.floor(earlyMin / 60);
+            const sisaMnt = earlyMin % 60;
+            pulangKet = sisaMnt > 0 ? `Pulang Lebih Awal ${jam} jam ${sisaMnt} menit` : `Pulang Lebih Awal ${jam} jam`;
+        } else {
+            pulangKet = `Pulang Lebih Awal ${earlyMin} menit`;
+        }
+    }
 
     try {
-        // Update mock storage directly or via API
         let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
-        const idx = absList.findIndex(x => x.id === recordId);
-        if (idx !== -1) {
-            absList[idx].jam_pulang = nowTimeStr;
+        let target = absList.find(x => x.id === recordId || (x.tanggal === today && x.nama_staff === (currentUser?.nama || 'Kasir Haltea (Karyawan)')));
+
+        if (target) {
+            target.jam_pulang = nowTimeStr;
+            const prevKet = target.keterangan || 'Hadir';
+            target.keterangan = prevKet.includes('Pulang') || prevKet.includes('Terpenuhi') ? prevKet : `${prevKet} | ${pulangKet}`;
             setMockStorage('absensi', absList);
         }
-        showToast(`Absensi Pulang (Check-out) Berhasil! (${nowTimeStr})`, 'success');
+
+        showToast(`Absen Pulang Berhasil! (${pulangKet} - ${nowTimeStr})`, totalMinutesNow >= 960 ? 'success' : 'warn');
         await loadAbsensiKaryawan();
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 window.submitKaryawanCheckOut = submitKaryawanCheckOut;
+
+async function submitKaryawanCheckOutDirect() {
+    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const nowHour = now.getHours();
+    const nowMin = now.getMinutes();
+    const nowSec = now.getSeconds();
+    const totalMinutesNow = nowHour * 60 + nowMin;
+    const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
+    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+
+    // Check if user has checked in today
+    let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+    const existing = absList.find(x => x.tanggal === today && x.nama_staff === curName);
+
+    if (existing && existing.jam_masuk && existing.jam_masuk !== '-') {
+        return submitKaryawanCheckOut(existing.id);
+    }
+
+    // Direct check-out without check-in:
+    // If past 08:15 (495 mins) and before 16:00 (960 mins):
+    if (totalMinutesNow > 495 && totalMinutesNow < 960) {
+        showToast('Anda belum melakukan Absen Masuk dan sudah melewati batas toleransi (08:15). Silakan absen masuk terlebih dahulu.', 'warn');
+        return;
+    }
+
+    let pulangKet = totalMinutesNow >= 960 ? 'Jam Kerja Terpenuhi' : 'Pulang Lebih Awal';
+    const newRecord = {
+        id: Date.now(),
+        nama_staff: curName,
+        tanggal: today,
+        jam_masuk: '-',
+        jam_pulang: nowTimeStr,
+        status: 'Tidak Lengkap',
+        keterangan: `Tidak Absen Masuk | ${pulangKet}`,
+        foto: 'haltea-logo.png'
+    };
+    absList.unshift(newRecord);
+    setMockStorage('absensi', absList);
+
+    showToast(`Absen Pulang dicatat (${pulangKet} - ${nowTimeStr})`, 'info');
+    await loadAbsensiKaryawan();
+}
+window.submitKaryawanCheckOutDirect = submitKaryawanCheckOutDirect;
 
 async function submitKaryawanIzin() {
     const today = new Date().toISOString().slice(0, 10);
@@ -5310,23 +5482,84 @@ async function submitKaryawanIzin() {
     }
 
     const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    let jamMasukVal = '-';
+    let jamPulangVal = '-';
+    let statusVal = 'Izin';
+    let keteranganVal = '';
+
+    if (currentIzinType === 'masuk') {
+        jamMasukVal = 'Izin';
+        jamPulangVal = '-';
+        statusVal = 'Izin (Masuk)';
+        keteranganVal = `Izin Masuk: ${alasan} (Wajib Absen Pulang)`;
+    } else if (currentIzinType === 'pulang') {
+        jamMasukVal = '-';
+        jamPulangVal = 'Izin';
+        statusVal = 'Izin (Pulang)';
+        keteranganVal = `Izin Pulang: ${alasan}`;
+    } else {
+        jamMasukVal = 'Izin';
+        jamPulangVal = 'Izin';
+        statusVal = 'Izin';
+        keteranganVal = `Izin Seharian: ${alasan}`;
+    }
 
     try {
-        const res = await apiFetch('/api/absensi', {
+        let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+        const existingIdx = absList.findIndex(x => x.tanggal === today && x.nama_staff === curName);
+
+        if (existingIdx !== -1) {
+            const cur = absList[existingIdx];
+            if (currentIzinType === 'pulang') {
+                cur.jam_pulang = 'Izin';
+                cur.keterangan = `${cur.keterangan || 'Hadir'} | Izin Pulang: ${alasan}`;
+            } else if (currentIzinType === 'masuk') {
+                cur.jam_masuk = 'Izin';
+                cur.keterangan = `Izin Masuk: ${alasan} | ${cur.keterangan || ''}`;
+            } else {
+                cur.jam_masuk = 'Izin';
+                cur.jam_pulang = 'Izin';
+                cur.status = 'Izin';
+                cur.keterangan = `Izin Seharian: ${alasan}`;
+            }
+            setMockStorage('absensi', absList);
+        } else {
+            const newRecord = {
+                id: Date.now(),
+                nama_staff: curName,
+                tanggal: today,
+                jam_masuk: jamMasukVal,
+                jam_pulang: jamPulangVal,
+                status: statusVal,
+                keterangan: keteranganVal,
+                foto: 'haltea-logo.png'
+            };
+            absList.unshift(newRecord);
+            setMockStorage('absensi', absList);
+        }
+
+        await apiFetch('/api/absensi', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 nama_staff: curName,
                 tanggal: today,
-                jam_masuk: '-',
-                jam_pulang: '-',
-                status: 'Izin',
-                keterangan: `Izin: ${alasan}`,
+                jam_masuk: jamMasukVal,
+                jam_pulang: jamPulangVal,
+                status: statusVal,
+                keterangan: keteranganVal,
                 foto: 'haltea-logo.png'
             })
-        });
-        if (!res.ok) throw new Error('Gagal mengajukan izin');
-        showToast('Permohonan izin Anda berhasil dikirim ke Admin.', 'success');
+        }).catch(() => {});
+
+        if (currentIzinType === 'masuk') {
+            showToast('Permohonan Izin Masuk berhasil dikirim. Anda tetap wajib melakukan Absen Pulang saat selesai kerja.', 'info');
+        } else if (currentIzinType === 'pulang') {
+            showToast('Permohonan Izin Pulang berhasil dikirim.', 'info');
+        } else {
+            showToast('Permohonan Izin Seharian berhasil dikirim ke Admin.', 'success');
+        }
+
         document.getElementById('karyawan-izin-alasan').value = '';
         switchKaryawanAbsensiTab('hadir');
         await loadAbsensiKaryawan();
