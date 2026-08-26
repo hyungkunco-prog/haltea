@@ -9,6 +9,7 @@ import * as menuController from '../controllers/menuController.js';
 import * as takaranController from '../controllers/takaranController.js';
 import * as transaksiController from '../controllers/transaksiController.js';
 import * as predictController from '../controllers/predictController.js';
+import * as absensiController from '../controllers/absensiController.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -51,12 +52,22 @@ router.delete('/sop/:id', requireAdmin, takaranController.remove);
 // --- Transaksi Routes ---
 router.get('/transaksi', transaksiController.index);
 router.post('/transaksi', transaksiController.create);
+router.put('/transaksi/:id', transaksiController.update);
 router.delete('/transaksi/:id', transaksiController.remove);
 router.post('/transaksi/import', upload.single('file'), transaksiController.importTransactions);
 router.post('/transaksi/reset', transaksiController.reset);
 router.post('/transaksi/restore', transaksiController.restore);
 router.get('/transaksi/batches', transaksiController.getBatches);
 router.post('/transaksi/restore-batch/:id', transaksiController.restoreBatch);
+
+// --- Absensi & Jam Kerja Routes ---
+router.get('/absensi', absensiController.getAbsensi);
+router.post('/absensi', absensiController.createAbsensi);
+router.put('/absensi/:id', absensiController.updateAbsensi);
+router.delete('/absensi/:id', absensiController.deleteAbsensi);
+router.get('/jamkerja', absensiController.getJamKerja);
+router.post('/jamkerja', absensiController.saveJamKerja);
+router.put('/jamkerja', absensiController.saveJamKerja);
 
 // --- Predict Routes ---
 router.get('/predict', predictController.index);

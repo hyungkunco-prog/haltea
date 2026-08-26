@@ -68,13 +68,16 @@ const DEFAULT_TAKARAN = [
     { id: 12, id_menu: 3, id_barang: 39, gramasi: 25 }
 ];
 
-const DEFAULT_JAM_KERJA = { jam_masuk: '08:00:00', jam_pulang: '17:00:00' };
+const DEFAULT_JAM_KERJA = { jam_masuk: '08:00:00', jam_pulang: '16:00:00' };
 
 const todayDateIso = new Date().toISOString().slice(0, 10);
+const yesterdayIso = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+const twoDaysAgoIso = new Date(Date.now() - 172800000).toISOString().slice(0, 10);
+
 const DEFAULT_ABSENSI = [
-    { id: 1, tanggal: todayDateIso, nama_staff: 'karyawan Haltea', jam_masuk: '07:50:00', jam_pulang: '17:05:00', status: 'Hadir', keterangan: 'Shift pagi - tepat waktu', foto: 'haltea-logo.png' },
-    { id: 2, tanggal: todayDateIso, nama_staff: 'Kasir Haltea', jam_masuk: '08:12:00', jam_pulang: '17:00:00', status: 'Terlambat', keterangan: 'Keterlambatan 12 menit', foto: 'haltea-logo.png' },
-    { id: 3, tanggal: todayDateIso, nama_staff: 'Admin Haltea', jam_masuk: '07:45:00', jam_pulang: '17:30:00', status: 'Hadir', keterangan: 'Supervisor & Stock Opname', foto: 'haltea-logo.png' }
+    { id: 1, tanggal: yesterdayIso, nama_staff: 'Kasir Haltea', jam_masuk: '07:55:00', jam_pulang: '16:05:00', status: 'Hadir', keterangan: 'Shift pagi - tepat waktu', foto: 'haltea-logo.png' },
+    { id: 2, tanggal: twoDaysAgoIso, nama_staff: 'Kasir Haltea', jam_masuk: '08:12:00', jam_pulang: '16:00:00', status: 'Terlambat', keterangan: 'Terlambat 12 menit', foto: 'haltea-logo.png' },
+    { id: 3, tanggal: yesterdayIso, nama_staff: 'Admin Haltea', jam_masuk: '07:45:00', jam_pulang: '17:30:00', status: 'Hadir', keterangan: 'Supervisor & Stock Opname', foto: 'haltea-logo.png' }
 ];
 
 const DEFAULT_ARUS_KAS = [
@@ -108,11 +111,14 @@ function initMockDataIfEmpty() {
     const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
     const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
 
-    const versionKey = 'haltea_db_real_v5';
+    const versionKey = 'haltea_db_real_v6';
     if (!localStorage.getItem(versionKey)) {
         setMockStorage('barang', fullBarang);
         setMockStorage('menu', fullMenu);
         setMockStorage('takaran', fullTakaran);
+        setMockStorage('absensi', DEFAULT_ABSENSI);
+        setMockStorage('jam_kerja', DEFAULT_JAM_KERJA);
+        setMockStorage('aruskas', DEFAULT_ARUS_KAS);
         if (fullTrx) {
             setMockStorage('transaksi', fullTrx);
         }
@@ -746,17 +752,38 @@ async function handleClientSideMock(url, config = {}) {
             let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
             if (method === 'GET') {
                 const filterTgl = parsedUrl.searchParams.get('tanggal');
+                const filterStaff = parsedUrl.searchParams.get('nama_staff');
+                const filterBulan = parsedUrl.searchParams.get('bulan');
                 let result = absList;
                 if (filterTgl) result = result.filter(a => a.tanggal === filterTgl);
+                if (filterStaff) result = result.filter(a => (a.nama_staff || '').toLowerCase().includes(filterStaff.toLowerCase()));
+                if (filterBulan) result = result.filter(a => (a.tanggal || '').startsWith(filterBulan));
                 return new Response(JSON.stringify(result), { status: 200 });
             }
             if (method === 'POST') {
+                const reqTgl = body.tanggal || todayDateIso;
+                const reqStaff = body.nama_staff || 'Kasir Haltea';
+                const existingIdx = absList.findIndex(a => a.tanggal === reqTgl && a.nama_staff === reqStaff);
+
+                if (existingIdx !== -1) {
+                    absList[existingIdx] = {
+                        ...absList[existingIdx],
+                        jam_masuk: (body.jam_masuk && body.jam_masuk !== '-') ? body.jam_masuk : absList[existingIdx].jam_masuk,
+                        jam_pulang: (body.jam_pulang && body.jam_pulang !== '-') ? body.jam_pulang : absList[existingIdx].jam_pulang,
+                        status: body.status || absList[existingIdx].status,
+                        keterangan: body.keterangan || absList[existingIdx].keterangan,
+                        foto: body.foto || absList[existingIdx].foto
+                    };
+                    setMockStorage('absensi', absList);
+                    return new Response(JSON.stringify({ success: true, message: 'Absensi diperbarui', data: absList[existingIdx] }), { status: 200 });
+                }
+
                 const newAbs = {
                     id: Date.now(),
-                    tanggal: body.tanggal || todayDateIso,
-                    nama_staff: body.nama_staff || 'Staff',
-                    jam_masuk: body.jam_masuk || '08:00:00',
-                    jam_pulang: body.jam_pulang || '17:00:00',
+                    tanggal: reqTgl,
+                    nama_staff: reqStaff,
+                    jam_masuk: body.jam_masuk || '-',
+                    jam_pulang: body.jam_pulang || '-',
                     status: body.status || 'Hadir',
                     keterangan: body.keterangan || '-',
                     foto: body.foto || 'haltea-logo.png'
@@ -765,11 +792,51 @@ async function handleClientSideMock(url, config = {}) {
                 setMockStorage('absensi', absList);
                 return new Response(JSON.stringify({ success: true, data: newAbs }), { status: 201 });
             }
+            if (method === 'PUT') {
+                const idUpdate = parseInt(path.split('/').pop(), 10);
+                const idx = absList.findIndex(x => x.id === idUpdate);
+                if (idx !== -1) {
+                    absList[idx] = {
+                        ...absList[idx],
+                        ...(body.jam_masuk !== undefined ? { jam_masuk: body.jam_masuk } : {}),
+                        ...(body.jam_pulang !== undefined ? { jam_pulang: body.jam_pulang } : {}),
+                        ...(body.status !== undefined ? { status: body.status } : {}),
+                        ...(body.keterangan !== undefined ? { keterangan: body.keterangan } : {}),
+                        ...(body.foto !== undefined ? { foto: body.foto } : {})
+                    };
+                    setMockStorage('absensi', absList);
+                    return new Response(JSON.stringify({ success: true, data: absList[idx] }), { status: 200 });
+                }
+                return new Response(JSON.stringify({ error: 'Data absensi tidak ditemukan' }), { status: 404 });
+            }
             if (method === 'DELETE') {
-                const idDel = parseInt(path.split('/').pop());
+                const idDel = parseInt(path.split('/').pop(), 10);
                 absList = absList.filter(x => x.id !== idDel);
                 setMockStorage('absensi', absList);
                 return new Response(JSON.stringify({ success: true }), { status: 200 });
+            }
+        }
+
+        if (path.startsWith('/transaksi') && method === 'PUT') {
+            const idTrx = parseInt(path.split('/').pop(), 10);
+            let trxList = getMockStorage('transaksi', DEFAULT_TRANSAKSI);
+            const tIdx = trxList.findIndex(x => x.id === idTrx);
+            if (tIdx !== -1) {
+                const m = menu.find(x => x.id === body.id_menu) || {};
+                const harga = parseInt(m.harga, 10) || 5000;
+                const jml = parseInt(body.jumlah, 10) || 1;
+                trxList[tIdx] = {
+                    ...trxList[tIdx],
+                    tanggal: body.tanggal || trxList[tIdx].tanggal,
+                    id_menu: body.id_menu !== undefined ? body.id_menu : trxList[tIdx].id_menu,
+                    nama_menu: m.nama_menu || trxList[tIdx].nama_menu,
+                    jumlah: jml,
+                    harga: harga,
+                    total_harga: harga * jml,
+                    total_bayar: harga * jml
+                };
+                setMockStorage('transaksi', trxList);
+                return new Response(JSON.stringify({ success: true, data: trxList[tIdx] }), { status: 200 });
             }
         }
 
@@ -3762,7 +3829,7 @@ function renderRiwayatPekan(allTrx) {
                 const avgMenuCup = (m.total_cups / dayCount).toFixed(1);
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
+                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
                     <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
                     <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
                     <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${m.total_cups.toLocaleString('id-ID')} Cup</td>
@@ -3932,7 +3999,7 @@ function renderRiwayatBulan(allTrx) {
                 const avgMenuCup = activeDays > 0 ? (m.total_cups / activeDays).toFixed(1) : m.total_cups;
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400">${idx + 1}</td>
+                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
                     <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Nama Menu">${m.nama_menu}</td>
                     <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
                     <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.total_cups.toLocaleString('id-ID')} Cup</td>
@@ -5726,26 +5793,28 @@ function renderAbsensiTable(records) {
 
         return `
         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
-            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">${item.tanggal}</td>
-            <td class="py-3 px-3 font-bold text-gray-900 dark:text-white whitespace-nowrap">${item.nama_staff}</td>
-            <td class="py-3 px-3 text-center whitespace-nowrap">
+            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap" data-label="Tanggal">${item.tanggal}</td>
+            <td class="py-3 px-3 font-bold text-gray-900 dark:text-white whitespace-nowrap" data-label="Nama Staff">${item.nama_staff}</td>
+            <td class="py-3 px-3 text-center whitespace-nowrap" data-label="Status">
                 <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${statusBadgeClass}">
                     ${item.status}
                 </span>
             </td>
-            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_masuk || '-'}</td>
-            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_pulang || '-'}</td>
-            <td class="py-3 px-3 text-center">
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Masuk">${item.jam_masuk || '-'}</td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Pulang">${item.jam_pulang || '-'}</td>
+            <td class="py-3 px-3 text-center" data-label="Foto">
                 <div class="inline-block w-8 h-8 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:scale-110 transition-transform"
                      onclick="previewFotoAbsensi('${fotoUrl}', '${item.nama_staff} - ${item.tanggal}')" title="Lihat Foto Bukti">
                     <img src="${fotoUrl}" class="w-full h-full object-cover">
                 </div>
             </td>
-            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs">${item.keterangan || '-'}</td>
-            <td class="py-3 px-2 text-center whitespace-nowrap">
-                <button onclick="deleteAbsensi(${item.id})" title="Hapus Rekaman" class="text-gray-400 hover:text-red-500 p-1.5 transition">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                </button>
+            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs" data-label="Keterangan">${item.keterangan || '-'}</td>
+            <td class="py-3 px-2 text-center whitespace-nowrap td-actions" data-label="Aksi">
+                <div class="flex items-center justify-center">
+                    <button onclick="deleteAbsensi(${item.id})" title="Hapus Rekaman" class="text-gray-400 hover:text-red-500 p-1.5 transition">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
             </td>
         </tr>
         `;
@@ -6015,6 +6084,11 @@ function renderKaryawanAbsenButtons(todayRec) {
                         ${todayRec.keterangan || 'Kehadiran lengkap'}
                     </span>
                 </div>
+                <div class="mt-3 pt-2 border-t border-emerald-200/50 dark:border-emerald-800/40">
+                    <button type="button" onclick="resetKaryawanAbsenToday()" class="text-xs font-semibold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 underline transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                        <i class="fas fa-rotate-left text-[10px]"></i> Koreksi / Absen Ulang Hari Ini
+                    </button>
+                </div>
             </div>
         `;
         return;
@@ -6093,19 +6167,35 @@ function renderKaryawanAbsensiTable(records) {
 
         return `
         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
-            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">${item.tanggal}</td>
-            <td class="py-3 px-3 text-center whitespace-nowrap">
+            <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap" data-label="Tanggal">${item.tanggal}</td>
+            <td class="py-3 px-3 text-center whitespace-nowrap" data-label="Status">
                 <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${statusBadgeClass}">
                     ${item.status}
                 </span>
             </td>
-            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_masuk || '-'}</td>
-            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300">${item.jam_pulang || '-'}</td>
-            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs">${item.keterangan || '-'}</td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Masuk">${item.jam_masuk || '-'}</td>
+            <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Pulang">${item.jam_pulang || '-'}</td>
+            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs" data-label="Keterangan">${item.keterangan || '-'}</td>
         </tr>
         `;
     }).join('');
 }
+
+async function resetKaryawanAbsenToday() {
+    const today = new Date().toISOString().slice(0, 10);
+    const curName = currentUser?.nama || 'Kasir Haltea';
+
+    let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
+    const target = absList.find(x => x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase())));
+    if (target) {
+        absList = absList.filter(x => x.id !== target.id);
+        setMockStorage('absensi', absList);
+        await apiFetch(`/api/absensi/${target.id}`, { method: 'DELETE' }).catch(() => {});
+    }
+    showToast('Rekaman absensi hari ini direset. Silakan absen kembali.', 'info');
+    await loadAbsensiKaryawan();
+}
+window.resetKaryawanAbsenToday = resetKaryawanAbsenToday;
 
 async function submitKaryawanCheckIn() {
     const today = new Date().toISOString().slice(0, 10);
@@ -6136,15 +6226,14 @@ async function submitKaryawanCheckIn() {
         }
     }
 
-    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const curName = currentUser?.nama || 'Kasir Haltea';
     const foto = currentKaryawanSelfieBase64 || 'haltea-logo.png';
 
     try {
         let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
-        const existingIdx = absList.findIndex(x => x.tanggal === today && x.nama_staff === curName);
+        const existingIdx = absList.findIndex(x => x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase())));
 
         if (existingIdx !== -1) {
-            // Update existing entry if previously Izin Masuk
             absList[existingIdx].jam_masuk = nowTimeStr;
             absList[existingIdx].status = status;
             absList[existingIdx].keterangan = keterangan;
@@ -6196,7 +6285,7 @@ async function submitKaryawanCheckOut(recordId) {
     const totalMinutesNow = nowHour * 60 + nowMin;
     const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
 
-    // Standard Pulang: 16:00 (960 mins). Normal: 16:00 s/d 18:00 (1080 mins) or later
+    // Standard Pulang: 16:00 (960 mins).
     let pulangKet = '';
     if (totalMinutesNow >= 960) {
         pulangKet = 'Jam Kerja Terpenuhi';
@@ -6211,15 +6300,37 @@ async function submitKaryawanCheckOut(recordId) {
         }
     }
 
+    const curName = currentUser?.nama || 'Kasir Haltea';
+
     try {
         let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
-        let target = absList.find(x => x.id === recordId || (x.tanggal === today && x.nama_staff === (currentUser?.nama || 'Kasir Haltea (Karyawan)')));
+        let target = absList.find(x => x.id === recordId || (x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase()))));
 
         if (target) {
             target.jam_pulang = nowTimeStr;
             const prevKet = target.keterangan || 'Hadir';
             target.keterangan = prevKet.includes('Pulang') || prevKet.includes('Terpenuhi') ? prevKet : `${prevKet} | ${pulangKet}`;
             setMockStorage('absensi', absList);
+
+            await apiFetch(`/api/absensi/${target.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jam_pulang: nowTimeStr,
+                    keterangan: target.keterangan
+                })
+            }).catch(() => {
+                apiFetch('/api/absensi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nama_staff: curName,
+                        tanggal: today,
+                        jam_pulang: nowTimeStr,
+                        keterangan: target.keterangan
+                    })
+                }).catch(() => {});
+            });
         }
 
         showToast(`Absen Pulang Berhasil! (${pulangKet} - ${nowTimeStr})`, totalMinutesNow >= 960 ? 'success' : 'warn');
@@ -6238,21 +6349,14 @@ async function submitKaryawanCheckOutDirect() {
     const nowSec = now.getSeconds();
     const totalMinutesNow = nowHour * 60 + nowMin;
     const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
-    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const curName = currentUser?.nama || 'Kasir Haltea';
 
     // Check if user has checked in today
     let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
-    const existing = absList.find(x => x.tanggal === today && x.nama_staff === curName);
+    const existing = absList.find(x => x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase())));
 
     if (existing && existing.jam_masuk && existing.jam_masuk !== '-') {
         return submitKaryawanCheckOut(existing.id);
-    }
-
-    // Direct check-out without check-in:
-    // If past 08:15 (495 mins) and before 16:00 (960 mins):
-    if (totalMinutesNow > 495 && totalMinutesNow < 960) {
-        showToast('Anda belum melakukan Absen Masuk dan sudah melewati batas toleransi (08:15). Silakan absen masuk terlebih dahulu.', 'warn');
-        return;
     }
 
     let pulangKet = totalMinutesNow >= 960 ? 'Jam Kerja Terpenuhi' : 'Pulang Lebih Awal';
@@ -6269,6 +6373,12 @@ async function submitKaryawanCheckOutDirect() {
     absList.unshift(newRecord);
     setMockStorage('absensi', absList);
 
+    await apiFetch('/api/absensi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecord)
+    }).catch(() => {});
+
     showToast(`Absen Pulang dicatat (${pulangKet} - ${nowTimeStr})`, 'info');
     await loadAbsensiKaryawan();
 }
@@ -6282,7 +6392,7 @@ async function submitKaryawanIzin() {
         return;
     }
 
-    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const curName = currentUser?.nama || 'Kasir Haltea';
     let jamMasukVal = '-';
     let jamPulangVal = '-';
     let statusVal = 'Izin';
@@ -6307,7 +6417,7 @@ async function submitKaryawanIzin() {
 
     try {
         let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
-        const existingIdx = absList.findIndex(x => x.tanggal === today && x.nama_staff === curName);
+        const existingIdx = absList.findIndex(x => x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase())));
 
         if (existingIdx !== -1) {
             const cur = absList[existingIdx];
@@ -6358,10 +6468,11 @@ async function submitKaryawanIzin() {
         } else if (currentIzinType === 'pulang') {
             showToast('Permohonan Izin Pulang berhasil dikirim.', 'info');
         } else {
-            showToast('Permohonan Izin Seharian berhasil dikirim ke Admin.', 'success');
+            showToast('Permohonan Izin Seharian berhasil dicatat.', 'info');
         }
 
-        document.getElementById('karyawan-izin-alasan').value = '';
+        const alasanInput = document.getElementById('karyawan-izin-alasan');
+        if (alasanInput) alasanInput.value = '';
         switchKaryawanAbsensiTab('hadir');
         await loadAbsensiKaryawan();
     } catch (err) {

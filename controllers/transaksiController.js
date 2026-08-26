@@ -198,7 +198,37 @@ export async function remove(req, res) {
     const id = parseInt(req.params.id, 10);
     try {
         await query('DELETE FROM transaksi WHERE id = ?', [id]);
-        return res.json({ success: true });
+        return res.json({ success: true, message: 'Transaksi berhasil dihapus.' });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+}
+
+export async function update(req, res) {
+    const id = parseInt(req.params.id, 10);
+    const { tanggal, id_menu, jumlah, total_bayar } = req.body;
+    try {
+        const [rows] = await query('SELECT * FROM transaksi WHERE id = ?', [id]);
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+        }
+        const cur = rows[0];
+        const newTgl = tanggal || cur.tanggal;
+        const newIdMenu = id_menu !== undefined ? parseInt(id_menu, 10) : cur.id_menu;
+        const newJml = jumlah !== undefined ? parseInt(jumlah, 10) : cur.jumlah;
+
+        let newTotal = total_bayar;
+        if (newTotal === undefined || newTotal === null) {
+            const [menus] = await query('SELECT harga FROM menu WHERE id = ?', [newIdMenu]);
+            const harga = menus[0] ? parseInt(menus[0].harga, 10) : 5000;
+            newTotal = harga * newJml;
+        }
+
+        await query(
+            'UPDATE transaksi SET tanggal = ?, id_menu = ?, jumlah = ?, total_bayar = ? WHERE id = ?',
+            [newTgl, newIdMenu, newJml, newTotal, id]
+        );
+        return res.json({ success: true, message: 'Transaksi berhasil diperbarui.' });
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }
