@@ -1073,6 +1073,7 @@ const ADMIN_NAV = [
     { id: 'prediksi', icon: 'fa-chart-line', label: 'Prediksi Bahan Baku', role: 'admin' },
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
+    { id: 'absensi_staf', icon: 'fa-user-check', label: 'Cek Absensi Karyawan', role: 'admin' },
     { id: 'stok_karyawan', icon: 'fa-boxes-stacked', label: 'Stok Bahan Baku', role: 'kasir' },
     { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Karyawan', role: 'kasir' },
 ];
