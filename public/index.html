@@ -2153,13 +2153,12 @@
                             <table class="w-full data-table">
                                 <thead>
                                     <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
-                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Cup Terjual</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Estimasi Pemakaian Bahan</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold w-12">No</th>
+                                        <th class="px-3 py-2.5 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-3 py-2.5 text-left font-semibold">Kategori</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Jumlah Penjualan</th>
+                                        <th class="px-3 py-2.5 text-right font-semibold">Total Omset</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Kontribusi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-riwayat-menu-harian-body" class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -2276,15 +2275,19 @@
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
-                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Cup Terjual</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Estimasi Pemakaian Bahan</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Rata-rata/Hari</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi</th>
+                                    <tr id="table-riwayat-menu-pekan-head-tr" class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-2.5 py-2.5 text-center font-semibold w-10">No</th>
+                                        <th class="px-3 py-2.5 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-1</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-2</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-3</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-4</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-5</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-6</th>
+                                        <th class="px-2 py-2.5 text-center font-semibold">H-7</th>
+                                        <th class="px-2.5 py-2.5 text-center font-semibold">Total Cup</th>
+                                        <th class="px-3 py-2.5 text-right font-semibold">Total Omset</th>
+                                        <th class="px-2.5 py-2.5 text-center font-semibold">Rata-rata</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-riwayat-menu-pekan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -2394,15 +2397,16 @@
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
-                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Total Cup</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Estimasi Pemakaian Bahan</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Rata-rata/Hari</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi Omset</th>
+                                    <tr id="table-riwayat-menu-bulan-head-tr" class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-3 py-2.5 text-center font-semibold w-12">No</th>
+                                        <th class="px-4 py-2.5 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Pekan 1 (1-7)</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Pekan 2 (8-14)</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Pekan 3 (15-21)</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Pekan 4 (22-End)</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Total Cup</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold">Total Omset</th>
+                                        <th class="px-3 py-2.5 text-center font-semibold">Rata-rata/Pekan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-riwayat-menu-bulan-body" class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -2501,15 +2505,24 @@
                         <div class="overflow-x-auto">
                             <table class="w-full data-table">
                                 <thead>
-                                    <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
-                                        <th class="px-4 py-3 text-center font-semibold w-12">No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Nama Menu</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Kategori</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Total Cup</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Estimasi Pemakaian Bahan</th>
-                                        <th class="px-4 py-3 text-right font-semibold">Total Omset</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Rata-rata/Bulan</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Kontribusi Omset</th>
+                                    <tr class="text-[11px] text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                        <th class="px-2 py-2 text-center font-semibold w-8">No</th>
+                                        <th class="px-3 py-2 text-left font-semibold">Nama Menu</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Jan</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Feb</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Mar</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Apr</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Mei</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Jun</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Jul</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Agu</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Sep</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Okt</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Nov</th>
+                                        <th class="px-1.5 py-2 text-center font-semibold">Des</th>
+                                        <th class="px-2.5 py-2 text-center font-semibold">Total Cup</th>
+                                        <th class="px-3 py-2 text-right font-semibold">Total Omset</th>
+                                        <th class="px-2.5 py-2 text-center font-semibold">Rata-rata</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-riwayat-menu-tahun-body" class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -4443,8 +4456,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=4.1.0"></script>
-    <script src="js/app.js?v=4.1.0"></script>
+    <script src="js/haltea_data.js?v=4.2.0"></script>
+    <script src="js/app.js?v=4.2.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

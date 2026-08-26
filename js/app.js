@@ -1032,15 +1032,6 @@ window.playWelcomeVoice = playWelcomeVoice;
 
 if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = () => {};
-    const handleFirstGestureAudio = () => {
-        if (!hasSpokenOpeningVoice && currentUser) {
-            executeWelcomeVoice(false);
-        }
-        window.removeEventListener('click', handleFirstGestureAudio);
-        window.removeEventListener('keydown', handleFirstGestureAudio);
-    };
-    window.addEventListener('click', handleFirstGestureAudio, { once: true });
-    window.addEventListener('keydown', handleFirstGestureAudio, { once: true });
 }
 
 function showApp() {
@@ -1049,7 +1040,6 @@ function showApp() {
     setupSidebar();
     updateLayoutMode();
     showPage('dashboard');
-    setTimeout(() => { playWelcomeVoice(); }, 600);
 }
 
 function showLogin() {
@@ -3760,7 +3750,7 @@ function groupTrxByMenu(trxs) {
 }
 
 // -------------------------------------------------------------
-// TAB 1: HARIAN & PER TRANSAKSI
+// TAB 1: HARIAN (REKAP PENJUALAN PER MENU & DETAIL TRANSAKSI)
 // -------------------------------------------------------------
 function renderRiwayatPerTransaksi(allTrx) {
     const filterDateInput = document.getElementById('riwayat-filter-date');
@@ -3780,7 +3770,7 @@ function renderRiwayatPerTransaksi(allTrx) {
         return true;
     });
 
-    // 1. Update Harian KPI Stat Cards
+    // 1. KPI Stat Cards
     const totalOmset = filtered.reduce((s, t) => s + (parseInt(t.total_harga || t.total_bayar, 10) || (parseInt(t.harga, 10) * parseInt(t.jumlah || 1, 10)) || 0), 0);
     const totalCups = filtered.reduce((s, t) => s + (parseInt(t.jumlah, 10) || 0), 0);
     const { list: menuBreakdown } = groupTrxByMenu(filtered);
@@ -3805,29 +3795,29 @@ function renderRiwayatPerTransaksi(allTrx) {
     }
     if (badge) badge.textContent = `${filtered.length} Transaksi`;
 
-    // 2. Render Rekap Penjualan & Pemakaian Bahan Per Menu Hari Terpilih
+    // 2. Render Tabel Rekap Penjualan Per Menu Harian (Murni Penjualan)
     const tbodyMenu = document.getElementById('table-riwayat-menu-harian-body') || document.getElementById('riwayat-menu-summary-tbody');
     if (tbodyMenu) {
         if (menuBreakdown.length === 0) {
-            tbodyMenu.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada penjualan menu pada tanggal terpilih.</td></tr>`;
+            tbodyMenu.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada penjualan menu pada tanggal terpilih.</td></tr>`;
         } else {
             tbodyMenu.innerHTML = menuBreakdown.map((item, idx) => {
                 const pct = totalOmset > 0 ? Math.round((item.total_omset / totalOmset) * 100) : 0;
-                const bahanUsageHtml = getBahanUsageSummary(item.id_menu, item.total_cups);
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-xs font-semibold text-gray-400 text-center" data-label="No">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">
+                    <td class="px-3 py-2.5 text-xs font-semibold text-gray-400 text-center" data-label="No">${idx + 1}</td>
+                    <td class="px-3 py-2.5 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">
                         <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-[10px] font-black">${idx + 1}</div>
+                            <span class="w-5 h-5 rounded-md bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 font-bold text-[10px] flex items-center justify-center">${idx + 1}</span>
                             <span>${item.nama_menu}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${item.kategori}</span></td>
-                    <td class="px-4 py-3 text-xs font-extrabold text-center text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${item.total_cups.toLocaleString('id-ID')} Cup</td>
-                    <td class="px-4 py-3 text-xs" data-label="Estimasi Bahan">${bahanUsageHtml}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-right text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.total_omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center" data-label="Kontribusi">
+                    <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${item.kategori}</span>
+                    </td>
+                    <td class="px-3 py-2.5 text-xs font-extrabold text-center text-purple-600 dark:text-purple-400" data-label="Jumlah Penjualan">${item.total_cups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-3 py-2.5 text-xs font-bold text-right text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.total_omset, 0)}</td>
+                    <td class="px-3 py-2.5 text-xs text-center" data-label="Kontribusi">
                         <div class="flex items-center justify-center gap-1.5">
                             <div class="w-12 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                                 <div class="bg-red-500 h-full rounded-full" style="width: ${Math.min(100, pct)}%"></div>
@@ -3840,7 +3830,7 @@ function renderRiwayatPerTransaksi(allTrx) {
         }
     }
 
-    // 3. Render Detail Transaksi (Log Urutan Waktu)
+    // 3. Render Detail Transaksi (Log Urutan Waktu & Aksi Edit/Hapus)
     const tbodyTrx = document.getElementById('table-riwayat-per-trx-body') || document.getElementById('riwayat-table-tbody');
     if (tbodyTrx) {
         if (filtered.length === 0) {
@@ -3887,7 +3877,7 @@ function renderRiwayatPerTransaksi(allTrx) {
 }
 
 // -------------------------------------------------------------
-// TAB 2: RIWAYAT 1 PEKAN & RENTANG TANGGAL
+// TAB 2: PEKANAN (7 KOLOM UNTUK 7 HARI MATRIX PER MENU)
 // -------------------------------------------------------------
 function presetPekanFilter(type) {
     const fromEl = document.getElementById('pekan-filter-from');
@@ -3933,6 +3923,34 @@ function renderRiwayatPekan(allTrx) {
     const fromDate = fromEl?.value || '';
     const toDate = toEl?.value || '';
 
+    // Generate 7 consecutive days list
+    const daysArray = [];
+    const dayShortNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    if (fromDate && toDate) {
+        let cur = new Date(fromDate);
+        const end = new Date(toDate);
+        let safetyCount = 0;
+        while (cur <= end && safetyCount < 31) {
+            const iso = cur.toISOString().slice(0, 10);
+            const dName = dayShortNames[cur.getDay()];
+            const dDate = `${cur.getDate()}/${cur.getMonth() + 1}`;
+            daysArray.push({ iso, label: `${dName} (${dDate})`, short: `${dName} ${cur.getDate()}` });
+            cur.setDate(cur.getDate() + 1);
+            safetyCount++;
+        }
+    }
+    // If not 7 days, fallback to 7 days up to toDate
+    if (daysArray.length === 0) {
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const iso = d.toISOString().slice(0, 10);
+            const dName = dayShortNames[d.getDay()];
+            const dDate = `${d.getDate()}/${d.getMonth() + 1}`;
+            daysArray.push({ iso, label: `${dName} (${dDate})`, short: `${dName} ${d.getDate()}` });
+        }
+    }
+
     // Filter transactions in date range
     const filteredTrxs = (allTrx || []).filter(t => {
         if (!t.tanggal) return false;
@@ -3944,7 +3962,7 @@ function renderRiwayatPekan(allTrx) {
     // 1. KPI Cards
     const totalPekanOmset = filteredTrxs.reduce((s, t) => s + (parseInt(t.total_harga || t.total_bayar) || (parseInt(t.harga) * parseInt(t.jumlah || 1)) || 0), 0);
     const totalPekanCups = filteredTrxs.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
-    const dayCount = fromDate && toDate ? Math.max(1, Math.round((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)) + 1) : 7;
+    const dayCount = Math.max(1, daysArray.length);
     const avgDailyOmset = Math.round(totalPekanOmset / dayCount);
     const avgDailyCups = Math.round(totalPekanCups / dayCount);
 
@@ -3964,36 +3982,100 @@ function renderRiwayatPekan(allTrx) {
     if (elPekanDateRange) elPekanDateRange.textContent = `${fromDate} s/d ${toDate}`;
     if (elPekanSummary) elPekanSummary.textContent = `Periode: ${fromDate} s/d ${toDate}`;
 
-    // 2. Rekapitulasi Penjualan & Pemakaian Bahan Per Menu Pekan / Rentang
-    const { list: menuPekanList } = groupTrxByMenu(filteredTrxs);
+    // 2. Dynamic Update Table Header for 7 Days Matrix
+    const theadTr = document.getElementById('table-riwayat-menu-pekan-head-tr');
+    if (theadTr) {
+        theadTr.innerHTML = `
+            <th class="px-2.5 py-2.5 text-center font-semibold w-10">No</th>
+            <th class="px-3 py-2.5 text-left font-semibold">Nama Menu</th>
+            ${daysArray.map(d => `<th class="px-2 py-2.5 text-center font-semibold whitespace-nowrap">${d.label}</th>`).join('')}
+            <th class="px-2.5 py-2.5 text-center font-semibold text-purple-600 dark:text-purple-400">Total Cup</th>
+            <th class="px-3 py-2.5 text-right font-semibold text-red-600 dark:text-red-400">Total Omset</th>
+            <th class="px-2.5 py-2.5 text-center font-semibold">Rata-rata/Hari</th>`;
+    }
+
+    // 3. Rekapitulasi Penjualan Per Menu (7 Hari Matrix)
+    // Structure: map menuId => { id_menu, nama_menu, harga, dailyCups: { [iso]: cups }, totalCups, totalOmset }
+    const menuMatrixMap = {};
+    
+    // Seed with all catalog menus so all menu variants are visible
+    (allMenu || []).forEach(m => {
+        menuMatrixMap[m.id] = {
+            id_menu: m.id,
+            nama_menu: m.nama_menu,
+            kategori: m.kategori || 'Minuman',
+            harga: parseInt(m.harga) || 5000,
+            dailyCups: {},
+            totalCups: 0,
+            totalOmset: 0
+        };
+    });
+
+    filteredTrxs.forEach((t, idx) => {
+        let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+        if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+            m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+        }
+        const menuId = m?.id || t.id_menu || `custom_${idx}`;
+        const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+        const harga = parseInt(t.harga) || parseInt(m?.harga) || 5000;
+        const jml = parseInt(t.jumlah) || 1;
+        const total = parseInt(t.total_harga || t.total_bayar) || (harga * jml);
+
+        if (!menuMatrixMap[menuId]) {
+            menuMatrixMap[menuId] = {
+                id_menu: menuId,
+                nama_menu: menuName,
+                kategori: t.kategori || m?.kategori || 'Minuman',
+                harga: harga,
+                dailyCups: {},
+                totalCups: 0,
+                totalOmset: 0
+            };
+        }
+
+        const tgl = t.tanggal;
+        menuMatrixMap[menuId].dailyCups[tgl] = (menuMatrixMap[menuId].dailyCups[tgl] || 0) + jml;
+        menuMatrixMap[menuId].totalCups += jml;
+        menuMatrixMap[menuId].totalOmset += total;
+    });
+
+    const matrixList = Object.values(menuMatrixMap)
+        .filter(m => m.totalCups > 0 || (allMenu && allMenu.length > 0)) // show all menu items or active ones
+        .sort((a, b) => b.totalCups - a.totalCups || b.totalOmset - a.totalOmset);
+
     const tbodyMenuPekan = document.getElementById('table-riwayat-menu-pekan-body');
     if (tbodyMenuPekan) {
-        if (menuPekanList.length === 0) {
-            tbodyMenuPekan.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada transaksi dalam rentang tanggal ini.</td></tr>`;
+        if (matrixList.length === 0 || totalPekanCups === 0) {
+            tbodyMenuPekan.innerHTML = `<tr><td colspan="${daysArray.length + 5}" class="text-center py-8 text-gray-400 dark:text-gray-600 text-xs">Belum ada transaksi dalam rentang 7 hari ini.</td></tr>`;
         } else {
-            tbodyMenuPekan.innerHTML = menuPekanList.map((m, idx) => {
-                const pct = totalPekanOmset > 0 ? ((m.total_omset / totalPekanOmset) * 100).toFixed(1) : 0;
-                const avgMenuCup = (m.total_cups / dayCount).toFixed(1);
-                const bahanUsageHtml = getBahanUsageSummary(m.id_menu, m.total_cups);
+            tbodyMenuPekan.innerHTML = matrixList.map((m, idx) => {
+                const avgMenuCup = (m.totalCups / dayCount).toFixed(1);
+
+                const dayCells = daysArray.map(d => {
+                    const cups = m.dailyCups[d.iso] || 0;
+                    if (cups > 0) {
+                        return `<td class="px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-white bg-red-50/20 dark:bg-red-900/10" data-label="${d.short}">${cups}</td>`;
+                    }
+                    return `<td class="px-2 py-2 text-center text-xs text-gray-300 dark:text-gray-600" data-label="${d.short}">-</td>`;
+                }).join('');
+
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">${m.nama_menu}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
-                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${m.total_cups.toLocaleString('id-ID')} Cup</td>
-                    <td class="px-4 py-3 text-xs" data-label="Estimasi Bahan">${bahanUsageHtml}</td>
-                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Hari">${avgMenuCup} cup/hari</td>
-                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
+                    <td class="px-3 py-2.5 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">${m.nama_menu}</td>
+                    ${dayCells}
+                    <td class="px-2.5 py-2.5 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.totalCups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-3 py-2.5 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.totalOmset, 0)}</td>
+                    <td class="px-2.5 py-2.5 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Hari">${avgMenuCup} cup/hari</td>
                 </tr>`;
             }).join('');
         }
     }
 
-    // 3. Rincian Penjualan Harian (Breakdown Tanggal)
+    // 4. Rincian Penjualan Harian Breakdown (7 Hari Ringkasan)
     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const daysMap = {};
-
     filteredTrxs.forEach(t => {
         const d = t.tanggal;
         if (!daysMap[d]) {
@@ -4047,7 +4129,7 @@ function renderRiwayatPekan(allTrx) {
 }
 
 // -------------------------------------------------------------
-// TAB 3: REKAPAN 1 BULAN & RENTANG FLEKSIBEL
+// TAB 3: BULANAN (4 PEKAN MATRIX PER MENU)
 // -------------------------------------------------------------
 function presetBulanFilter(type) {
     const monthInput = document.getElementById('riwayat-filter-month');
@@ -4085,6 +4167,7 @@ function renderRiwayatBulan(allTrx) {
 
     let trxsInMonth = [];
     let periodLabel = '';
+    let selectedMonth = currentMonthIso;
 
     if (customFrom || customTo) {
         trxsInMonth = (allTrx || []).filter(t => {
@@ -4098,12 +4181,12 @@ function renderRiwayatBulan(allTrx) {
         if (monthInput && !monthInput.value) {
             monthInput.value = currentMonthIso;
         }
-        const selectedMonth = monthInput?.value || currentMonthIso;
+        selectedMonth = monthInput?.value || currentMonthIso;
         trxsInMonth = (allTrx || []).filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
         periodLabel = `Periode Bulan ${selectedMonth}`;
     }
 
-    // 1. Group by date for daily table & active days count
+    // 1. Group by date for KPI & daily table
     const dailyMap = {};
     trxsInMonth.forEach(t => {
         const d = t.tanggal;
@@ -4136,33 +4219,85 @@ function renderRiwayatBulan(allTrx) {
     if (elBulanAvg) elBulanAvg.textContent = 'Rp ' + formatNum(avgDailyOmset, 0) + ' / hari';
     if (elBulanLabel) elBulanLabel.textContent = `Rekapan: ${periodLabel}`;
 
-    // 3. Rekapitulasi Penjualan & Pemakaian Bahan Per Menu Bulan Ini
-    const { list: menuBulanList } = groupTrxByMenu(trxsInMonth);
+    // 3. Rekapitulasi Penjualan Per Menu (4 Pekan Matrix: Tgl 1-7, 8-14, 15-21, 22-End)
+    const monthMatrixMap = {};
+    (allMenu || []).forEach(m => {
+        monthMatrixMap[m.id] = {
+            id_menu: m.id,
+            nama_menu: m.nama_menu,
+            kategori: m.kategori || 'Minuman',
+            harga: parseInt(m.harga) || 5000,
+            w1: 0, // 1 - 7
+            w2: 0, // 8 - 14
+            w3: 0, // 15 - 21
+            w4: 0, // 22 - End
+            totalCups: 0,
+            totalOmset: 0
+        };
+    });
+
+    trxsInMonth.forEach((t, idx) => {
+        let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+        if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+            m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+        }
+        const menuId = m?.id || t.id_menu || `custom_${idx}`;
+        const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+        const harga = parseInt(t.harga) || parseInt(m?.harga) || 5000;
+        const jml = parseInt(t.jumlah) || 1;
+        const total = parseInt(t.total_harga || t.total_bayar) || (harga * jml);
+
+        if (!monthMatrixMap[menuId]) {
+            monthMatrixMap[menuId] = {
+                id_menu: menuId,
+                nama_menu: menuName,
+                kategori: t.kategori || m?.kategori || 'Minuman',
+                harga: harga,
+                w1: 0, w2: 0, w3: 0, w4: 0,
+                totalCups: 0,
+                totalOmset: 0
+            };
+        }
+
+        // Determine which week: 1-7 (w1), 8-14 (w2), 15-21 (w3), 22+ (w4)
+        const dayNum = parseInt((t.tanggal || '').slice(8, 10), 10) || 1;
+        if (dayNum <= 7) monthMatrixMap[menuId].w1 += jml;
+        else if (dayNum <= 14) monthMatrixMap[menuId].w2 += jml;
+        else if (dayNum <= 21) monthMatrixMap[menuId].w3 += jml;
+        else monthMatrixMap[menuId].w4 += jml;
+
+        monthMatrixMap[menuId].totalCups += jml;
+        monthMatrixMap[menuId].totalOmset += total;
+    });
+
+    const monthList = Object.values(monthMatrixMap)
+        .filter(m => m.totalCups > 0 || (allMenu && allMenu.length > 0))
+        .sort((a, b) => b.totalCups - a.totalCups || b.totalOmset - a.totalOmset);
+
     const tbodyMenuBulan = document.getElementById('table-riwayat-menu-bulan-body');
     if (tbodyMenuBulan) {
-        if (menuBulanList.length === 0) {
-            tbodyMenuBulan.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada penjualan menu pada periode ini.</td></tr>`;
+        if (monthList.length === 0 || totalMonthCups === 0) {
+            tbodyMenuBulan.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-gray-400 dark:text-gray-600 text-xs">Belum ada penjualan menu pada periode bulan ini.</td></tr>`;
         } else {
-            tbodyMenuBulan.innerHTML = menuBulanList.map((m, idx) => {
-                const pct = totalMonthOmset > 0 ? ((m.total_omset / totalMonthOmset) * 100).toFixed(1) : 0;
-                const avgMenuCup = activeDays > 0 ? (m.total_cups / activeDays).toFixed(1) : m.total_cups;
-                const bahanUsageHtml = getBahanUsageSummary(m.id_menu, m.total_cups);
+            tbodyMenuBulan.innerHTML = monthList.map((m, idx) => {
+                const avgWeekCup = (m.totalCups / 4).toFixed(1);
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">${m.nama_menu}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span></td>
-                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.total_cups.toLocaleString('id-ID')} Cup</td>
-                    <td class="px-4 py-3 text-xs" data-label="Estimasi Bahan">${bahanUsageHtml}</td>
-                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Hari">${avgMenuCup} cup/hari</td>
-                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi Omset">${pct}%</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
+                    <td class="px-4 py-2.5 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">${m.nama_menu}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-gray-800 dark:text-gray-200" data-label="Pekan 1">${m.w1 > 0 ? m.w1 : `<span class="text-gray-300 dark:text-gray-600">-</span>`}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-gray-800 dark:text-gray-200" data-label="Pekan 2">${m.w2 > 0 ? m.w2 : `<span class="text-gray-300 dark:text-gray-600">-</span>`}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-gray-800 dark:text-gray-200" data-label="Pekan 3">${m.w3 > 0 ? m.w3 : `<span class="text-gray-300 dark:text-gray-600">-</span>`}</td>
+                    <td class="px-3 py-2.5 text-center text-xs font-bold text-gray-800 dark:text-gray-200" data-label="Pekan 4">${m.w4 > 0 ? m.w4 : `<span class="text-gray-300 dark:text-gray-600">-</span>`}</td>
+                    <td class="px-3 py-2.5 text-center font-black text-purple-600 dark:text-purple-400 text-xs" data-label="Total Cup">${m.totalCups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-4 py-2.5 text-right font-bold text-red-600 dark:text-red-400 text-xs" data-label="Total Omset">Rp ${formatNum(m.totalOmset, 0)}</td>
+                    <td class="px-3 py-2.5 text-center text-gray-700 dark:text-gray-300 font-medium text-xs" data-label="Rata-rata/Pekan">${avgWeekCup} cup/pekan</td>
                 </tr>`;
             }).join('');
         }
     }
 
-    // 4. Rincian Penjualan Harian Bulan Ini
+    // 4. Rincian Penjualan Harian Bulan Ini (Distribusi Tanggal)
     const tbodyBulan = document.getElementById('table-riwayat-bulan-body');
     if (tbodyBulan) {
         if (datesSorted.length === 0) {
@@ -4189,7 +4324,7 @@ window.loadRiwayatBulan = () => {
 };
 
 // -------------------------------------------------------------
-// TAB 4: REKAPAN TAHUNAN
+// TAB 4: TAHUNAN (12 BULAN MATRIX PER MENU)
 // -------------------------------------------------------------
 function setRiwayatYearCurrent() {
     const select = document.getElementById('riwayat-filter-year');
@@ -4217,7 +4352,6 @@ function renderRiwayatTahun(allTrx) {
     const totalYearOmset = trxsInYear.reduce((s, t) => s + (parseInt(t.total_harga || t.total_bayar) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
     const totalYearCups = trxsInYear.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
     
-    // Active months count
     const activeMonthsSet = new Set(trxsInYear.map(t => t.tanggal.slice(0, 7)));
     const activeMonthCount = Math.max(1, activeMonthsSet.size);
     const avgMonthlyOmset = Math.round(totalYearOmset / activeMonthCount);
@@ -4241,40 +4375,80 @@ function renderRiwayatTahun(allTrx) {
     if (elStatTopMenu) elStatTopMenu.textContent = topMenu ? topMenu.nama_menu : '-';
     if (elStatTopDesc) elStatTopDesc.textContent = topMenu ? `${topMenu.total_cups} Cup (Rp ${formatNum(topMenu.total_omset, 0)})` : 'Belum ada penjualan';
 
-    // 2. Table 1: Rekapitulasi Penjualan & Pemakaian Bahan Per Menu (Tahunan)
-    const tbodyMenu = document.getElementById('table-riwayat-menu-tahun-body');
-    if (tbodyMenu) {
-        if (menuYearList.length === 0) {
-            tbodyMenu.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400 text-xs">Belum ada transaksi di tahun ${selectedYear}.</td></tr>`;
+    // 2. Table 1: Rekapitulasi Penjualan Per Menu (12 Bulan Matrix: Jan - Des)
+    const yearMatrixMap = {};
+    (allMenu || []).forEach(m => {
+        yearMatrixMap[m.id] = {
+            id_menu: m.id,
+            nama_menu: m.nama_menu,
+            kategori: m.kategori || 'Minuman',
+            harga: parseInt(m.harga) || 5000,
+            months: new Array(12).fill(0), // Jan=0, Feb=1, ..., Des=11
+            totalCups: 0,
+            totalOmset: 0
+        };
+    });
+
+    trxsInYear.forEach((t, idx) => {
+        let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
+        if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
+            m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
+        }
+        const menuId = m?.id || t.id_menu || `custom_${idx}`;
+        const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
+        const harga = parseInt(t.harga) || parseInt(m?.harga) || 5000;
+        const jml = parseInt(t.jumlah) || 1;
+        const total = parseInt(t.total_harga || t.total_bayar) || (harga * jml);
+
+        if (!yearMatrixMap[menuId]) {
+            yearMatrixMap[menuId] = {
+                id_menu: menuId,
+                nama_menu: menuName,
+                kategori: t.kategori || m?.kategori || 'Minuman',
+                harga: harga,
+                months: new Array(12).fill(0),
+                totalCups: 0,
+                totalOmset: 0
+            };
+        }
+
+        const mIdx = parseInt((t.tanggal || '').slice(5, 7), 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+            yearMatrixMap[menuId].months[mIdx] += jml;
+        }
+
+        yearMatrixMap[menuId].totalCups += jml;
+        yearMatrixMap[menuId].totalOmset += total;
+    });
+
+    const yearList = Object.values(yearMatrixMap)
+        .filter(m => m.totalCups > 0 || (allMenu && allMenu.length > 0))
+        .sort((a, b) => b.totalCups - a.totalCups || b.totalOmset - a.totalOmset);
+
+    const tbodyMenuYear = document.getElementById('table-riwayat-menu-tahun-body');
+    if (tbodyMenuYear) {
+        if (yearList.length === 0 || totalYearCups === 0) {
+            tbodyMenuYear.innerHTML = `<tr><td colspan="17" class="text-center py-8 text-gray-400 text-xs">Belum ada transaksi di tahun ${selectedYear}.</td></tr>`;
         } else {
-            tbodyMenu.innerHTML = menuYearList.map((m, idx) => {
-                const pct = totalYearOmset > 0 ? ((m.total_omset / totalYearOmset) * 100).toFixed(1) : 0;
-                const avgMonthCup = (m.total_cups / activeMonthCount).toFixed(1);
-                const bahanUsageHtml = getBahanUsageSummary(m.id_menu, m.total_cups);
+            const shortMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            tbodyMenuYear.innerHTML = yearList.map((m, idx) => {
+                const avgMonthCup = (m.totalCups / 12).toFixed(1);
+
+                const monthCells = m.months.map((cups, mIndex) => {
+                    if (cups > 0) {
+                        return `<td class="px-1.5 py-2 text-center text-xs font-bold text-gray-900 dark:text-white" data-label="${shortMonthLabels[mIndex]}">${cups}</td>`;
+                    }
+                    return `<td class="px-1.5 py-2 text-center text-xs text-gray-300 dark:text-gray-600" data-label="${shortMonthLabels[mIndex]}">-</td>`;
+                }).join('');
+
                 return `
                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-bold text-[10px] flex items-center justify-center">${idx + 1}</span>
-                            <span>${m.nama_menu}</span>
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400" data-label="Kategori">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">${m.kategori}</span>
-                    </td>
-                    <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.total_cups.toLocaleString('id-ID')} Cup</td>
-                    <td class="px-4 py-3 text-xs" data-label="Estimasi Bahan">${bahanUsageHtml}</td>
-                    <td class="px-4 py-3 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.total_omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center text-gray-700 dark:text-gray-300" data-label="Rata-rata/Bulan">${avgMonthCup} cup/bln</td>
-                    <td class="px-4 py-3 text-xs text-center" data-label="Kontribusi Omset">
-                        <div class="flex items-center justify-center gap-1.5">
-                            <div class="w-12 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                                <div class="bg-amber-500 h-full rounded-full" style="width: ${Math.min(100, pct)}%"></div>
-                            </div>
-                            <span class="font-bold text-[11px] text-gray-700 dark:text-gray-300">${pct}%</span>
-                        </div>
-                    </td>
+                    <td class="px-2 py-2 text-center text-xs font-bold text-gray-400" data-label="No">${idx + 1}</td>
+                    <td class="px-3 py-2 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Nama Menu">${m.nama_menu}</td>
+                    ${monthCells}
+                    <td class="px-2.5 py-2 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${m.totalCups.toLocaleString('id-ID')} Cup</td>
+                    <td class="px-3 py-2 text-xs text-right font-bold text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(m.totalOmset, 0)}</td>
+                    <td class="px-2.5 py-2 text-xs text-center text-gray-700 dark:text-gray-300 font-medium" data-label="Rata-rata/Bulan">${avgMonthCup} cup/bln</td>
                 </tr>`;
             }).join('');
         }
