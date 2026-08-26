@@ -3829,51 +3829,6 @@ function renderRiwayatPerTransaksi(allTrx) {
             }).join('');
         }
     }
-
-    // 3. Render Detail Transaksi (Log Urutan Waktu & Aksi Edit/Hapus)
-    const tbodyTrx = document.getElementById('table-riwayat-per-trx-body') || document.getElementById('riwayat-table-tbody');
-    if (tbodyTrx) {
-        if (filtered.length === 0) {
-            tbodyTrx.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-xs text-gray-400">Tidak ada riwayat transaksi yang cocok dengan filter.</td></tr>`;
-            return;
-        }
-
-        tbodyTrx.innerHTML = filtered.map((t, idx) => {
-            let m = allMenu.find(x => x.id === t.id_menu || parseInt(x.id, 10) === parseInt(t.id_menu, 10));
-            if (!m && t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') {
-                m = allMenu.find(x => (x.nama_menu || '').toLowerCase() === (t.nama_menu || '').toLowerCase());
-            }
-            if (!m && allMenu.length > 0) {
-                const mIdx = (parseInt(t.id_menu, 10) || idx) % allMenu.length;
-                m = allMenu[mIdx >= 0 ? mIdx : 0];
-            }
-            const menuName = (t.nama_menu && t.nama_menu !== 'Menu Varian' && t.nama_menu !== 'Menu Lainnya') ? t.nama_menu : (m?.nama_menu || 'Teh Manis Original');
-            const harga = parseInt(t.harga, 10) || parseInt(m?.harga, 10) || 5000;
-            const total = parseInt(t.total_harga || t.total_bayar, 10) || (harga * parseInt(t.jumlah || 1, 10));
-            const src = t.sumber === 'import' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">Import</span>` :
-                t.sumber === 'seed' ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold">Historis</span>` :
-                    `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">POS</span>`;
-
-            const editBtn = `<button onclick="openEditTransaksi(${t.id})" title="Edit Transaksi" class="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-edit text-xs"></i> <span>Edit</span></button>`;
-            const delBtn = `<button onclick="deleteTransaksi(${t.id})" title="Hapus Transaksi" class="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition text-xs font-semibold flex items-center gap-1"><i class="fas fa-trash text-xs"></i></button>`;
-
-            return `
-            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                <td class="px-4 py-3 text-xs text-gray-900 dark:text-white font-medium" data-label="Tanggal">${t.tanggal}</td>
-                <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white td-title" data-label="Menu">${menuName}</td>
-                <td class="px-4 py-3 text-xs text-center font-extrabold text-gray-900 dark:text-white" data-label="Jumlah">${(t.jumlah || 0).toLocaleString('id-ID')}</td>
-                <td class="px-4 py-3 text-xs text-right text-gray-500 dark:text-gray-400" data-label="Harga">Rp ${formatNum(harga, 0)}</td>
-                <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total">Rp ${formatNum(total, 0)}</td>
-                <td class="px-4 py-3 text-xs text-center" data-label="Sumber">${src}</td>
-                <td class="px-4 py-3 td-actions" data-label="Aksi">
-                    <div class="flex items-center justify-center gap-1.5">
-                        ${editBtn}
-                        ${delBtn}
-                    </div>
-                </td>
-            </tr>`;
-        }).join('');
-    }
 }
 
 // -------------------------------------------------------------
@@ -4072,60 +4027,6 @@ function renderRiwayatPekan(allTrx) {
             }).join('');
         }
     }
-
-    // 4. Rincian Penjualan Harian Breakdown (7 Hari Ringkasan)
-    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const daysMap = {};
-    filteredTrxs.forEach(t => {
-        const d = t.tanggal;
-        if (!daysMap[d]) {
-            daysMap[d] = { date: d, countTrx: 0, cups: 0, omset: 0, menus: {} };
-        }
-        daysMap[d].countTrx += 1;
-        daysMap[d].cups += (parseInt(t.jumlah) || 0);
-        daysMap[d].omset += (parseInt(t.total_harga || t.total_bayar) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0);
-        if (t.nama_menu) {
-            daysMap[d].menus[t.nama_menu] = (daysMap[d].menus[t.nama_menu] || 0) + (parseInt(t.jumlah) || 1);
-        }
-    });
-
-    const datesSorted = Object.keys(daysMap).sort((a, b) => b.localeCompare(a));
-    const tbodyPekan = document.getElementById('table-riwayat-pekan-body');
-    if (tbodyPekan) {
-        if (datesSorted.length === 0) {
-            tbodyPekan.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada data harian pada rentang tanggal ini.</td></tr>`;
-        } else {
-            tbodyPekan.innerHTML = datesSorted.map(dateStr => {
-                const item = daysMap[dateStr];
-                const dObj = new Date(dateStr);
-                const dayName = !isNaN(dObj.getTime()) ? dayNames[dObj.getDay()] : '-';
-                
-                let topMenu = '-';
-                let maxCount = 0;
-                for (const [mName, mCount] of Object.entries(item.menus)) {
-                    if (mCount > maxCount) {
-                        maxCount = mCount;
-                        topMenu = `${mName} (${mCount} cup)`;
-                    }
-                }
-
-                const isToday = dateStr === now.toISOString().slice(0, 10);
-                const dayBadge = isToday ? `<span class="ml-1.5 px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold rounded">Hari Ini</span>` : '';
-
-                return `
-                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white" data-label="Hari & Tanggal">
-                        <span>${dayName}, ${dateStr}</span>
-                        ${dayBadge}
-                    </td>
-                    <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Total Transaksi">${item.countTrx} kali</td>
-                    <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Cup Terjual">${item.cups} Cup</td>
-                    <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400" data-label="Menu Terpopuler">${topMenu}</td>
-                </tr>`;
-            }).join('');
-        }
-    }
 }
 
 // -------------------------------------------------------------
@@ -4296,28 +4197,6 @@ function renderRiwayatBulan(allTrx) {
             }).join('');
         }
     }
-
-    // 4. Rincian Penjualan Harian Bulan Ini (Distribusi Tanggal)
-    const tbodyBulan = document.getElementById('table-riwayat-bulan-body');
-    if (tbodyBulan) {
-        if (datesSorted.length === 0) {
-            tbodyBulan.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">Belum ada data transaksi pada ${periodLabel}.</td></tr>`;
-        } else {
-            tbodyBulan.innerHTML = datesSorted.map(d => {
-                const item = dailyMap[d];
-                const pct = totalMonthOmset > 0 ? ((item.omset / totalMonthOmset) * 100).toFixed(1) : 0;
-
-                return `
-                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Tanggal">${item.date}</td>
-                    <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Jumlah Transaksi">${item.trxCount} transaksi</td>
-                    <td class="px-4 py-3 text-xs text-center font-bold text-purple-600 dark:text-purple-400" data-label="Total Cup">${item.cups} Cup</td>
-                    <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(item.omset, 0)}</td>
-                    <td class="px-4 py-3 text-xs text-center font-semibold text-blue-600 dark:text-blue-400" data-label="Kontribusi">${pct}%</td>
-                </tr>`;
-            }).join('');
-        }
-    }
 }
 window.loadRiwayatBulan = () => {
     loadRiwayatTransaksi();
@@ -4452,47 +4331,6 @@ function renderRiwayatTahun(allTrx) {
                 </tr>`;
             }).join('');
         }
-    }
-
-    // 3. Table 2: Distribusi Penjualan Per Bulan (12 Bulan)
-    const tbodyMonths = document.getElementById('table-riwayat-tahun-body');
-    if (tbodyMonths) {
-        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        const monthsData = [];
-
-        for (let m = 1; m <= 12; m++) {
-            const mStr = `${selectedYear}-${String(m).padStart(2, '0')}`;
-            const mTrxs = trxsInYear.filter(t => t.tanggal && t.tanggal.startsWith(mStr));
-            const mOmset = mTrxs.reduce((s, t) => s + (parseInt(t.total_harga || t.total_bayar) || (parseInt(t.harga) * parseInt(t.jumlah)) || 0), 0);
-            const mCups = mTrxs.reduce((s, t) => s + (parseInt(t.jumlah) || 0), 0);
-
-            const { list: mMenuList } = groupTrxByMenu(mTrxs);
-            const mTop = mMenuList.length > 0 ? `${mMenuList[0].nama_menu} (${mMenuList[0].total_cups} cup)` : '-';
-
-            monthsData.push({
-                monthKey: mStr,
-                monthName: monthNames[m - 1],
-                countTrx: mTrxs.length,
-                cups: mCups,
-                omset: mOmset,
-                topMenu: mTop
-            });
-        }
-
-        tbodyMonths.innerHTML = monthsData.map(mItem => {
-            const pct = totalYearOmset > 0 ? ((mItem.omset / totalYearOmset) * 100).toFixed(1) : 0;
-            return `
-            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                <td class="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white" data-label="Bulan">${mItem.monthName} ${selectedYear}</td>
-                <td class="px-4 py-3 text-xs text-center font-medium text-gray-700 dark:text-gray-300" data-label="Jumlah Transaksi">${mItem.countTrx} kali</td>
-                <td class="px-4 py-3 text-xs text-center font-black text-purple-600 dark:text-purple-400" data-label="Total Cup">${mItem.cups} Cup</td>
-                <td class="px-4 py-3 text-xs text-right font-black text-red-600 dark:text-red-400" data-label="Total Omset">Rp ${formatNum(mItem.omset, 0)}</td>
-                <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400" data-label="Menu Terlaris">${mItem.topMenu}</td>
-                <td class="px-4 py-3 text-xs text-center" data-label="Kontribusi">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">${pct}%</span>
-                </td>
-            </tr>`;
-        }).join('');
     }
 }
 window.renderRiwayatTahun = renderRiwayatTahun;
