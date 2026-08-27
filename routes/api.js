@@ -14,12 +14,16 @@ import * as absensiController from '../controllers/absensiController.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// --- Auth Routes ---
+// --- Auth & User Management Routes ---
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.get('/auth/status', authController.status);
 router.get('/user/profile', requireAuth, authController.profile);
 router.post('/user/profile', requireAuth, authController.updateProfile);
+router.get('/users', requireAdmin, authController.listUsers);
+router.post('/users', requireAdmin, authController.createUser);
+router.put('/users/:id', requireAdmin, authController.updateUser);
+router.delete('/users/:id', requireAdmin, authController.deleteUser);
 
 // --- Stats Routes ---
 router.get('/stats', statsController.index);

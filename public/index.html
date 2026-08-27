@@ -2748,45 +2748,94 @@
                 </div>
             </div>
 
-            <!-- ==== ABSENSI STAF (ADMIN ONLY - EXACT SCREENSHOT DESIGN) ==== -->
+            <!-- ==== ABSENSI STAF (ADMIN ONLY - REKAP HARIAN, PEKANAN, BULANAN) ==== -->
             <div id="page-absensi-staf" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
+                <!-- Top Header & Filter Mode Switcher -->
+                <div class="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-clipboard-user text-blue-600 dark:text-blue-400"></i>
+                            <span>Cek Absensi Karyawan</span>
+                        </h1>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Monitoring kehadiran, foto selfie lokasi, jam kerja, dan izin staf Haltea</p>
+                    </div>
+
+                    <!-- 3 Filter Modes: Harian, Pekanan, Bulanan -->
+                    <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl self-start md:self-auto border border-gray-200/60 dark:border-gray-700/60">
+                        <button type="button" id="btn-mode-absensi-harian" onclick="setAdminAbsensiMode('harian')"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs">
+                            <i class="fas fa-calendar-day mr-1"></i> Harian
+                        </button>
+                        <button type="button" id="btn-mode-absensi-pekanan" onclick="setAdminAbsensiMode('pekanan')"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                            <i class="fas fa-calendar-week mr-1"></i> 1 Pekan
+                        </button>
+                        <button type="button" id="btn-mode-absensi-bulanan" onclick="setAdminAbsensiMode('bulanan')"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                            <i class="fas fa-calendar mr-1"></i> Bulanan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI Stat Cards for Attendance -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                    <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-blue-200/60 dark:border-blue-900/30" style="--accent:#3b82f6">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Total Catatan</p>
+                        <h3 class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="stat-absensi-total">0 Absensi</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5" id="stat-absensi-period-label">Periode Hari Ini</p>
+                    </div>
+                    <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-emerald-200/60 dark:border-emerald-900/30" style="--accent:#10b981">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Hadir Tepat Waktu</p>
+                        <h3 class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="stat-absensi-hadir">0 Orang</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Sesuai jam kerja</p>
+                    </div>
+                    <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-amber-200/60 dark:border-amber-900/30" style="--accent:#f59e0b">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Terlambat</p>
+                        <h3 class="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1" id="stat-absensi-terlambat">0 Orang</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Lewat batas toleransi</p>
+                    </div>
+                    <div class="glass-stat rounded-2xl p-3.5 sm:p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Izin / Sakit</p>
+                        <h3 class="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="stat-absensi-izin">0 Orang</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Dispensasi diajukan</p>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <!-- Left Panel: Atur Jam Kerja -->
-                    <div class="lg:col-span-4 flex flex-col">
-                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center gap-2.5 mb-6 text-blue-600 dark:text-blue-400">
-                                    <div class="w-8 h-8 rounded-full border-2 border-blue-600 dark:border-blue-400 flex items-center justify-center">
-                                        <i class="fas fa-clock text-sm"></i>
-                                    </div>
-                                    <h2 class="text-base font-bold text-gray-900 dark:text-white">Atur Jam Kerja</h2>
+                    <!-- Left Panel: Atur Jam Kerja & Action -->
+                    <div class="lg:col-span-4 flex flex-col gap-4">
+                        <div class="glass-panel rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
+                            <div class="flex items-center gap-2.5 mb-5 text-blue-600 dark:text-blue-400">
+                                <div class="w-8 h-8 rounded-full border-2 border-blue-600 dark:border-blue-400 flex items-center justify-center">
+                                    <i class="fas fa-clock text-sm"></i>
                                 </div>
-
-                                <form id="form-jam-kerja" onsubmit="saveJamKerja(event)" class="space-y-5">
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">JAM MASUK STANDAR</label>
-                                        <input type="text" id="jam-masuk-standar" value="08:00:00" placeholder="08:00:00"
-                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">Check-in lewat dari jam ini dicatat terlambat.</p>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">JAM PULANG STANDAR</label>
-                                        <input type="text" id="jam-pulang-standar" value="17:00:00" placeholder="17:00:00"
-                                            class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">Check-out kurang dari jam ini dicatat pulang cepat.</p>
-                                    </div>
-
-                                    <button type="submit"
-                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]">
-                                        Simpan Perubahan
-                                    </button>
-                                </form>
+                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Standar Jam Kerja</h2>
                             </div>
 
-                            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                            <form id="form-jam-kerja" onsubmit="saveJamKerja(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">JAM MASUK STANDAR</label>
+                                    <input type="text" id="jam-masuk-standar" value="08:00:00" placeholder="08:00:00"
+                                        class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                                    <p class="text-[10px] text-gray-400 mt-1">Check-in lewat dari jam ini dicatat terlambat.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">JAM PULANG STANDAR</label>
+                                    <input type="text" id="jam-pulang-standar" value="16:00:00" placeholder="16:00:00"
+                                        class="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                                    <p class="text-[10px] text-gray-400 mt-1">Check-out sebelum jam ini dicatat pulang cepat.</p>
+                                </div>
+
+                                <button type="submit"
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-2xl shadow-md shadow-red-500/20 transition-all active:scale-[0.98] text-xs">
+                                    Simpan Standar Jam Kerja
+                                </button>
+                            </form>
+
+                            <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
                                 <button onclick="openModalCatatAbsensi()"
-                                    class="w-full bg-blue-50/80 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition border border-blue-100 dark:border-blue-800/50">
+                                    class="w-full bg-blue-50/80 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 transition border border-blue-100 dark:border-blue-800/50">
                                     <i class="fas fa-user-plus text-blue-500"></i>
                                     <span>Catat Kehadiran Staff Manual</span>
                                 </button>
@@ -2796,34 +2845,55 @@
 
                     <!-- Right Panel: Riwayat Kehadiran Staff -->
                     <div class="lg:col-span-8">
-                        <div class="glass-panel rounded-3xl p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
-                            <!-- Rekap Izin Staf Bulan Ini (Hanya Muncul Jika Ada Izin) -->
+                        <div class="glass-panel rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-200/80 dark:border-gray-800">
+                            <!-- Rekap Izin Staf (Muncul jika ada izin) -->
                             <div id="admin-izin-summary-card" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl shadow-xs">
                                 <div class="flex items-center justify-between mb-2.5">
                                     <div class="flex items-center gap-2 font-bold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wider">
                                         <i class="fas fa-clipboard-user text-blue-600 dark:text-blue-400"></i>
-                                        <span>Rekap Izin Staf Bulan Ini (<span id="admin-izin-month-label">Bulan Ini</span>)</span>
+                                        <span>Rekap Izin Staf (<span id="admin-izin-month-label">Periode Ini</span>)</span>
                                     </div>
                                     <span id="admin-total-izin-badge" class="text-[11px] font-bold px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg">
                                         Total: 0 Izin
                                     </span>
                                 </div>
-                                <div id="admin-izin-chips-container" class="flex flex-wrap gap-2 pt-1">
-                                </div>
+                                <div id="admin-izin-chips-container" class="flex flex-wrap gap-2 pt-1"></div>
                             </div>
 
-                            <!-- Header Filter -->
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                                <h2 class="text-base font-bold text-gray-900 dark:text-white">Riwayat Kehadiran Staff</h2>
-                                <div class="flex flex-wrap items-center gap-2.5">
-                                    <div class="relative">
+                            <!-- Header Dynamic Filter Controls -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                                <div>
+                                    <h2 class="text-base font-bold text-gray-900 dark:text-white" id="admin-absensi-title">Daftar Kehadiran Karyawan</h2>
+                                    <p class="text-xs text-gray-400" id="admin-absensi-subtitle">Menampilkan data presensi harian</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <!-- 1. Harian Filter Input -->
+                                    <div id="wrapper-filter-absensi-harian" class="flex items-center gap-1.5">
                                         <input type="date" id="filter-absensi-tanggal" onchange="loadAbsensiStaf()"
-                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                                     </div>
+
+                                    <!-- 2. Pekanan Filter Input -->
+                                    <div id="wrapper-filter-absensi-pekanan" class="hidden flex items-center gap-1.5">
+                                        <input type="date" id="filter-absensi-from" onchange="loadAbsensiStaf()"
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none">
+                                        <span class="text-xs text-gray-400">s/d</span>
+                                        <input type="date" id="filter-absensi-to" onchange="loadAbsensiStaf()"
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none">
+                                    </div>
+
+                                    <!-- 3. Bulanan Filter Input -->
+                                    <div id="wrapper-filter-absensi-bulanan" class="hidden flex items-center gap-1.5">
+                                        <input type="month" id="filter-absensi-bulan" onchange="loadAbsensiStaf()"
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                    </div>
+
+                                    <!-- Search Staff Input -->
                                     <div class="relative">
-                                        <input type="text" id="filter-absensi-search" oninput="filterAbsensiStaf()" placeholder="Cari nama staff..."
-                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl pl-8 pr-3.5 py-2 text-xs text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 w-36 sm:w-44">
-                                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                        <input type="text" id="filter-absensi-search" oninput="filterAbsensiStaf()" placeholder="Cari staf..."
+                                            class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-7 pr-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500 w-32 sm:w-40">
+                                        <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
                                     </div>
                                 </div>
                             </div>
@@ -2836,10 +2906,10 @@
                                             <th class="py-3 px-3">TANGGAL</th>
                                             <th class="py-3 px-3">NAMA STAFF</th>
                                             <th class="py-3 px-3 text-center">STATUS</th>
-                                            <th class="py-3 px-3 text-center">JAM MASUK</th>
-                                            <th class="py-3 px-3 text-center">JAM PULANG</th>
-                                            <th class="py-3 px-3 text-center">FOTO BUKTI</th>
-                                            <th class="py-3 px-3">KETERANGAN</th>
+                                            <th class="py-3 px-3 text-center">MASUK</th>
+                                            <th class="py-3 px-3 text-center">PULANG</th>
+                                            <th class="py-3 px-3 text-center">BUKTI KAMERA</th>
+                                            <th class="py-3 px-3">KETERANGAN & LOKASI</th>
                                             <th class="py-3 px-2 text-center">AKSI</th>
                                         </tr>
                                     </thead>
@@ -2852,13 +2922,16 @@
                 </div>
             </div>
 
-            <!-- ==== ABSENSI KARYAWAN / KASIR (RESPONSIVE MOBILE & DESKTOP) ==== -->
+            <!-- ==== ABSENSI KARYAWAN / KASIR (LIVE WEBCAM & WATERMARK) ==== -->
             <div id="page-absensi-karyawan" class="page-content p-3 sm:p-6 fade-in hidden w-full max-w-full overflow-x-hidden">
                 <!-- Header -->
                 <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-800 pb-3 sm:pb-4">
                     <div class="min-w-0">
-                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Absensi Karyawan</h1>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Catat absensi kehadiran harian dan ajukan izin kerja Anda</p>
+                        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-camera text-red-600"></i>
+                            <span>Absensi Karyawan</span>
+                        </h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Ambil foto kehadiran langsung dari kamera web dengan watermark waktu & lokasi</p>
                     </div>
                     <div class="flex items-center gap-2.5 self-end sm:self-auto">
                         <div class="text-right">
@@ -2877,7 +2950,7 @@
                         <div class="glass-panel rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-sm border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between w-full min-w-0">
                             <div>
                                 <span id="karyawan-absensi-today-badge" class="inline-block px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold rounded-xl mb-3">
-                                    2026-08-24
+                                    2026-08-28
                                 </span>
                                 <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Pencatatan Absensi Hari Ini</h2>
 
@@ -2895,8 +2968,8 @@
 
                                 <!-- TAB 1: FORM ABSEN HADIR -->
                                 <div id="karyawan-tab-content-hadir" class="space-y-3 sm:space-y-4">
-                                    <!-- Blue Alert Box -->
-                                    <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-3 sm:p-4 text-xs text-blue-900 dark:text-blue-300 space-y-1.5">
+                                    <!-- Blue Alert Box with Requested Exact Sentence -->
+                                    <div class="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-3.5 text-xs text-blue-900 dark:text-blue-300 space-y-2">
                                         <div class="flex flex-wrap items-center justify-between gap-1.5 font-bold text-blue-700 dark:text-blue-400 text-xs">
                                             <div class="flex items-center gap-1.5 min-w-0">
                                                 <i class="far fa-clock text-xs"></i>
@@ -2904,25 +2977,73 @@
                                             </div>
                                             <span class="text-[10px] bg-blue-100 dark:bg-blue-800/50 px-2 py-0.5 rounded-lg whitespace-nowrap">Pulang: 16:00 WIB</span>
                                         </div>
-                                        <p class="text-blue-800/80 dark:text-blue-300/80 leading-relaxed text-[11px]">
-                                            Pemberitahuan: Unggah bukti foto selfie sampai kerja. Absensi Hari Ini Lengkap setelah Anda melakukan <strong>Absen Masuk</strong> dan <strong>Absen Pulang</strong>.
+                                        <p class="text-blue-800 dark:text-blue-200 leading-relaxed text-[12px] font-medium">
+                                            Unggah bukti foto sampai lokasi kerja. Lakukan absensi lengkap hari ini, yakni Absen Masuk dan Absen Pulang.
                                         </p>
                                     </div>
 
-                                    <!-- Upload Selfie Box -->
-                                    <div>
-                                        <label class="block text-[11px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                                            UNGGAH FOTO BUKTI SAMPAI KERJA
-                                        </label>
-                                        <div onclick="document.getElementById('karyawan-selfie-file').click()"
-                                            class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl p-4 text-center cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50/30 transition group">
-                                            <div id="karyawan-selfie-preview-box" class="flex flex-col items-center justify-center">
-                                                <i class="fas fa-camera text-xl sm:text-2xl text-gray-400 group-hover:text-blue-500 transition mb-1.5"></i>
-                                                <p class="text-xs font-bold text-gray-700 dark:text-gray-300">Ambil/Unggah Foto Selfie</p>
-                                                <p class="text-[10px] sm:text-[11px] text-gray-400 mt-0.5">Maksimal resolusi file foto 4MB</p>
+                                    <!-- Live Webcam & Watermarking Container (NO file picker) -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <label class="block text-[11px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                <i class="fas fa-video text-red-500 mr-1"></i> KAMERA LANGSUNG DI LOKASI
+                                            </label>
+                                            <span id="karyawan-location-badge" class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                <i class="fas fa-location-dot text-emerald-500"></i> Outlet Haltea
+                                            </span>
+                                        </div>
+
+                                        <!-- Camera View Frame -->
+                                        <div class="relative w-full aspect-4/3 sm:h-64 bg-black rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-inner">
+                                            <!-- Video Live Preview -->
+                                            <video id="karyawan-webcam" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+
+                                            <!-- Snapshot Result Image -->
+                                            <img id="karyawan-snapshot-preview" class="w-full h-full object-cover hidden" alt="Foto Presensi Lokasi">
+
+                                            <!-- Canvas for burning watermark -->
+                                            <canvas id="karyawan-canvas" class="hidden"></canvas>
+
+                                            <!-- Camera Standby / Placeholder -->
+                                            <div id="karyawan-camera-placeholder" class="text-center p-4 flex flex-col items-center justify-center text-gray-400">
+                                                <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2 animate-pulse">
+                                                    <i class="fas fa-camera text-xl text-white"></i>
+                                                </div>
+                                                <p class="text-xs font-bold text-white mb-1">Kamera Web Belum Aktif</p>
+                                                <p class="text-[10px] text-gray-300 mb-3 max-w-[200px]">Nyalakan kamera untuk mengambil foto bukti sampai di lokasi kerja</p>
+                                                <button type="button" onclick="startKaryawanCamera()"
+                                                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5">
+                                                    <i class="fas fa-video"></i> <span>Nyalakan Kamera</span>
+                                                </button>
                                             </div>
-                                            <img id="karyawan-selfie-img-preview" src="" class="hidden w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-xl mx-auto shadow-md border border-gray-200">
-                                            <input type="file" id="karyawan-selfie-file" accept="image/*" class="hidden" onchange="handleKaryawanSelfieChange(event)">
+
+                                            <!-- Realtime Watermark Floating Badge (while video active) -->
+                                            <div id="karyawan-camera-overlay" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-between p-2.5 sm:p-3 bg-gradient-to-b from-black/40 via-transparent to-black/70 text-white">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="bg-red-600/90 backdrop-blur-xs px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> LIVE
+                                                    </div>
+                                                    <div class="bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md text-[10px] font-mono" id="camera-clock-live">
+                                                        00:00:00 WIB
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-white tracking-wide uppercase drop-shadow-xs">HALTEA INDONESIA PRESENSI</p>
+                                                    <p class="text-[9px] text-gray-200 font-medium truncate drop-shadow-xs" id="camera-location-live">Lokasi: Outlet Haltea Indonesia</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Camera Buttons -->
+                                        <div class="flex items-center gap-2 pt-1">
+                                            <button type="button" id="btn-karyawan-capture" onclick="captureKaryawanPhoto()"
+                                                class="hidden flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-95">
+                                                <i class="fas fa-camera"></i> <span>Ambil Foto Bukti</span>
+                                            </button>
+                                            <button type="button" id="btn-karyawan-retake" onclick="retakeKaryawanPhoto()"
+                                                class="hidden flex-1 bg-gray-700 hover:bg-gray-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95">
+                                                <i class="fas fa-rotate-left"></i> <span>Foto Ulang</span>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -3024,6 +3145,7 @@
                                             <th class="py-2.5 px-2 sm:px-3 text-center">STATUS</th>
                                             <th class="py-2.5 px-2 sm:px-3 text-center">MASUK</th>
                                             <th class="py-2.5 px-2 sm:px-3 text-center">PULANG</th>
+                                            <th class="py-2.5 px-2 sm:px-3 text-center">FOTO BUKTI</th>
                                             <th class="py-2.5 px-2 sm:px-3">KETERANGAN</th>
                                         </tr>
                                     </thead>
@@ -3032,6 +3154,75 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==== KELOLA AKUN KARYAWAN (ADMIN ONLY - MANAJEMEN PENGGUNA) ==== -->
+            <div id="page-kelola-karyawan" class="page-content p-4 sm:p-6 fade-in hidden admin-only">
+                <!-- Header -->
+                <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-users-gear text-red-600"></i>
+                            <span>Kelola Akun Karyawan</span>
+                        </h1>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Buat akun baru dan kelola akses login (username & password) staf kasir Haltea</p>
+                    </div>
+                    <button onclick="openModalTambahKaryawan()"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-2xl text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-red-500/20 transition active:scale-95 self-start sm:self-auto cursor-pointer">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Buat Akun Baru</span>
+                    </button>
+                </div>
+
+                <!-- 3 KPI Cards for Users -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5">
+                    <div class="glass-stat rounded-2xl p-4 border border-red-200/60 dark:border-red-900/30" style="--accent:#ef4444">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Total Akun Terdaftar</p>
+                        <h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="stat-karyawan-total">0 Akun</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Semua pengguna aktif</p>
+                    </div>
+                    <div class="glass-stat rounded-2xl p-4 border border-blue-200/60 dark:border-blue-900/30" style="--accent:#3b82f6">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Akun Kasir / Staf</p>
+                        <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="stat-karyawan-kasir">0 Akun</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Akses kasir & absensi</p>
+                    </div>
+                    <div class="glass-stat rounded-2xl p-4 border border-purple-200/60 dark:border-purple-900/30" style="--accent:#8b5cf6">
+                        <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Akun Administrator</p>
+                        <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1" id="stat-karyawan-admin">0 Akun</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Akses penuh sistem</p>
+                    </div>
+                </div>
+
+                <!-- User Table Panel -->
+                <div class="glass-table rounded-3xl overflow-hidden mobile-card-table border border-gray-200/80 dark:border-gray-800">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/40">
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white text-sm">Daftar Akun Pengguna</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Daftar kredensial login kasir dan administrator</p>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="search-karyawan-input" oninput="filterKaryawanTable()" placeholder="Cari nama / username..."
+                                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-8 pr-3.5 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-56">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full data-table text-xs">
+                            <thead>
+                                <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-800/40">
+                                    <th class="px-4 py-3 text-center font-semibold w-12">No</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Nama Lengkap</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Username Login</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Hak Akses (Role)</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Tanggal Dibuat</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-karyawan-users-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -3278,6 +3469,96 @@
                 <img id="preview-foto-img" src="haltea-logo.png" class="w-full h-full object-cover">
             </div>
             <p id="preview-foto-caption" class="text-xs text-gray-500"></p>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Akun Karyawan Baru (Admin Only) -->
+    <div id="modal-tambah-karyawan" class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-3xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center gap-2 text-red-600">
+                    <i class="fas fa-user-plus text-lg"></i>
+                    <h3 class="font-bold text-base text-gray-900 dark:text-white">Buat Akun Karyawan Baru</h3>
+                </div>
+                <button onclick="closeModal('modal-tambah-karyawan')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-tambah-karyawan" onsubmit="submitTambahKaryawan(event)" class="space-y-4 pt-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Nama Lengkap Karyawan</label>
+                    <input type="text" id="tambah-karyawan-nama" placeholder="Contoh: Sarah Aulia" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Username Login</label>
+                    <input type="text" id="tambah-karyawan-username" placeholder="Contoh: sarah / kasir2" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white font-mono outline-none focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-400 mt-1">Username digunakan untuk masuk ke web POS / Absensi.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Password Login</label>
+                    <input type="text" id="tambah-karyawan-password" placeholder="Minimal 4 karakter" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white font-mono outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Hak Akses (Role)</label>
+                    <select id="tambah-karyawan-role" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500">
+                        <option value="kasir" selected>Kasir / Karyawan (POS & Absensi)</option>
+                        <option value="admin">Administrator (Akses Penuh)</option>
+                    </select>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-tambah-karyawan')" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">Batal</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-red-500/20">Simpan Akun</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit / Reset Password Karyawan (Admin Only) -->
+    <div id="modal-edit-karyawan" class="fixed inset-0 bg-black/60 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-modal rounded-3xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center gap-2 text-blue-600">
+                    <i class="fas fa-user-pen text-lg"></i>
+                    <h3 class="font-bold text-base text-gray-900 dark:text-white">Edit Akun Karyawan</h3>
+                </div>
+                <button onclick="closeModal('modal-edit-karyawan')" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-edit-karyawan" onsubmit="submitEditKaryawan(event)" class="space-y-4 pt-4">
+                <input type="hidden" id="edit-karyawan-id">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
+                    <input type="text" id="edit-karyawan-nama" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Username (Tetap)</label>
+                    <input type="text" id="edit-karyawan-username" readonly
+                        class="w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-500 font-mono cursor-not-allowed">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Reset Password Baru (Opsional)</label>
+                    <input type="text" id="edit-karyawan-password" placeholder="Kosongkan jika tidak ingin ganti"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-900 dark:text-white font-mono outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">Hak Akses (Role)</label>
+                    <select id="edit-karyawan-role" required
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="kasir">Kasir / Karyawan (POS & Absensi)</option>
+                        <option value="admin">Administrator (Akses Penuh)</option>
+                    </select>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-edit-karyawan')" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">Batal</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-blue-500/20">Perbarui Akun</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -4329,8 +4610,8 @@
     <script>
         window.BASE_URL = window.location.origin;
     </script>
-    <script src="js/haltea_data.js?v=4.5.0"></script>
-    <script src="js/app.js?v=4.5.0"></script>
+    <script src="js/haltea_data.js?v=4.6.0"></script>
+    <script src="js/app.js?v=4.6.0"></script>
     <script>
         // Reset & Restore buttons are handled via onclick attributes
         // calling resetTransaksiData() and restoreTransaksiData() from app.js

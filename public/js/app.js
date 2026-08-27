@@ -1074,6 +1074,7 @@ const ADMIN_NAV = [
     { id: 'laporan_keuangan', icon: 'fa-file-invoice-dollar', label: 'Laporan Keuangan', role: 'admin' },
     { id: 'arus_kas', icon: 'fa-money-bill-transfer', label: 'Laporan Arus Kas', role: 'admin' },
     { id: 'absensi_staf', icon: 'fa-user-check', label: 'Cek Absensi Karyawan', role: 'admin' },
+    { id: 'kelola_karyawan', icon: 'fa-users-gear', label: 'Kelola Akun Karyawan', role: 'admin' },
     { id: 'stok_karyawan', icon: 'fa-boxes-stacked', label: 'Stok Bahan Baku', role: 'kasir' },
     { id: 'absensi_karyawan', icon: 'fa-user-clock', label: 'Absensi Karyawan', role: 'kasir' },
 ];
@@ -1445,6 +1446,11 @@ async function showPage(pageId) {
         }
     }
 
+    // Stop employee camera if navigating away from absensi_karyawan
+    if (pageId !== 'absensi_karyawan' && typeof stopKaryawanCamera === 'function') {
+        stopKaryawanCamera();
+    }
+
     const loaders = {
         dashboard: loadDashboard,
         stok: loadStok,
@@ -1459,6 +1465,7 @@ async function showPage(pageId) {
         stok_karyawan: loadStokKaryawan,
         absensi_staf: loadAbsensiStaf,
         absensi_karyawan: loadAbsensiKaryawan,
+        kelola_karyawan: loadKelolaKaryawan,
     };
     if (loaders[pageId]) await loaders[pageId]();
 }
@@ -5975,15 +5982,54 @@ async function deleteArusKas(id) {
 window.deleteArusKas = deleteArusKas;
 
 // ============================================================
-// 3. ABSENSI STAF (EXACT SCREENSHOT SPECIFICATION)
+// 3. ABSENSI STAF (ADMIN MONITORING: HARIAN, PEKANAN, BULANAN)
 // ============================================================
 let allAbsensiRecords = [];
+let currentAdminAbsensiMode = 'harian'; // 'harian' | 'pekanan' | 'bulanan'
+
+function setAdminAbsensiMode(mode) {
+    currentAdminAbsensiMode = mode;
+    const btnHarian = document.getElementById('btn-mode-absensi-harian');
+    const btnPekanan = document.getElementById('btn-mode-absensi-pekanan');
+    const btnBulanan = document.getElementById('btn-mode-absensi-bulanan');
+
+    const wrapHarian = document.getElementById('wrapper-filter-absensi-harian');
+    const wrapPekanan = document.getElementById('wrapper-filter-absensi-pekanan');
+    const wrapBulanan = document.getElementById('wrapper-filter-absensi-bulanan');
+
+    const activeClass = 'px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-xs';
+    const inactiveClass = 'px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white';
+
+    if (btnHarian) btnHarian.className = mode === 'harian' ? activeClass : inactiveClass;
+    if (btnPekanan) btnPekanan.className = mode === 'pekanan' ? activeClass : inactiveClass;
+    if (btnBulanan) btnBulanan.className = mode === 'bulanan' ? activeClass : inactiveClass;
+
+    if (wrapHarian) wrapHarian.classList.toggle('hidden', mode !== 'harian');
+    if (wrapPekanan) wrapPekanan.classList.toggle('hidden', mode !== 'pekanan');
+    if (wrapBulanan) wrapBulanan.classList.toggle('hidden', mode !== 'bulanan');
+
+    const titleEl = document.getElementById('admin-absensi-title');
+    const subEl = document.getElementById('admin-absensi-subtitle');
+    if (mode === 'harian') {
+        if (titleEl) titleEl.textContent = 'Daftar Kehadiran Harian';
+        if (subEl) subEl.textContent = 'Menampilkan presensi staf pada tanggal terpilih';
+    } else if (mode === 'pekanan') {
+        if (titleEl) titleEl.textContent = 'Daftar Kehadiran 1 Pekan';
+        if (subEl) subEl.textContent = 'Menampilkan presensi staf selama rentang 7 hari';
+    } else {
+        if (titleEl) titleEl.textContent = 'Daftar Kehadiran Bulanan';
+        if (subEl) subEl.textContent = 'Menampilkan presensi staf pada bulan terpilih';
+    }
+
+    loadAbsensiStaf();
+}
+window.setAdminAbsensiMode = setAdminAbsensiMode;
 
 async function loadAbsensiStaf() {
     try {
-        // 1. Load Jam Kerja
+        // 1. Load Jam Kerja Standar
         const resJk = await apiFetch('/api/jamkerja');
-        if (resJk.ok) {
+        if (resJk && resJk.ok) {
             const jk = await resJk.json();
             const masukInput = document.getElementById('jam-masuk-standar');
             const pulangInput = document.getElementById('jam-pulang-standar');
@@ -5991,67 +6037,108 @@ async function loadAbsensiStaf() {
             if (pulangInput && jk.jam_pulang) pulangInput.value = jk.jam_pulang;
         }
 
-        // Set default filter date to today if empty
-        const filterTglInput = document.getElementById('filter-absensi-tanggal');
-        if (filterTglInput && !filterTglInput.value) {
-            filterTglInput.value = new Date().toISOString().slice(0, 10);
-        }
-
-        // 2. Load Attendance Records
-        const dateQuery = filterTglInput?.value ? `?tanggal=${filterTglInput.value}` : '';
-        const resAbs = await apiFetch(`/api/absensi${dateQuery}`);
-        if (resAbs.ok) {
-            allAbsensiRecords = await resAbs.json();
-            renderAbsensiTable(allAbsensiRecords);
-        }
-
-        // 3. Load All Records to summarize leaves in the current month across staff
         const todayStr = new Date().toISOString().slice(0, 10);
-        const curMonth = todayStr.slice(0, 7); // e.g. "2026-08"
-        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        const curDateObj = new Date();
-        const monthLabel = monthNames[curDateObj.getMonth()] + " " + curDateObj.getFullYear();
+        let queryParams = '';
+        let periodLabel = 'Periode Hari Ini';
 
-        const resAll = await apiFetch('/api/absensi');
-        if (resAll.ok) {
-            const allRecords = await resAll.json();
-            const izinThisMonth = allRecords.filter(r => r.status === 'Izin' && (r.tanggal || '').startsWith(curMonth));
-            
-            const adminIzinCard = document.getElementById('admin-izin-summary-card');
-            const adminIzinMonthLabel = document.getElementById('admin-izin-month-label');
-            const adminTotalIzinBadge = document.getElementById('admin-total-izin-badge');
-            const adminChipsContainer = document.getElementById('admin-izin-chips-container');
+        if (currentAdminAbsensiMode === 'harian') {
+            const tglInput = document.getElementById('filter-absensi-tanggal');
+            if (tglInput && !tglInput.value) tglInput.value = todayStr;
+            const tglVal = tglInput?.value || todayStr;
+            queryParams = `?tanggal=${tglVal}`;
+            periodLabel = `Tanggal ${tglVal}`;
+        } else if (currentAdminAbsensiMode === 'pekanan') {
+            const fromInput = document.getElementById('filter-absensi-from');
+            const toInput = document.getElementById('filter-absensi-to');
+            if (toInput && !toInput.value) toInput.value = todayStr;
+            if (fromInput && !fromInput.value) {
+                const past7 = new Date();
+                past7.setDate(past7.getDate() - 6);
+                fromInput.value = past7.toISOString().slice(0, 10);
+            }
+            queryParams = `?from=${fromInput.value}&to=${toInput.value}`;
+            periodLabel = `${fromInput.value} s/d ${toInput.value}`;
+        } else if (currentAdminAbsensiMode === 'bulanan') {
+            const bulInput = document.getElementById('filter-absensi-bulan');
+            if (bulInput && !bulInput.value) bulInput.value = todayStr.slice(0, 7);
+            const mVal = bulInput?.value || todayStr.slice(0, 7);
+            const [y, m] = mVal.split('-');
+            const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
+            const firstDate = `${mVal}-01`;
+            const lastDate = `${mVal}-${String(lastDay).padStart(2, '0')}`;
+            queryParams = `?from=${firstDate}&to=${lastDate}`;
+            periodLabel = `Bulan ${mVal}`;
+        }
 
-            if (adminIzinCard && adminChipsContainer) {
-                if (adminIzinMonthLabel) adminIzinMonthLabel.textContent = monthLabel;
-                
-                if (izinThisMonth.length > 0) {
-                    const staffMap = {};
-                    izinThisMonth.forEach(r => {
-                        const name = r.nama_staff || 'Staff';
-                        staffMap[name] = (staffMap[name] || 0) + 1;
-                    });
+        // 2. Fetch attendance records
+        let records = [];
+        const resAbs = await apiFetch(`/api/absensi${queryParams}`);
+        if (resAbs && resAbs.ok) {
+            records = await resAbs.json();
+        }
 
-                    if (adminTotalIzinBadge) {
-                        adminTotalIzinBadge.textContent = `Total: ${izinThisMonth.length} Izin`;
-                    }
+        if (!records || records.length === 0) {
+            const mockAll = typeof getMockStorage === 'function' ? getMockStorage('absensi', DEFAULT_ABSENSI) : (window.DEFAULT_ABSENSI || []);
+            records = mockAll;
+        }
 
-                    adminChipsContainer.innerHTML = Object.entries(staffMap).map(([name, count]) => `
-                        <div class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700/60 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-xs">
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span>${name}:</span>
-                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-black rounded-lg text-[11px]">${count}x Izin</span>
-                        </div>
-                    `).join('');
+        allAbsensiRecords = records;
+        renderAbsensiTable(allAbsensiRecords);
 
-                    adminIzinCard.classList.remove('hidden');
-                } else {
-                    adminIzinCard.classList.add('hidden');
-                }
+        // Update KPI Stats
+        const statTotal = document.getElementById('stat-absensi-total');
+        const statHadir = document.getElementById('stat-absensi-hadir');
+        const statTerlambat = document.getElementById('stat-absensi-terlambat');
+        const statIzin = document.getElementById('stat-absensi-izin');
+        const statPeriod = document.getElementById('stat-absensi-period-label');
+
+        let hadirCount = 0;
+        let terlambatCount = 0;
+        let izinCount = 0;
+
+        allAbsensiRecords.forEach(r => {
+            const st = (r.status || '').toLowerCase();
+            if (st === 'hadir') hadirCount++;
+            else if (st === 'terlambat') terlambatCount++;
+            else if (st.includes('izin') || st === 'sakit') izinCount++;
+        });
+
+        if (statTotal) statTotal.textContent = `${allAbsensiRecords.length} Absensi`;
+        if (statHadir) statHadir.textContent = `${hadirCount} Orang`;
+        if (statTerlambat) statTerlambat.textContent = `${terlambatCount} Orang`;
+        if (statIzin) statIzin.textContent = `${izinCount} Orang`;
+        if (statPeriod) statPeriod.textContent = periodLabel;
+
+        // 3. Rekap Izin
+        const izinRecs = allAbsensiRecords.filter(r => (r.status || '').toLowerCase().includes('izin'));
+        const adminIzinCard = document.getElementById('admin-izin-summary-card');
+        const adminIzinMonthLabel = document.getElementById('admin-izin-month-label');
+        const adminTotalIzinBadge = document.getElementById('admin-total-izin-badge');
+        const adminChipsContainer = document.getElementById('admin-izin-chips-container');
+
+        if (adminIzinCard && adminChipsContainer) {
+            if (adminIzinMonthLabel) adminIzinMonthLabel.textContent = periodLabel;
+            if (izinRecs.length > 0) {
+                const staffMap = {};
+                izinRecs.forEach(r => {
+                    const name = r.nama_staff || 'Staff';
+                    staffMap[name] = (staffMap[name] || 0) + 1;
+                });
+                if (adminTotalIzinBadge) adminTotalIzinBadge.textContent = `Total: ${izinRecs.length} Izin`;
+                adminChipsContainer.innerHTML = Object.entries(staffMap).map(([name, count]) => `
+                    <div class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700/60 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-xs">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span>${name}:</span>
+                        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-black rounded-lg text-[11px]">${count}x Izin</span>
+                    </div>
+                `).join('');
+                adminIzinCard.classList.remove('hidden');
+            } else {
+                adminIzinCard.classList.add('hidden');
             }
         }
     } catch (e) {
-        showToast('Gagal memuat data absensi staf.', 'error');
+        showToast('Gagal memuat data absensi staf: ' + e.message, 'error');
     }
 }
 window.loadAbsensiStaf = loadAbsensiStaf;
@@ -6083,7 +6170,7 @@ function renderAbsensiTable(records) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
-                    Belum ada rekaman absensi hari ini.
+                    Belum ada rekaman absensi pada periode ini.
                 </td>
             </tr>
         `;
@@ -6093,10 +6180,11 @@ function renderAbsensiTable(records) {
     tbody.innerHTML = records.map(item => {
         let statusBadgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
         if (item.status === 'Terlambat') statusBadgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-        else if (item.status === 'Izin') statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        else if (item.status && item.status.includes('Izin')) statusBadgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
         else if (item.status === 'Sakit') statusBadgeClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-        else if (item.status === 'Alpha') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        else if (item.status === 'Alpha' || item.status === 'Tidak Lengkap') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
 
+        const hasFoto = item.foto && item.foto !== 'haltea-logo.png' && item.foto.length > 50;
         const fotoUrl = item.foto || 'haltea-logo.png';
 
         return `
@@ -6110,16 +6198,16 @@ function renderAbsensiTable(records) {
             </td>
             <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Masuk">${item.jam_masuk || '-'}</td>
             <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Pulang">${item.jam_pulang || '-'}</td>
-            <td class="py-3 px-3 text-center" data-label="Foto">
-                <div class="inline-block w-8 h-8 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:scale-110 transition-transform"
-                     onclick="previewFotoAbsensi('${fotoUrl}', '${item.nama_staff} - ${item.tanggal}')" title="Lihat Foto Bukti">
-                    <img src="${fotoUrl}" class="w-full h-full object-cover">
+            <td class="py-3 px-3 text-center" data-label="Bukti Kamera">
+                <div class="inline-flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:scale-110 shadow-xs transition-transform"
+                     onclick="previewFotoAbsensi('${fotoUrl}', '${item.nama_staff} • ${item.tanggal} • ${item.status}')" title="Lihat Foto Bukti Lokasi">
+                    ${hasFoto ? `<img src="${fotoUrl}" class="w-full h-full object-cover">` : `<i class="fas fa-camera text-xs text-gray-400"></i>`}
                 </div>
             </td>
-            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs" data-label="Keterangan">${item.keterangan || '-'}</td>
+            <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs" data-label="Keterangan & Lokasi">${item.keterangan || '-'}</td>
             <td class="py-3 px-2 text-center whitespace-nowrap td-actions" data-label="Aksi">
                 <div class="flex items-center justify-center">
-                    <button onclick="deleteAbsensi(${item.id})" title="Hapus Rekaman" class="text-gray-400 hover:text-red-500 p-1.5 transition">
+                    <button onclick="deleteAbsensi(${item.id})" title="Hapus Rekaman" class="text-gray-400 hover:text-red-500 p-1.5 transition cursor-pointer">
                         <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                 </div>
@@ -6210,10 +6298,14 @@ function previewFotoAbsensi(url, caption) {
 window.previewFotoAbsensi = previewFotoAbsensi;
 
 // ============================================================
-// 4. ABSENSI KARYAWAN / KASIR (PERSONAL CHECK-IN & LEAVE)
+// 4. ABSENSI KARYAWAN (LIVE WEBCAM & WATERMARKING WAKTU/LOKASI)
 // ============================================================
-let currentKaryawanSelfieBase64 = null;
+let currentKaryawanPhotoData = null;
+let karyawanCameraStream = null;
+let cameraClockInterval = null;
+let currentKaryawanGPS = 'Outlet Haltea Indonesia';
 let currentKaryawanAbsensiTab = 'hadir';
+let currentIzinType = 'masuk'; // 'masuk' | 'pulang' | 'keduanya'
 
 function switchKaryawanAbsensiTab(tab) {
     currentKaryawanAbsensiTab = tab;
@@ -6234,41 +6326,183 @@ function switchKaryawanAbsensiTab(tab) {
         btnHadir.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition text-gray-500 hover:text-gray-900 dark:hover:text-white';
         contentIzin.classList.remove('hidden');
         contentHadir.classList.add('hidden');
+        stopKaryawanCamera();
     }
 }
 window.switchKaryawanAbsensiTab = switchKaryawanAbsensiTab;
 
-async function handleKaryawanSelfieChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+async function startKaryawanCamera() {
+    const video = document.getElementById('karyawan-webcam');
+    const placeholder = document.getElementById('karyawan-camera-placeholder');
+    const previewImg = document.getElementById('karyawan-snapshot-preview');
+    const overlay = document.getElementById('karyawan-camera-overlay');
+    const btnCapture = document.getElementById('btn-karyawan-capture');
+    const btnRetake = document.getElementById('btn-karyawan-retake');
 
-    const previewBox = document.getElementById('karyawan-selfie-preview-box');
-    const previewImg = document.getElementById('karyawan-selfie-img-preview');
+    if (previewImg) previewImg.classList.add('hidden');
 
     try {
-        currentKaryawanSelfieBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => resolve('haltea-logo.png');
-            reader.readAsDataURL(file);
-        });
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            });
 
-        if (previewImg) {
-            previewImg.src = currentKaryawanSelfieBase64;
-            previewImg.classList.remove('hidden');
+            karyawanCameraStream = stream;
+            if (video) {
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+            if (overlay) overlay.classList.remove('hidden');
+            if (btnCapture) btnCapture.classList.remove('hidden');
+            if (btnRetake) btnRetake.classList.add('hidden');
+
+            if (cameraClockInterval) clearInterval(cameraClockInterval);
+            cameraClockInterval = setInterval(updateCameraClock, 1000);
+            updateCameraClock();
+
+            fetchCurrentGPSLocation();
+            showToast('Kamera web aktif. Bersiap ambil foto di lokasi.', 'info');
+        } else {
+            showToast('Browser/perangkat Anda tidak mendukung akses kamera.', 'warn');
         }
-        if (previewBox) previewBox.classList.add('hidden');
-        showToast('Foto selfie berhasil dimuat.', 'info');
     } catch (err) {
-        showToast('Gagal memproses foto.', 'error');
+        showToast('Izin kamera ditolak atau kamera tidak ditemukan: ' + err.message, 'error');
     }
 }
-window.handleKaryawanSelfieChange = handleKaryawanSelfieChange;
+window.startKaryawanCamera = startKaryawanCamera;
 
-// ============================================================
-// ABSENSI KARYAWAN (CHECK-IN, CHECK-OUT, & IZIN BERTAHAP)
-// ============================================================
-let currentIzinType = 'masuk'; // 'masuk' | 'pulang' | 'keduanya'
+function stopKaryawanCamera() {
+    if (karyawanCameraStream) {
+        karyawanCameraStream.getTracks().forEach(track => track.stop());
+        karyawanCameraStream = null;
+    }
+    if (cameraClockInterval) {
+        clearInterval(cameraClockInterval);
+        cameraClockInterval = null;
+    }
+    const video = document.getElementById('karyawan-webcam');
+    if (video) {
+        video.srcObject = null;
+        video.classList.add('hidden');
+    }
+    const overlay = document.getElementById('karyawan-camera-overlay');
+    if (overlay) overlay.classList.add('hidden');
+}
+window.stopKaryawanCamera = stopKaryawanCamera;
+
+function updateCameraClock() {
+    const clockEl = document.getElementById('camera-clock-live');
+    if (clockEl) {
+        const now = new Date();
+        clockEl.textContent = `${now.toTimeString().split(' ')[0]} WIB`;
+    }
+}
+
+function fetchCurrentGPSLocation() {
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude.toFixed(4);
+                const lon = pos.coords.longitude.toFixed(4);
+                currentKaryawanGPS = `Outlet Haltea (GPS: ${lat}, ${lon})`;
+                const locBadge = document.getElementById('karyawan-location-badge');
+                const locLive = document.getElementById('camera-location-live');
+                if (locBadge) locBadge.innerHTML = `<i class="fas fa-location-dot text-emerald-500"></i> ${lat}, ${lon}`;
+                if (locLive) locLive.textContent = `Lokasi: ${currentKaryawanGPS}`;
+            },
+            () => {
+                currentKaryawanGPS = 'Outlet Haltea Indonesia (Standby)';
+            },
+            { timeout: 8000, enableHighAccuracy: true }
+        );
+    }
+}
+
+function captureKaryawanPhoto() {
+    const video = document.getElementById('karyawan-webcam');
+    const canvas = document.getElementById('karyawan-canvas');
+    const previewImg = document.getElementById('karyawan-snapshot-preview');
+    const btnCapture = document.getElementById('btn-karyawan-capture');
+    const btnRetake = document.getElementById('btn-karyawan-retake');
+
+    if (!video || !canvas) return;
+
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    // 1. Draw snapshot
+    ctx.drawImage(video, 0, 0, width, height);
+
+    // 2. Draw watermark bottom ribbon
+    const bannerHeight = Math.max(80, Math.floor(height * 0.22));
+    const gradient = ctx.createLinearGradient(0, height - bannerHeight, 0, height);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0.75)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.92)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, height - bannerHeight, width, bannerHeight);
+
+    // Red accent line
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(0, height - bannerHeight + 2, width, 3);
+
+    // 3. Render Watermark Text
+    const curName = currentUser?.nama || 'Kasir Haltea';
+    const now = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const dateFormatted = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} • ${now.toTimeString().split(' ')[0]} WIB`;
+
+    const fontSizeTitle = Math.max(14, Math.floor(width * 0.026));
+    const fontSizeBody = Math.max(11, Math.floor(width * 0.020));
+
+    // Brand Title
+    ctx.font = `bold ${fontSizeTitle}px sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('HALTEA INDONESIA • PRESENSI RESMI', 16, height - bannerHeight + fontSizeTitle + 14);
+
+    // Date & Time
+    ctx.font = `bold ${fontSizeBody}px monospace`;
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText(`🕒 ${dateFormatted}`, 16, height - bannerHeight + fontSizeTitle + fontSizeBody + 22);
+
+    // Staff Name & Location
+    ctx.font = `normal ${fontSizeBody}px sans-serif`;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(`👤 Staff: ${curName} | 📍 ${currentKaryawanGPS}`, 16, height - bannerHeight + fontSizeTitle + (fontSizeBody * 2) + 30);
+
+    // 4. Generate Base64
+    currentKaryawanPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+
+    // 5. Update UI
+    if (previewImg) {
+        previewImg.src = currentKaryawanPhotoData;
+        previewImg.classList.remove('hidden');
+    }
+    stopKaryawanCamera();
+
+    if (btnCapture) btnCapture.classList.add('hidden');
+    if (btnRetake) btnRetake.classList.remove('hidden');
+
+    showToast('Foto bukti berhasil diambil dengan watermark lokasi & waktu.', 'success');
+}
+window.captureKaryawanPhoto = captureKaryawanPhoto;
+
+function retakeKaryawanPhoto() {
+    currentKaryawanPhotoData = null;
+    startKaryawanCamera();
+}
+window.retakeKaryawanPhoto = retakeKaryawanPhoto;
 
 function selectIzinType(type) {
     currentIzinType = type;
@@ -6277,8 +6511,8 @@ function selectIzinType(type) {
     const btnKeduanya = document.getElementById('btn-izin-type-keduanya');
     const noteText = document.getElementById('karyawan-izin-note-text');
 
-    const activeClass = 'p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs';
-    const inactiveClass = 'p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer';
+    const activeClass = 'p-2 sm:p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs';
+    const inactiveClass = 'p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer';
 
     if (btnMasuk) btnMasuk.className = (type === 'masuk') ? activeClass : inactiveClass;
     if (btnPulang) btnPulang.className = (type === 'pulang') ? activeClass : inactiveClass;
@@ -6286,11 +6520,11 @@ function selectIzinType(type) {
 
     if (noteText) {
         if (type === 'masuk') {
-            noteText.innerHTML = '<strong>Izin Masuk Dipilih:</strong> Anda mengajukan izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.';
+            noteText.innerHTML = '<strong>Izin Masuk Dipilih:</strong> Anda izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.';
         } else if (type === 'pulang') {
-            noteText.innerHTML = '<strong>Izin Pulang Dipilih:</strong> Anda mengajukan izin pulang lebih awal. <strong>Anda tetap wajib melakukan Absen Masuk</strong> di pagi hari.';
+            noteText.innerHTML = '<strong>Izin Pulang Dipilih:</strong> Anda izin pulang lebih awal. <strong>Anda tetap wajib melakukan Absen Masuk</strong> di pagi hari.';
         } else {
-            noteText.innerHTML = '<strong>Izin Seharian (Keduanya) Dipilih:</strong> Anda mengajukan izin tidak hadir penuh sepanjang hari ini.';
+            noteText.innerHTML = '<strong>Izin Seharian (Keduanya) Dipilih:</strong> Anda izin tidak hadir sepanjang hari ini.';
         }
     }
 }
@@ -6305,7 +6539,7 @@ async function loadAbsensiKaryawan() {
     const userRoleEl = document.getElementById('karyawan-absensi-user-role');
     const avatarInit = document.getElementById('karyawan-absensi-avatar-initial');
 
-    const curName = currentUser?.nama || 'Kasir Haltea (Karyawan)';
+    const curName = currentUser?.nama || 'Kasir Haltea';
     const curRole = currentUser?.role === 'admin' ? 'Admin' : 'Kasir';
     if (userNameEl) userNameEl.textContent = curName;
     if (userRoleEl) userRoleEl.textContent = curRole;
@@ -6376,11 +6610,11 @@ function renderKaryawanAbsenButtons(todayRec) {
     const actionBox = document.getElementById('karyawan-absen-actions');
     if (!actionBox) return;
 
-    const hasMasuk = todayRec && todayRec.jam_masuk && todayRec.jam_masuk !== '-' && todayRec.jam_masuk !== '';
-    const hasPulang = todayRec && todayRec.jam_pulang && todayRec.jam_pulang !== '-' && todayRec.jam_pulang !== '';
+    const hasMasuk = todayRec && todayRec.jam_masuk && todayRec.jam_masuk !== '-' && todayRec.jam_masuk !== '' && todayRec.jam_masuk !== 'Izin';
+    const hasPulang = todayRec && todayRec.jam_pulang && todayRec.jam_pulang !== '-' && todayRec.jam_pulang !== '' && todayRec.jam_pulang !== 'Izin';
     const isIzinSeharian = todayRec && todayRec.status === 'Izin' && todayRec.jam_masuk === 'Izin' && todayRec.jam_pulang === 'Izin';
 
-    // 1. Sudah Lengkap (Masuk & Pulang sudah terisi, ATAU Izin Seharian)
+    // 1. Sudah Lengkap
     if ((hasMasuk && hasPulang) || isIzinSeharian) {
         actionBox.innerHTML = `
             <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-center shadow-xs">
@@ -6446,7 +6680,7 @@ function renderKaryawanAbsenButtons(todayRec) {
                     <span>Absen Pulang</span>
                 </button>
             </div>
-            <p class="text-[10px] text-center text-gray-400">Unggah foto selfie Anda sebelum klik tombol Absen Masuk.</p>
+            <p class="text-[10px] text-center text-gray-400">Ambil foto kamera bukti di lokasi sebelum menekan tombol Absen Masuk.</p>
         </div>
     `;
 }
@@ -6458,7 +6692,7 @@ function renderKaryawanAbsensiTable(records) {
     if (!records || records.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
+                <td colspan="6" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
                     Belum ada riwayat kehadiran.
                 </td>
             </tr>
@@ -6473,6 +6707,9 @@ function renderKaryawanAbsensiTable(records) {
         else if (item.status === 'Sakit') statusBadgeClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
         else if (item.status === 'Alpha' || item.status === 'Tidak Lengkap') statusBadgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
 
+        const hasFoto = item.foto && item.foto !== 'haltea-logo.png' && item.foto.length > 50;
+        const fotoUrl = item.foto || 'haltea-logo.png';
+
         return `
         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
             <td class="py-3 px-3 font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap" data-label="Tanggal">${item.tanggal}</td>
@@ -6483,6 +6720,12 @@ function renderKaryawanAbsensiTable(records) {
             </td>
             <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Masuk">${item.jam_masuk || '-'}</td>
             <td class="py-3 px-3 text-center font-mono font-semibold text-gray-700 dark:text-gray-300" data-label="Pulang">${item.jam_pulang || '-'}</td>
+            <td class="py-3 px-3 text-center" data-label="Foto Bukti">
+                <div class="inline-flex items-center justify-center w-8 h-8 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:scale-110 shadow-xs transition-transform"
+                     onclick="previewFotoAbsensi('${fotoUrl}', '${item.nama_staff} • ${item.tanggal}')" title="Lihat Foto Bukti">
+                    ${hasFoto ? `<img src="${fotoUrl}" class="w-full h-full object-cover">` : `<i class="fas fa-camera text-xs text-gray-400"></i>`}
+                </div>
+            </td>
             <td class="py-3 px-3 text-gray-500 dark:text-gray-400 text-xs" data-label="Keterangan">${item.keterangan || '-'}</td>
         </tr>
         `;
@@ -6506,6 +6749,12 @@ async function resetKaryawanAbsenToday() {
 window.resetKaryawanAbsenToday = resetKaryawanAbsenToday;
 
 async function submitKaryawanCheckIn() {
+    if (!currentKaryawanPhotoData) {
+        showToast('Wajib mengambil foto kamera bukti sampai lokasi kerja terlebih dahulu!', 'warn');
+        startKaryawanCamera();
+        return;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const now = new Date();
     const nowHour = now.getHours();
@@ -6522,7 +6771,6 @@ async function submitKaryawanCheckIn() {
         status = 'Hadir';
         keterangan = 'Tepat Waktu';
     } else {
-        // Terlambat
         status = 'Terlambat';
         const lateMin = totalMinutesNow - 480;
         if (lateMin >= 60) {
@@ -6535,7 +6783,7 @@ async function submitKaryawanCheckIn() {
     }
 
     const curName = currentUser?.nama || 'Kasir Haltea';
-    const foto = currentKaryawanSelfieBase64 || 'haltea-logo.png';
+    const foto = currentKaryawanPhotoData;
 
     try {
         let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
@@ -6544,7 +6792,7 @@ async function submitKaryawanCheckIn() {
         if (existingIdx !== -1) {
             absList[existingIdx].jam_masuk = nowTimeStr;
             absList[existingIdx].status = status;
-            absList[existingIdx].keterangan = keterangan;
+            absList[existingIdx].keterangan = `${keterangan} | ${currentKaryawanGPS}`;
             if (foto) absList[existingIdx].foto = foto;
             setMockStorage('absensi', absList);
         } else {
@@ -6555,7 +6803,7 @@ async function submitKaryawanCheckIn() {
                 jam_masuk: nowTimeStr,
                 jam_pulang: '-',
                 status,
-                keterangan,
+                keterangan: `${keterangan} | ${currentKaryawanGPS}`,
                 foto
             };
             absList.unshift(newRecord);
@@ -6571,7 +6819,7 @@ async function submitKaryawanCheckIn() {
                 jam_masuk: nowTimeStr,
                 jam_pulang: '-',
                 status,
-                keterangan,
+                keterangan: `${keterangan} | ${currentKaryawanGPS}`,
                 foto
             })
         }).catch(() => {});
@@ -6659,7 +6907,6 @@ async function submitKaryawanCheckOutDirect() {
     const nowTimeStr = `${String(nowHour).padStart(2, '0')}:${String(nowMin).padStart(2, '0')}:${String(nowSec).padStart(2, '0')}`;
     const curName = currentUser?.nama || 'Kasir Haltea';
 
-    // Check if user has checked in today
     let absList = getMockStorage('absensi', DEFAULT_ABSENSI);
     const existing = absList.find(x => x.tanggal === today && ((x.nama_staff || '').toLowerCase().includes(curName.toLowerCase()) || curName.toLowerCase().includes((x.nama_staff || '').toLowerCase())));
 
@@ -6668,6 +6915,7 @@ async function submitKaryawanCheckOutDirect() {
     }
 
     let pulangKet = totalMinutesNow >= 960 ? 'Jam Kerja Terpenuhi' : 'Pulang Lebih Awal';
+    const foto = currentKaryawanPhotoData || 'haltea-logo.png';
     const newRecord = {
         id: Date.now(),
         nama_staff: curName,
@@ -6675,8 +6923,8 @@ async function submitKaryawanCheckOutDirect() {
         jam_masuk: '-',
         jam_pulang: nowTimeStr,
         status: 'Tidak Lengkap',
-        keterangan: `Tidak Absen Masuk | ${pulangKet}`,
-        foto: 'haltea-logo.png'
+        keterangan: `Tidak Absen Masuk | ${pulangKet} | ${currentKaryawanGPS}`,
+        foto
     };
     absList.unshift(newRecord);
     setMockStorage('absensi', absList);
@@ -6788,6 +7036,195 @@ async function submitKaryawanIzin() {
     }
 }
 window.submitKaryawanIzin = submitKaryawanIzin;
+
+// ============================================================
+// 5. KELOLA AKUN KARYAWAN (ADMIN ONLY CRUD)
+// ============================================================
+let allKaryawanUsers = [];
+
+async function loadKelolaKaryawan() {
+    try {
+        const res = await apiFetch('/api/users');
+        if (res && res.ok) {
+            allKaryawanUsers = await res.json();
+        } else {
+            allKaryawanUsers = [
+                { id: 1, nama: 'Admin Haltea', username: 'admin', role: 'admin', created_at: '2026-08-01' },
+                { id: 2, nama: 'Kasir Haltea', username: 'kasir', role: 'kasir', created_at: '2026-08-01' },
+                { id: 3, nama: 'Sarah Aulia', username: 'sarah', role: 'kasir', created_at: '2026-08-15' },
+            ];
+        }
+
+        // Update KPI Cards
+        const totalEl = document.getElementById('stat-karyawan-total');
+        const kasirEl = document.getElementById('stat-karyawan-kasir');
+        const adminEl = document.getElementById('stat-karyawan-admin');
+
+        const kasirCount = allKaryawanUsers.filter(u => u.role === 'kasir').length;
+        const adminCount = allKaryawanUsers.filter(u => u.role === 'admin').length;
+
+        if (totalEl) totalEl.textContent = `${allKaryawanUsers.length} Akun`;
+        if (kasirEl) kasirEl.textContent = `${kasirCount} Akun`;
+        if (adminEl) adminEl.textContent = `${adminCount} Akun`;
+
+        renderKaryawanTable(allKaryawanUsers);
+    } catch (e) {
+        showToast('Gagal memuat akun karyawan: ' + e.message, 'error');
+    }
+}
+window.loadKelolaKaryawan = loadKelolaKaryawan;
+
+function renderKaryawanTable(users) {
+    const tbody = document.getElementById('table-karyawan-users-body');
+    if (!tbody) return;
+
+    if (!users || users.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">
+                    Belum ada akun karyawan yang terdaftar.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = users.map((u, idx) => {
+        const isAdmin = u.role === 'admin';
+        const roleBadge = isAdmin
+            ? `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Administrator</span>`
+            : `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Kasir / Karyawan</span>`;
+
+        return `
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition">
+            <td class="px-4 py-3 text-center text-gray-400 font-mono text-xs">${idx + 1}</td>
+            <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${u.nama}</td>
+            <td class="px-4 py-3 font-mono text-gray-600 dark:text-gray-300 font-semibold">${u.username}</td>
+            <td class="px-4 py-3 text-center">${roleBadge}</td>
+            <td class="px-4 py-3 text-center text-gray-400 font-mono text-xs">${u.created_at ? u.created_at.slice(0, 10) : '-'}</td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="openModalEditKaryawan(${u.id})" class="px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 font-bold text-xs flex items-center gap-1 transition cursor-pointer">
+                        <i class="fas fa-key text-[10px]"></i> <span>Edit/Reset</span>
+                    </button>
+                    ${u.username !== 'admin' ? `
+                    <button onclick="deleteKaryawanUser(${u.id}, '${u.username}')" class="px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 font-bold text-xs flex items-center gap-1 transition cursor-pointer">
+                        <i class="fas fa-trash-alt text-[10px]"></i> <span>Hapus</span>
+                    </button>
+                    ` : ''}
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function filterKaryawanTable() {
+    const q = (document.getElementById('search-karyawan-input')?.value || '').toLowerCase().trim();
+    if (!q) {
+        renderKaryawanTable(allKaryawanUsers);
+        return;
+    }
+    const filtered = allKaryawanUsers.filter(u =>
+        (u.nama || '').toLowerCase().includes(q) ||
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.role || '').toLowerCase().includes(q)
+    );
+    renderKaryawanTable(filtered);
+}
+window.filterKaryawanTable = filterKaryawanTable;
+
+function openModalTambahKaryawan() {
+    const form = document.getElementById('form-tambah-karyawan');
+    if (form) form.reset();
+    openModal('modal-tambah-karyawan');
+}
+window.openModalTambahKaryawan = openModalTambahKaryawan;
+
+async function submitTambahKaryawan(e) {
+    e.preventDefault();
+    const nama = document.getElementById('tambah-karyawan-nama').value.trim();
+    const username = document.getElementById('tambah-karyawan-username').value.trim().toLowerCase();
+    const password = document.getElementById('tambah-karyawan-password').value;
+    const role = document.getElementById('tambah-karyawan-role').value;
+
+    if (!nama || !username || !password) {
+        showToast('Harap lengkapi semua isian akun.', 'warn');
+        return;
+    }
+
+    try {
+        const res = await apiFetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama, username, password, role })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Gagal membuat akun');
+        showToast(`Akun karyawan "${nama}" (${username}) berhasil dibuat.`, 'success');
+        closeModal('modal-tambah-karyawan');
+        await loadKelolaKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitTambahKaryawan = submitTambahKaryawan;
+
+function openModalEditKaryawan(id) {
+    const u = allKaryawanUsers.find(x => x.id === id);
+    if (!u) return;
+
+    document.getElementById('edit-karyawan-id').value = u.id;
+    document.getElementById('edit-karyawan-nama').value = u.nama;
+    document.getElementById('edit-karyawan-username').value = u.username;
+    document.getElementById('edit-karyawan-password').value = '';
+    document.getElementById('edit-karyawan-role').value = u.role;
+
+    openModal('modal-edit-karyawan');
+}
+window.openModalEditKaryawan = openModalEditKaryawan;
+
+async function submitEditKaryawan(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-karyawan-id').value;
+    const nama = document.getElementById('edit-karyawan-nama').value.trim();
+    const password = document.getElementById('edit-karyawan-password').value;
+    const role = document.getElementById('edit-karyawan-role').value;
+
+    try {
+        const payload = { nama, role };
+        if (password) payload.password = password;
+
+        const res = await apiFetch(`/api/users/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Gagal memperbarui akun');
+        showToast('Akun karyawan berhasil diperbarui.', 'success');
+        closeModal('modal-edit-karyawan');
+        await loadKelolaKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.submitEditKaryawan = submitEditKaryawan;
+
+async function deleteKaryawanUser(id, username) {
+    if (!confirm(`Hapus akun pengguna "${username}"? Akun ini tidak akan bisa login lagi.`)) return;
+
+    try {
+        const res = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Gagal menghapus akun');
+        showToast('Akun karyawan berhasil dihapus.', 'success');
+        await loadKelolaKaryawan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+window.deleteKaryawanUser = deleteKaryawanUser;
 
 // ============================================================
 // STOK BAHAN BAKU KARYAWAN (CEK & OPNAME REAL-TIME)

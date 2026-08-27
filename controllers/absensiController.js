@@ -46,7 +46,7 @@ let memoryJamKerja = { jam_masuk: '08:00:00', jam_pulang: '16:00:00', toleransi_
 ensureTables();
 
 export async function getAbsensi(req, res) {
-    const { tanggal, nama_staff, bulan } = req.query;
+    const { tanggal, from, to, nama_staff, bulan } = req.query;
     try {
         let sql = 'SELECT * FROM absensi WHERE 1=1';
         const params = [];
@@ -54,6 +54,14 @@ export async function getAbsensi(req, res) {
         if (tanggal) {
             sql += ' AND tanggal = ?';
             params.push(tanggal);
+        }
+        if (from) {
+            sql += ' AND tanggal >= ?';
+            params.push(from);
+        }
+        if (to) {
+            sql += ' AND tanggal <= ?';
+            params.push(to);
         }
         if (nama_staff) {
             sql += ' AND LOWER(nama_staff) LIKE ?';
@@ -71,6 +79,8 @@ export async function getAbsensi(req, res) {
         // Fallback to memory
         let filtered = [...memoryAbsensi];
         if (tanggal) filtered = filtered.filter(a => a.tanggal === tanggal);
+        if (from) filtered = filtered.filter(a => a.tanggal >= from);
+        if (to) filtered = filtered.filter(a => a.tanggal <= to);
         if (nama_staff) filtered = filtered.filter(a => (a.nama_staff || '').toLowerCase().includes(nama_staff.toLowerCase()));
         if (bulan) filtered = filtered.filter(a => (a.tanggal || '').startsWith(bulan));
         return res.json(filtered);
