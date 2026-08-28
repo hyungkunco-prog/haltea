@@ -37,10 +37,7 @@ async function ensureTables() {
 }
 
 // In-memory fallback if MySQL not running or table fails
-let memoryAbsensi = [
-    { id: 1, tanggal: '2026-08-25', nama_staff: 'Kasir Haltea', jam_masuk: '07:55:00', jam_pulang: '16:05:00', status: 'Hadir', keterangan: 'Shift pagi - tepat waktu', foto: 'haltea-logo.png' },
-    { id: 2, tanggal: '2026-08-24', nama_staff: 'Kasir Haltea', jam_masuk: '08:15:00', jam_pulang: '16:00:00', status: 'Terlambat', keterangan: 'Terlambat 15 menit', foto: 'haltea-logo.png' }
-];
+let memoryAbsensi = [];
 let memoryJamKerja = { jam_masuk: '08:00:00', jam_pulang: '16:00:00', toleransi_menit: 10 };
 
 ensureTables();

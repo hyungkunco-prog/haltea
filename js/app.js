@@ -74,11 +74,8 @@ const todayDateIso = new Date().toISOString().slice(0, 10);
 const yesterdayIso = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 const twoDaysAgoIso = new Date(Date.now() - 172800000).toISOString().slice(0, 10);
 
-const DEFAULT_ABSENSI = [
-    { id: 1, tanggal: yesterdayIso, nama_staff: 'Kasir Haltea', jam_masuk: '07:55:00', jam_pulang: '16:05:00', status: 'Hadir', keterangan: 'Shift pagi - tepat waktu', foto: 'haltea-logo.png' },
-    { id: 2, tanggal: twoDaysAgoIso, nama_staff: 'Kasir Haltea', jam_masuk: '08:12:00', jam_pulang: '16:00:00', status: 'Terlambat', keterangan: 'Terlambat 12 menit', foto: 'haltea-logo.png' },
-    { id: 3, tanggal: yesterdayIso, nama_staff: 'Admin Haltea', jam_masuk: '07:45:00', jam_pulang: '17:30:00', status: 'Hadir', keterangan: 'Supervisor & Stock Opname', foto: 'haltea-logo.png' }
-];
+const DEFAULT_ABSENSI = [];
+window.DEFAULT_ABSENSI = DEFAULT_ABSENSI;
 
 const DEFAULT_ARUS_KAS = [
     { id: 1, tanggal: todayDateIso, tipe: 'masuk', kategori: 'Penjualan Minuman POS', nominal: 1450000, keterangan: 'Omset kasir harian shift 1 & 2' },
@@ -111,12 +108,18 @@ function initMockDataIfEmpty() {
     const fullTakaran = (initData.takaran && initData.takaran.length) ? initData.takaran : DEFAULT_TAKARAN;
     const fullTrx = (initData.transaksi && initData.transaksi.length) ? initData.transaksi : null;
 
+    // Purge old sample attendance records
+    if (!localStorage.getItem('haltea_absensi_cleared_v1')) {
+        setMockStorage('absensi', []);
+        localStorage.setItem('haltea_absensi_cleared_v1', '1');
+    }
+
     const versionKey = 'haltea_db_real_v6';
     if (!localStorage.getItem(versionKey)) {
         setMockStorage('barang', fullBarang);
         setMockStorage('menu', fullMenu);
         setMockStorage('takaran', fullTakaran);
-        setMockStorage('absensi', DEFAULT_ABSENSI);
+        setMockStorage('absensi', []);
         setMockStorage('jam_kerja', DEFAULT_JAM_KERJA);
         setMockStorage('aruskas', DEFAULT_ARUS_KAS);
         if (fullTrx) {
@@ -130,7 +133,7 @@ function initMockDataIfEmpty() {
     if (!localStorage.getItem('haltea_menu')) setMockStorage('menu', fullMenu);
     if (!localStorage.getItem('haltea_takaran')) setMockStorage('takaran', fullTakaran);
     if (!localStorage.getItem('haltea_jam_kerja')) setMockStorage('jam_kerja', DEFAULT_JAM_KERJA);
-    if (!localStorage.getItem('haltea_absensi')) setMockStorage('absensi', DEFAULT_ABSENSI);
+    if (!localStorage.getItem('haltea_absensi')) setMockStorage('absensi', []);
     if (!localStorage.getItem('haltea_aruskas')) setMockStorage('aruskas', DEFAULT_ARUS_KAS);
     if (!localStorage.getItem('haltea_transaksi')) {
         if (fullTrx) {
@@ -6504,31 +6507,59 @@ function retakeKaryawanPhoto() {
 }
 window.retakeKaryawanPhoto = retakeKaryawanPhoto;
 
-function selectIzinType(type) {
-    currentIzinType = type;
-    const btnMasuk = document.getElementById('btn-izin-type-masuk');
-    const btnPulang = document.getElementById('btn-izin-type-pulang');
-    const btnKeduanya = document.getElementById('btn-izin-type-keduanya');
+let selectedIzinOptions = {
+    masuk: true,
+    pulang: false
+};
+
+function toggleIzinOption(type) {
+    selectedIzinOptions[type] = !selectedIzinOptions[type];
+
+    // Ensure at least one is selected
+    if (!selectedIzinOptions.masuk && !selectedIzinOptions.pulang) {
+        selectedIzinOptions[type] = true;
+        showToast('Minimal pilih salah satu: Izin Masuk atau Izin Pulang.', 'info');
+    }
+
+    renderIzinToggleUI();
+}
+window.toggleIzinOption = toggleIzinOption;
+window.selectIzinType = function(type) {
+    if (type === 'masuk') {
+        selectedIzinOptions.masuk = true;
+        selectedIzinOptions.pulang = false;
+    } else if (type === 'pulang') {
+        selectedIzinOptions.masuk = false;
+        selectedIzinOptions.pulang = true;
+    } else if (type === 'keduanya') {
+        selectedIzinOptions.masuk = true;
+        selectedIzinOptions.pulang = true;
+    }
+    renderIzinToggleUI();
+};
+
+function renderIzinToggleUI() {
+    const btnMasuk = document.getElementById('btn-izin-toggle-masuk') || document.getElementById('btn-izin-type-masuk');
+    const btnPulang = document.getElementById('btn-izin-toggle-pulang') || document.getElementById('btn-izin-type-pulang');
     const noteText = document.getElementById('karyawan-izin-note-text');
 
-    const activeClass = 'p-2 sm:p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition cursor-pointer shadow-xs';
-    const inactiveClass = 'p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-[11px] sm:text-xs flex flex-col items-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer';
+    const activeClass = 'p-3 rounded-2xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer shadow-xs';
+    const inactiveClass = 'p-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs flex flex-col items-center justify-center gap-1 transition hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer opacity-80';
 
-    if (btnMasuk) btnMasuk.className = (type === 'masuk') ? activeClass : inactiveClass;
-    if (btnPulang) btnPulang.className = (type === 'pulang') ? activeClass : inactiveClass;
-    if (btnKeduanya) btnKeduanya.className = (type === 'keduanya') ? activeClass : inactiveClass;
+    if (btnMasuk) btnMasuk.className = selectedIzinOptions.masuk ? activeClass : inactiveClass;
+    if (btnPulang) btnPulang.className = selectedIzinOptions.pulang ? activeClass : inactiveClass;
 
     if (noteText) {
-        if (type === 'masuk') {
+        if (selectedIzinOptions.masuk && selectedIzinOptions.pulang) {
+            noteText.innerHTML = '<strong>Izin Seharian Penuh (Masuk & Pulang) Dipilih:</strong> Anda mengajukan izin tidak hadir penuh sepanjang hari ini.';
+        } else if (selectedIzinOptions.masuk) {
             noteText.innerHTML = '<strong>Izin Masuk Dipilih:</strong> Anda izin tidak masuk pagi/siang. <strong>Anda tetap wajib melakukan Absen Pulang</strong> pada saat jam pulang kerja.';
-        } else if (type === 'pulang') {
+        } else if (selectedIzinOptions.pulang) {
             noteText.innerHTML = '<strong>Izin Pulang Dipilih:</strong> Anda izin pulang lebih awal. <strong>Anda tetap wajib melakukan Absen Masuk</strong> di pagi hari.';
-        } else {
-            noteText.innerHTML = '<strong>Izin Seharian (Keduanya) Dipilih:</strong> Anda izin tidak hadir sepanjang hari ini.';
         }
     }
 }
-window.selectIzinType = selectIzinType;
+window.renderIzinToggleUI = renderIzinToggleUI;
 
 async function loadAbsensiKaryawan() {
     const today = new Date().toISOString().slice(0, 10);
@@ -6941,6 +6972,14 @@ async function submitKaryawanCheckOutDirect() {
 window.submitKaryawanCheckOutDirect = submitKaryawanCheckOutDirect;
 
 async function submitKaryawanIzin() {
+    const isMasuk = selectedIzinOptions.masuk;
+    const isPulang = selectedIzinOptions.pulang;
+
+    if (!isMasuk && !isPulang) {
+        showToast('Harap pilih minimal salah satu jenis izin (Izin Masuk atau Izin Pulang).', 'warn');
+        return;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const alasan = document.getElementById('karyawan-izin-alasan').value.trim();
     if (!alasan) {
@@ -6954,21 +6993,21 @@ async function submitKaryawanIzin() {
     let statusVal = 'Izin';
     let keteranganVal = '';
 
-    if (currentIzinType === 'masuk') {
-        jamMasukVal = 'Izin';
-        jamPulangVal = '-';
-        statusVal = 'Izin (Masuk)';
-        keteranganVal = `Izin Masuk: ${alasan} (Wajib Absen Pulang)`;
-    } else if (currentIzinType === 'pulang') {
-        jamMasukVal = '-';
-        jamPulangVal = 'Izin';
-        statusVal = 'Izin (Pulang)';
-        keteranganVal = `Izin Pulang: ${alasan}`;
-    } else {
+    if (isMasuk && isPulang) {
         jamMasukVal = 'Izin';
         jamPulangVal = 'Izin';
         statusVal = 'Izin';
         keteranganVal = `Izin Seharian: ${alasan}`;
+    } else if (isMasuk) {
+        jamMasukVal = 'Izin';
+        jamPulangVal = '-';
+        statusVal = 'Izin (Masuk)';
+        keteranganVal = `Izin Masuk: ${alasan} (Wajib Absen Pulang)`;
+    } else {
+        jamMasukVal = '-';
+        jamPulangVal = 'Izin';
+        statusVal = 'Izin (Pulang)';
+        keteranganVal = `Izin Pulang: ${alasan}`;
     }
 
     try {
@@ -6977,17 +7016,17 @@ async function submitKaryawanIzin() {
 
         if (existingIdx !== -1) {
             const cur = absList[existingIdx];
-            if (currentIzinType === 'pulang') {
-                cur.jam_pulang = 'Izin';
-                cur.keterangan = `${cur.keterangan || 'Hadir'} | Izin Pulang: ${alasan}`;
-            } else if (currentIzinType === 'masuk') {
-                cur.jam_masuk = 'Izin';
-                cur.keterangan = `Izin Masuk: ${alasan} | ${cur.keterangan || ''}`;
-            } else {
+            if (isMasuk && isPulang) {
                 cur.jam_masuk = 'Izin';
                 cur.jam_pulang = 'Izin';
                 cur.status = 'Izin';
                 cur.keterangan = `Izin Seharian: ${alasan}`;
+            } else if (isMasuk) {
+                cur.jam_masuk = 'Izin';
+                cur.keterangan = `Izin Masuk: ${alasan} | ${cur.keterangan || ''}`;
+            } else {
+                cur.jam_pulang = 'Izin';
+                cur.keterangan = `${cur.keterangan || 'Hadir'} | Izin Pulang: ${alasan}`;
             }
             setMockStorage('absensi', absList);
         } else {
@@ -7019,12 +7058,12 @@ async function submitKaryawanIzin() {
             })
         }).catch(() => {});
 
-        if (currentIzinType === 'masuk') {
+        if (isMasuk && isPulang) {
+            showToast('Permohonan Izin Seharian Penuh berhasil dicatat.', 'info');
+        } else if (isMasuk) {
             showToast('Permohonan Izin Masuk berhasil dikirim. Anda tetap wajib melakukan Absen Pulang saat selesai kerja.', 'info');
-        } else if (currentIzinType === 'pulang') {
-            showToast('Permohonan Izin Pulang berhasil dikirim.', 'info');
         } else {
-            showToast('Permohonan Izin Seharian berhasil dicatat.', 'info');
+            showToast('Permohonan Izin Pulang berhasil dikirim.', 'info');
         }
 
         const alasanInput = document.getElementById('karyawan-izin-alasan');
@@ -7216,12 +7255,24 @@ async function deleteKaryawanUser(id, username) {
 
     try {
         const res = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Gagal menghapus akun');
-        showToast('Akun karyawan berhasil dihapus.', 'success');
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Gagal menghapus akun');
+        }
+        showToast(`Akun karyawan "${username}" berhasil dihapus.`, 'success');
         await loadKelolaKaryawan();
     } catch (err) {
-        showToast(err.message, 'error');
+        // Fallback local deletion
+        allKaryawanUsers = allKaryawanUsers.filter(u => u.id !== id && u.username !== username);
+        setMockStorage('users', allKaryawanUsers);
+        renderKaryawanTable(allKaryawanUsers);
+        const totalEl = document.getElementById('stat-karyawan-total');
+        const kasirEl = document.getElementById('stat-karyawan-kasir');
+        const adminEl = document.getElementById('stat-karyawan-admin');
+        if (totalEl) totalEl.textContent = `${allKaryawanUsers.length} Akun`;
+        if (kasirEl) kasirEl.textContent = `${allKaryawanUsers.filter(u => u.role === 'kasir').length} Akun`;
+        if (adminEl) adminEl.textContent = `${allKaryawanUsers.filter(u => u.role === 'admin').length} Akun`;
+        showToast(`Akun karyawan "${username}" telah dihapus.`, 'success');
     }
 }
 window.deleteKaryawanUser = deleteKaryawanUser;
