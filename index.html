@@ -10,6 +10,14 @@
     <title>HALTEA - Sistem Prediksi Stok Bahan Baku</title>
     <meta name="description"
         content="Sistem informasi prediksi kebutuhan stok bahan baku minuman Haltea menggunakan metode SES (Single Exponential Smoothing) dengan evaluasi WMAPE.">
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#dc2626">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HALTEA">
+    <link rel="apple-touch-icon" href="haltea-logo.png">
+    <link rel="icon" type="image/png" href="haltea-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -4593,8 +4601,14 @@
     <script src="js/haltea_data.js?v=4.7.0"></script>
     <script src="js/app.js?v=4.7.0"></script>
     <script>
-        // Reset & Restore buttons are handled via onclick attributes
-        // calling resetTransaksiData() and restoreTransaksiData() from app.js
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('HALTEA PWA ServiceWorker Registered:', reg.scope))
+                    .catch(err => console.warn('PWA SW Register failed:', err));
+            });
+        }
     </script>
 </body>
 

@@ -1,0 +1,13 @@
+{
+  "appId": "id.haltea.app",
+  "appName": "HALTEA",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "HALTEA INDONESIA",
+  "short_name": "HALTEA",
+  "description": "Sistem Informasi Kasir & Prediksi Stok Bahan Baku Haltea Indonesia",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#dc2626",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "haltea-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "haltea-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,12 +1,17 @@
 {
-  "name": "haltea-node",
+  "name": "haltea-app",
   "version": "1.0.0",
-  "description": "HALTEA - Sistem Prediksi Stok Bahan Baku & Manajemen Kasir (Node.js & Express)",
-  "main": "server.js",
+  "description": "HALTEA - Sistem Prediksi Stok Bahan Baku & Manajemen Kasir",
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "electron:start": "npx electron electron/main.cjs",
+    "electron:dist": "npx electron-builder --win",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android"
   },
   "keywords": [
     "haltea",
@@ -14,11 +19,16 @@
     "exponential-smoothing",
     "wmape",
     "inventory-prediction",
-    "express"
+    "electron",
+    "capacitor",
+    "pwa"
   ],
-  "author": "HALTEA Team",
+  "author": "HALTEA Indonesia",
   "license": "MIT",
   "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -27,5 +37,29 @@
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.10.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "id.haltea.desktop",
+    "productName": "HALTEA POS",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "haltea-logo.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
